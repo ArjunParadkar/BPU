@@ -32,8 +32,13 @@ class Tile:
     """
 
     def __init__(self, n_in: int, n_out: int, rng: np.random.Generator,
-                 params: DeviceParams | None = None, mask=None, w_init: float = 0.0):
+                 params: DeviceParams | None = None, mask=None, w_init: float = 0.0, tile_size: int = 32):
+        """A matrix larger than ``tile_size`` x ``tile_size`` is routed as several physical tiles
+        (``n_tiles``); the device model is identical, the difference on hardware is the extra
+        A/D conversions and routed events at tile boundaries, which ``conversions_per_read``
+        and ``events_per_read`` account for."""
         self.n_in, self.n_out = int(n_in), int(n_out)
+        self.tile_size = int(tile_size)
         self.rng = rng
         self.p = params or DeviceParams()
         shape = (self.n_in, self.n_out)
@@ -124,6 +129,20 @@ class Tile:
     @property
     def n_pulses(self) -> int:
         return self.gp.n_pulses + self.gm.n_pulses
+
+    @property
+    def n_tiles(self) -> int:
+        import math
+        return math.ceil(self.n_in / self.tile_size) * math.ceil(self.n_out / self.tile_size)
+
+    @property
+    def conversions_per_read(self) -> int:
+        import math
+        return self.n_out * math.ceil(self.n_in / self.tile_size)
+
+    @property
+    def events_per_read(self) -> int:
+        return self.n_tiles
 
     def writes_per_device(self, seconds: float | None = None) -> float:
         """Average write events per device (per second if ``seconds`` is given).  The
