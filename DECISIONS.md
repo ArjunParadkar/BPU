@@ -215,6 +215,11 @@ honest partial result, not a certified continuous attractor in every seed.
   a local three-factor rule).  Node perturbation's signal-to-noise falls as
   `1/sqrt(#perturbed units)`, which forces `eta = 0.001`; this is the main
   reason the tasks are small.
+* **Single-module exploration.** Per trial only one randomly chosen module
+  carries the probe noise (a global gating signal), which raises the
+  estimate's SNR by ~sqrt(K); the route statistic for target `l` is then
+  conditioned on the trials in which `l` was probed (without that it was
+  diluted by `1/K` and no route ever crossed `theta_e`).
 * **Route creation** uses `||<m xi_l z_k^T>||_F` over all ordered pairs,
   one route per trial above `theta_e = 0.02`, within a budget of 12 routes,
   seeded along the sign of the correlation matrix; routes whose mean `|W|`
@@ -254,4 +259,6 @@ honest partial result, not a certified continuous attractor in every seed.
 ## Budgets
 
 * `scripts/run_all.sh` runs E3-E7 with 3 seeds and regenerates figures;
-  `--full` uses 10 seeds.  Timings are in the README.
+  `--full` uses 10 seeds.  Timings are in the README (~15 min for 3 seeds;
+  E5's 16x16 sheets dominate, so they use 12k development steps and 100
+  kick positions instead of 20k and 160).
