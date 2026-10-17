@@ -80,16 +80,19 @@ class Tile:
         return np.asarray(y) @ self.W_read().T
 
     # --------------------------------------------------------------- writes
-    def update(self, dW: np.ndarray, max_pulses: int | None = None) -> int:
+    def update(self, dW: np.ndarray, max_pulses: int | None = None) -> np.ndarray:
         """Apply a weight change through pulse counts on the differential pair.
 
         Positive dW potentiates G+ (and if G+ is saturated, depresses G-);
         negative dW does the mirror image.  Only masked-on synapses are
-        written.  Returns the number of synapses written.
+        written.  Returns the *realised* weight change (W_after - W_before),
+        so a caller accumulating sub-pulse changes can keep the residual.
+        ``self.n_writes`` counts synapses that received at least one pulse.
         """
         dW = np.asarray(dW, float) * self.A
+        W_before = self.W
         if not np.any(dW):
-            return 0
+            return np.zeros(self.shape)
         wp, wm = self.gp.w, self.gm.w
         # desired change in state units (W = wp - wm for G_scale = G_range)
         pos = np.clip(dW, 0, None)
@@ -103,19 +106,17 @@ class Tile:
         d_wp_down = np.minimum(neg - d_wm_up, wp)
         tgt_p = wp + d_wp_up - d_wp_down
         tgt_m = wm + d_wm_up - d_wm_down
+        # nearest whole pulse count; a change smaller than half a pulse is not written
+        # (callers that need to accumulate sub-pulse changes use plasticity.SurpriseGate)
         n_p = self.gp.pulses_for(tgt_p)
         n_m = self.gm.pulses_for(tgt_m)
-        # guarantee at least one pulse for any requested nonzero change
-        n_p = np.where((n_p == 0) & (d_wp_up - d_wp_down != 0), np.sign(d_wp_up - d_wp_down).astype(int), n_p)
-        n_m = np.where((n_m == 0) & (d_wm_up - d_wm_down != 0), np.sign(d_wm_up - d_wm_down).astype(int), n_m)
         if max_pulses is not None:
             n_p = np.clip(n_p, -max_pulses, max_pulses)
             n_m = np.clip(n_m, -max_pulses, max_pulses)
         self.gp.pulse(n_p)
         self.gm.pulse(n_m)
-        written = int(((n_p != 0) | (n_m != 0)).sum())
-        self.n_writes += written
-        return written
+        self.n_writes += int(((n_p != 0) | (n_m != 0)).sum())
+        return self.W - W_before
 
     def program(self, W_target: np.ndarray, tol: float = 0.02, max_iter: int = 400) -> int:
         """Write-verify the whole tile to W_target in [-1, 1] (positive part on G+, negative on G-)."""
