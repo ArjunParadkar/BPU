@@ -1,0 +1,6 @@
+  32x32 seed 0: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.7  2.67 1.07] H2=[1.73 0.14] thr={0: 1.24, 1: 0.53, 2: 0.13}
+  32x32 seed 1: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.2  1.6  1.06] H2=[1.22 0.24] thr={0: 1.35, 1: 0.47, 2: 0.13}
+  32x32 seed 2: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.75 2.5  1.12] H2=[1.53 0.23] thr={0: 1.24, 1: 0.53, 2: 0.16}
+E5 verdict: 32x32: programmed DoG reference 3/3
+[e5] wrote ../results/e5/results.json
+[e5] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e5_grid_selforg.png

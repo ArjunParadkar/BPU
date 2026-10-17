@@ -1,0 +1,30 @@
+    grown: base training (9000 trials): 408.2 s
+    grown: composite fine-tune (3000 trials): 165.6 s
+  seed 2 grown: edges=12 syn=8458 Q=0.153 nav acc=0.72 (err 0.32) recall bits=0.81 | composite zero-shot 0.10 -> after ft 0.14 (err 1.45) | MI max 1.00 bits
+    fixed: base training (9000 trials): 501.1 s
+    fixed: composite fine-tune (3000 trials): 196.6 s
+  seed 2 fixed: edges=16 syn=8363 Q=0.000 nav acc=0.89 (err 0.23) recall bits=0.85 | composite zero-shot 0.12 -> after ft 0.08 (err 1.58) | MI max 1.00 bits
+    fixed_compute: base training (9441 trials): 412.2 s
+    fixed_compute: composite fine-tune (3147 trials): 3784.0 s
+  seed 2 fixed_compute: edges=16 syn=8363 Q=0.000 nav acc=0.99 (err 0.13) recall bits=0.90 | composite zero-shot 0.10 -> after ft 0.11 (err 1.58) | MI max 0.98 bits
+    grown: base training (9000 trials): 398.7 s
+    grown: composite fine-tune (3000 trials): 171.7 s
+  seed 1 grown: edges=12 syn=8569 Q=0.167 nav acc=0.35 (err 0.75) recall bits=0.80 | composite zero-shot 0.14 -> after ft 0.21 (err 1.29) | MI max 0.97 bits
+    fixed: base training (9000 trials): 501.4 s
+    fixed: composite fine-tune (3000 trials): 174.6 s
+  seed 1 fixed: edges=16 syn=8586 Q=0.000 nav acc=0.85 (err 0.23) recall bits=0.75 | composite zero-shot 0.14 -> after ft 0.15 (err 1.40) | MI max 0.96 bits
+    fixed_compute: base training (9353 trials): 443.6 s
+    fixed_compute: composite fine-tune (3117 trials): 3791.2 s
+  seed 1 fixed_compute: edges=16 syn=8586 Q=0.000 nav acc=0.82 (err 0.24) recall bits=0.84 | composite zero-shot 0.06 -> after ft 0.14 (err 1.55) | MI max 1.00 bits
+    grown: base training (9000 trials): 441.1 s
+    grown: composite fine-tune (3000 trials): 205.2 s
+  seed 0 grown: edges=12 syn=8497 Q=-0.000 nav acc=0.77 (err 0.27) recall bits=0.79 | composite zero-shot 0.10 -> after ft 0.14 (err 1.52) | MI max 0.98 bits
+    fixed: base training (9000 trials): 473.9 s
+    fixed: composite fine-tune (3000 trials): 161.0 s
+  seed 0 fixed: edges=16 syn=8426 Q=0.000 nav acc=0.78 (err 0.25) recall bits=0.85 | composite zero-shot 0.12 -> after ft 0.14 (err 1.53) | MI max 1.00 bits
+    fixed_compute: base training (9431 trials): 425.3 s
+    fixed_compute: composite fine-tune (3143 trials): 3779.9 s
+  seed 0 fixed_compute: edges=16 syn=8426 Q=0.000 nav acc=0.89 (err 0.20) recall bits=0.86 | composite zero-shot 0.15 -> after ft 0.14 (err 1.51) | MI max 0.98 bits
+E7 verdict: Q(final, grown) = 0.11 +- 0.05 (rises over training); 92% of modules carry > 0.1 bit about the task above shuffle; compositional transfer gap (grown - fixed) = +0.04 at matched synapses (sign test p = 0.5), +0.03 at matched compute; base-task accuracy: nav 0.62 / 0.84, recall bits 0.80 / 0.82 (grown / fixed)
+[e7] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e7/results.json
+[e7] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e7_modularity.png

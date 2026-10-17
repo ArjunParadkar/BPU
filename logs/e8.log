@@ -11,3 +11,28 @@ seed 0: ideal model 2.72M params
     na s=0.0 step 200/200 loss 1.469 (1017s)
     sigma=0.0 noise-aware fine-tune: 1017.3 s
   sigma=0.0: deploy 1.6825 (+0.41%)  noise-aware 1.6588 (-1.00%)  writes/dev/step 0.000499
+    na s=0.02 step 200/200 loss 1.469 (2738s)
+    sigma=0.02 noise-aware fine-tune: 2738.1 s
+  sigma=0.02: deploy 1.6839 (+0.50%)  noise-aware 1.6608 (-0.88%)  writes/dev/step 0.00046
+    na s=0.04 step 200/200 loss 1.471 (641s)
+    sigma=0.04 noise-aware fine-tune: 640.7 s
+  sigma=0.04: deploy 1.6832 (+0.46%)  noise-aware 1.6614 (-0.85%)  writes/dev/step 0.000422
+    na s=0.06 step 200/200 loss 1.474 (374s)
+    sigma=0.06 noise-aware fine-tune: 374.3 s
+  sigma=0.06: deploy 1.6854 (+0.59%)  noise-aware 1.6638 (-0.70%)  writes/dev/step 0.000404
+    na s=0.1 step 200/200 loss 1.484 (493s)
+    sigma=0.1 noise-aware fine-tune: 492.6 s
+  sigma=0.1: deploy 1.6997 (+1.44%)  noise-aware 1.6728 (-0.16%)  writes/dev/step 0.000377
+seed 1: ideal model 2.72M params
+    ideal step 200/1500 loss 2.659 (61s)
+    ideal step 400/1500 loss 2.207 (117s)
+    ideal step 600/1500 loss 1.942 (169s)
+    ideal step 800/1500 loss 1.761 (224s)
+    ideal step 1000/1500 loss 1.646 (386s)
+    ideal step 1200/1500 loss 1.566 (549s)
+    ideal step 1400/1500 loss 1.510 (798s)
+    ideal training: 917.6 s
+  ideal val loss 1.6742
+    na s=0.0 step 200/200 loss 1.470 (401s)
+    sigma=0.0 noise-aware fine-tune: 401.3 s
+  sigma=0.0: deploy 1.6836 (+0.57%)  noise-aware 1.6545 (-1.18%)  writes/dev/step 0.000484

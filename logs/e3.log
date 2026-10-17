@@ -4,3 +4,21 @@ N=128: velocity gain c = -95.23; tiles per matrix = 16
     N128_mismatch0.02_tauH0 sweep (9 x 20): 1568.9 s
     RMSE: 0.0:0.251 0.005:0.235 0.01:0.231 0.02:0.251 0.03:0.262 0.05:0.294 0.08:0.294 0.12:0.311 0.2:0.448
     NOT U-shaped: interior minimum at sigma=0.01 not significant (11/20 seeds, p=0.824); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.005])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+    N128_mismatch0.05_tauH0 landscape: 4.8 s
+    Delta U = 0.225 +- 0.025 (rad^2/s units of U), rms drift 0.0725 rad/s
+    N128_mismatch0.05_tauH0 sweep (9 x 20): 2257.6 s
+    RMSE: 0.0:0.507 0.005:0.524 0.01:0.531 0.02:0.517 0.03:0.537 0.05:0.560 0.08:0.544 0.12:0.620 0.2:0.782
+    NOT U-shaped: minimum at zero noise; fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.018043389642038884])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+    N128_mismatch0.1_tauH0 landscape: 6.4 s
+    Delta U = 0.408 +- 0.054 (rad^2/s units of U), rms drift 0.161 rad/s
+    N128_mismatch0.1_tauH0 sweep (9 x 20): 1392.9 s
+    RMSE: 0.0:1.142 0.005:1.119 0.01:1.106 0.02:1.099 0.03:1.168 0.05:1.182 0.08:1.068 0.12:1.135 0.2:1.166
+    NOT U-shaped: interior minimum at sigma=0.08 not significant (10/20 seeds, p=1); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.2])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+    N128_mismatch0.0_tauH0 landscape: 2.9 s
+    Delta U = 0.00102 +- 0 (rad^2/s units of U), rms drift 0.00635 rad/s
+    N128_mismatch0.0_tauH0 sweep (9 x 20): 1184.1 s
+    RMSE: 0.0:0.191 0.005:0.191 0.01:0.192 0.02:0.209 0.03:0.181 0.05:0.243 0.08:0.281 0.12:0.360 0.2:0.543
+    NOT U-shaped: interior minimum at sigma=0.03 not significant (10/20 seeds, p=1); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.005])
