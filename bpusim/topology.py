@@ -10,13 +10,20 @@ Pipeline
    99th percentile of the *longest* null feature (the technical document's
    definition; with few null draws this is the largest null lifetime).  The
    99th percentile of the pooled null lifetimes is also recorded.
+   A bar must also be at least ``rel`` (default 0.5) of the longest bar in its
+   dimension: with a few hundred sample points a large torus always carries
+   medium-length "sampling hole" bars that exceed a shift null (whose clouds
+   are structureless blobs), so the null alone cannot separate the two
+   fundamental loops from the holes; the relative criterion is the usual
+   persistence-gap rule.  The count above the null alone is also reported.
 4. Certify a *ring* if exactly one H1 bar is significant, no H2 bar is (when
    H2 was computed) and no finite H0 bar is (an extra persistent H0 bar
    means the cloud is fragmented into clusters, the pinning failure
    signature); a *torus* if H1 has exactly two and H2 exactly one significant
    bar and again no extra H0 bar.  Betti-0 is reported as the number of
    significant *finite* H0 bars, i.e. components beyond the one that never
-   dies.
+   dies, counting only components that outlive three times the median
+   H0 bar (the typical sampling spacing of the max-min sample).
 """
 from __future__ import annotations
 
@@ -98,7 +105,8 @@ def circular_shift_null(X: np.ndarray, rng: np.random.Generator) -> np.ndarray:
 
 
 def certify(X: np.ndarray, maxdim: int = 1, n_pca: int = 20, n_points: int = 300, n_null: int = 20,
-            q: float = 99.0, rng: np.random.Generator | None = None, min_null_bars: int = 1) -> dict:
+            q: float = 99.0, rng: np.random.Generator | None = None, min_null_bars: int = 1,
+            rel: float = 0.5, rel_h0: float = 3.0, n_points_h2: int | None = None) -> dict:
     """Certify the topology of an activity cloud against the circular-shift null.
 
     Returns a dict with the diagrams, the per-dimension thresholds, the
@@ -110,26 +118,41 @@ def certify(X: np.ndarray, maxdim: int = 1, n_pca: int = 20, n_points: int = 300
     # Shared PCA basis so that the null is compared in the same coordinates as the data;
     # subsampling (max-min) is applied after reduction.
     Xr = pca_reduce(X, n_pca)
-    Xs = subsample(Xr, n_points, rng)
-    dg = diagrams(Xs, maxdim)
     dims = range(0, maxdim + 1)
+
+    def _diagrams(Y):
+        """H0/H1 on n_points, H2 (expensive) on n_points_h2 points of the same cloud."""
+        if maxdim < 2 or not n_points_h2 or n_points_h2 >= n_points:
+            return diagrams(subsample(Y, n_points, rng), maxdim)
+        d01 = diagrams(subsample(Y, n_points, rng), 1)
+        d2 = diagrams(subsample(Y, n_points_h2, rng), 2)
+        return [d01[0], d01[1], d2[2]]
+
+    dg = _diagrams(Xr)
     null_L = {d: [] for d in dims}
     null_max = {d: [] for d in dims}
     for _ in range(n_null):
-        Xn = circular_shift_null(X, rng)
-        Xn = subsample(pca_reduce(Xn, n_pca), n_points, rng)
-        dgn = diagrams(Xn, maxdim)
+        Xn = pca_reduce(circular_shift_null(X, rng), n_pca)
+        dgn = _diagrams(Xn)
         for d in dims:
             L = lifetimes(dgn[d])
             null_L[d].extend(L.tolist())
             null_max[d].append(float(L.max()) if L.size else 0.0)
-    thr, thr_pool, betti, sig = {}, {}, {}, {}
+    thr, thr_pool, betti, betti_null, sig = {}, {}, {}, {}, {}
     for d in dims:
         pool = np.asarray(null_L[d]) if len(null_L[d]) >= min_null_bars else np.zeros(1)
         thr_pool[d] = float(np.percentile(pool, q)) if pool.size else 0.0
         thr[d] = float(np.percentile(null_max[d], q)) if null_max[d] else 0.0
-        L = lifetimes(dg[d])
-        sig[d] = np.sort(L[L > thr[d]])[::-1]
+        L = np.sort(lifetimes(dg[d]))[::-1]
+        above = L[L > thr[d]]
+        betti_null[d] = int(above.size)
+        if d == 0:
+            # finite H0 bars are the merge distances of the sample; a real fragment is a component
+            # that outlives the typical sampling spacing by a wide margin (3x the median bar)
+            med = float(np.median(L)) if L.size else 0.0
+            sig[d] = above[above > rel_h0 * med]
+        else:
+            sig[d] = above[above >= rel * L[0]] if L.size else above
         betti[d] = int(sig[d].size)
     no_fragments = betti.get(0, 0) == 0
     is_ring = no_fragments and betti.get(1, 0) == 1 and (maxdim < 2 or betti.get(2, 0) == 0)
@@ -138,11 +161,13 @@ def certify(X: np.ndarray, maxdim: int = 1, n_pca: int = 20, n_points: int = 300
     return {
         "verdict": verdict, "is_ring": bool(is_ring), "is_torus": bool(is_torus),
         "betti": {int(k): v for k, v in betti.items()},            # betti[0] = extra (finite) components
+        "betti_above_null_only": {int(k): v for k, v in betti_null.items()},
+        "rel": rel,
         "threshold": {int(k): v for k, v in thr.items()},
         "threshold_pooled": {int(k): v for k, v in thr_pool.items()},
         "null_max_lifetime": {int(k): float(np.max(v)) if v else 0.0 for k, v in null_max.items()},
         "significant_lifetimes": {int(k): v.tolist() for k, v in sig.items()},
         "top_lifetimes": {int(d): np.sort(lifetimes(dg[d]))[::-1][:5].tolist() for d in dims},
         "diagrams": [D.tolist() for D in dg],
-        "n_points": int(Xs.shape[0]), "n_null": int(n_null), "q": q,
+        "n_points": int(min(n_points, X.shape[0])), "n_points_h2": int(n_points_h2 or n_points), "n_null": int(n_null), "q": q,
     }

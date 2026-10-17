@@ -68,10 +68,19 @@ class RingAttractor:
                  tau: float = 10e-3, dt: float = 1e-3, gamma: float = 1.0, f="relu",
                  rng: np.random.Generator | None = None, params: DeviceParams | None = None,
                  sigma_mismatch: float | None = None, sigma_neuron: float = 0.0,
-                 use_tiles: bool = True):
+                 use_tiles: bool = True, tau_H: float = 0.0, tau_rate: float = 20.0):
+        """tau_H > 0 enables homeostatic scaling (Lesson 5.7): each neuron's input gain h_j follows
+        tau_H dh_j/dt = h_j (r* - r_bar_j)/r*, with r* the population-mean running rate, applied as
+        a read-side gain (one analog parameter per neuron, no device rewrites).  ``tau_rate`` must be
+        long compared with the time the bump takes to visit the whole ring (20 s here): with a 1 s
+        average the gain chased the moving bump and destroyed path integration (RMSE 1.25 rad on a
+        mismatch-free ring that integrates to 0.05 rad without homeostasis)."""
         self.rng = rng or np.random.default_rng(0)
         self.N, self.J0, self.J1, self.I = int(N), float(J0), float(J1), float(I)
         self.tau, self.dt, self.gamma = tau, dt, gamma
+        self.tau_H, self.tau_rate = tau_H, tau_rate
+        self.h = np.ones(self.N)
+        self.r_bar = None
         self.theta = 2 * np.pi * np.arange(self.N) / self.N
         d = self.theta[None, :] - self.theta[:, None]            # theta_post - theta_pre
         self.W_ideal = J0 + J1 * np.cos(d)
@@ -125,13 +134,44 @@ class RingAttractor:
         return u / self.N
 
     def step(self, v: float = 0.0, I_ext=None):
-        u = self.recurrent_input(self.neurons.r, v) + self.I
+        u = self.recurrent_input(self.neurons.r, v)
+        if self.tau_H > 0:
+            u = u * self.h
+        u = u + self.I
         if I_ext is not None:
             u = u + I_ext
-        return self.neurons.step(u)
+        r = self.neurons.step(u)
+        if self.tau_H > 0:
+            a = self.dt / self.tau_rate
+            # start the running mean uniform at the population mean: seeding it with the instantaneous
+            # bump would make homeostasis push the bump away from wherever it happened to start
+            self.r_bar = np.full(self.N, float(r.mean())) if self.r_bar is None else self.r_bar + a * (r - self.r_bar)
+            r_star = max(float(self.r_bar.mean()), 1e-9)
+            self.h += (self.dt / self.tau_H) * self.h * (r_star - self.r_bar) / r_star
+            np.clip(self.h, 0.5, 2.0, out=self.h)
+        return r
 
     def decode(self) -> float:
         return population_vector(self.neurons.r, self.theta)
+
+    def pinning_landscape(self, n_pos: int = 64, settle: int = 300, probe: int = 200) -> dict:
+        """Drift velocity of the free bump vs start position at the current (dynamic) noise.
+
+        The bump is placed at n_pos angles, settled, and its drift over ``probe`` steps measured.
+        Integrating the drift velocity around the ring gives the potential U(phi) up to a constant
+        (phi_dot = -dU/dphi); the barrier height estimate is max U - min U.
+        """
+        phis = np.linspace(-np.pi, np.pi, n_pos, endpoint=False)
+        vel = np.empty(n_pos)
+        for i, phi in enumerate(phis):
+            self.reset(angle=phi); self.settle(settle)
+            a0 = self.decode(); self.settle(probe); a1 = self.decode()
+            vel[i] = circ_dist(a1, a0) / (probe * self.dt)
+        dphi = 2 * np.pi / n_pos
+        U = -np.cumsum(vel) * dphi
+        U -= U.mean()
+        return {"phi": phis.tolist(), "drift_velocity": vel.tolist(), "U": U.tolist(),
+                "delta_U": float(U.max() - U.min()), "rms_drift": float(np.sqrt(np.mean(vel ** 2)))}
 
     def bump_modulation(self) -> float:
         """(max - min) / mean of the rate profile; ~0 for the uniform state."""
@@ -341,6 +381,10 @@ class SelfOrgConfig:
                                    # cue's coverage statistics on the weights (see DECISIONS.md), so E4/E5 run
                                    # without it; set e.g. 50.0 to enable
     tau_rate: float = 10.0         # running-mean rate time constant (s)
+    write_budget: float = 0.0      # max write events per device per second during development (0 = no
+                                   # cap).  With a cap, pending STDP changes are flushed in order of size
+                                   # only as the budget allows (a per-tile write quota), so learning takes
+                                   # proportionally longer in simulated time
     stdp_mode: str = "spike"       # "spike": Bernoulli spikes through the STDP traces; "rate": the
                                    # expected STDP change (A+ tau+ - A- tau-) rho_i rho_j dt, no sampling noise
     norm_rows: bool = True         # also normalise presynaptic rows (axonal resource constraint); without
@@ -403,6 +447,7 @@ class SelfOrganizingSheet:
         self.r_bar = np.full(self.N, np.nan)   # running mean rate per neuron
         self.h = np.ones(self.N)                # homeostatic scale of each neuron's incoming column
         self.gain = self.cfg.gain_dev           # developmental gain; finish_development() raises it
+        self.write_credit = 0.0                 # accumulated write allowance under a write budget
         self.t = 0
         self.log = {"n_active": [], "step": []}
 
@@ -434,9 +479,19 @@ class SelfOrganizingSheet:
             np.fill_diagonal(dW, 0.0)
             self.pending += dW
             write = (np.abs(self.pending) >= c.theta_w) & self.tile.A
+            if c.write_budget > 0:
+                # endurance cap: so many write events per step for the whole tile (2 devices per synapse)
+                self.write_credit += c.write_budget * 2 * self.N * self.N * c.rate_dt
+                n_allow = int(self.write_credit)
+                if n_allow < write.sum():
+                    order = np.argsort(-np.abs(np.where(write, self.pending, 0.0)).ravel())[:n_allow]
+                    sel = np.zeros(self.N * self.N, bool); sel[order] = True
+                    write &= sel.reshape(self.N, self.N)
             if write.any():
                 realised = self.tile.update(np.where(write, self.pending, 0.0))
                 self.pending -= realised          # keep the sub-pulse residual
+                if c.write_budget > 0:
+                    self.write_credit -= int(write.sum())
             self.growth.observe(1.0, r, r)
             if (self.t + 1) % c.struct_every == 0:
                 self.growth.prune()

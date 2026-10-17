@@ -81,3 +81,20 @@ def test_mutual_information():
     Z = np.column_stack([task + 0.05 * rng.standard_normal(400), 0.3 * rng.standard_normal(400)])
     info = task_information(Z, task, n_clusters=4)
     assert info["mi_bits"] > 0.8 and info["mi_shuffle"] < 0.1
+
+
+def test_certify_torus_at_experiment_sampling_density():
+    """E5's own settings (PCA 20, 250 max-min points, 8 nulls, H0 fragmentation check) on a smooth
+    synthetic torus: Gaussian bump of width 3 sites on a 32x32 periodic sheet, phases covering the
+    torus uniformly (as the sweep trajectory does), 1000 samples as the experiment records."""
+    from bpusim.topology import certify
+    rng = np.random.default_rng(11)
+    nx = ny = 32; T = 1000
+    px = rng.uniform(0, nx, T); py = rng.uniform(0, ny, T)
+    ix, iy = np.meshgrid(np.arange(nx), np.arange(ny), indexing="ij")
+    dx = (ix.ravel()[None, :] - px[:, None] + nx / 2) % nx - nx / 2
+    dy = (iy.ravel()[None, :] - py[:, None] + ny / 2) % ny - ny / 2
+    X = np.exp(-(dx ** 2 + dy ** 2) / (2 * 3.0 ** 2)) + 0.02 * rng.standard_normal((T, nx * ny))
+    c = certify(X, maxdim=2, n_pca=20, n_points=250, n_null=8, rng=rng)
+    assert c["betti"] == {0: 0, 1: 2, 2: 1}, c["betti"]
+    assert c["verdict"] == "torus"

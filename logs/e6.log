@@ -1,0 +1,34 @@
+Traceback (most recent call last):
+  File "/usr/lib/python3.14/argparse.py", line 1748, in _check_help
+    formatter._expand_help(action)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.14/argparse.py", line 676, in _expand_help
+    return help_string % params
+           ~~~~~~~~~~~~^~~~~~~~
+ValueError: unsupported format character ')' (0x29) at index 41
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/e6_memory.py", line 114, in <module>
+    main()
+    ~~~~^^
+  File "/home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/e6_memory.py", line 64, in main
+    ap.add_argument("--flip", type=float, default=0.2, help="fraction of cue bits flipped (default 20%)")
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/argparse.py", line 1562, in add_argument
+    self._check_help(action)
+    ~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.14/argparse.py", line 1750, in _check_help
+    raise ValueError('badly formed help string') from exc
+ValueError: badly formed help string
+  sigma=0.0   (pinv loop / attention) K=4:0.79/0.92 K=8:0.65/1.00 K=12:0.25/0.93 K=16:0.12/0.98 K=20:0.01/0.97 K=24:0.01/0.88 K=28:0.00/0.90 K=32:0.00/0.85
+  sigma=0.02  (pinv loop / attention) K=4:0.92/1.00 K=8:0.69/0.98 K=12:0.39/0.97 K=16:0.22/0.91 K=20:0.03/0.92 K=24:0.01/0.92 K=28:0.00/0.91 K=32:0.00/0.88
+  sigma=0.04  (pinv loop / attention) K=4:0.83/0.96 K=8:0.56/0.96 K=12:0.39/0.94 K=16:0.18/0.97 K=20:0.00/0.86 K=24:0.01/0.94 K=28:0.00/0.91 K=32:0.00/0.89
+  sigma=0.08  (pinv loop / attention) K=4:0.83/0.96 K=8:0.79/0.98 K=12:0.36/0.93 K=16:0.17/0.97 K=20:0.02/0.90 K=24:0.01/0.88 K=28:0.00/0.93 K=32:0.00/0.84
+  sigma=0.12  (pinv loop / attention) K=4:0.92/1.00 K=8:0.73/0.98 K=12:0.42/0.96 K=16:0.16/0.88 K=20:0.02/0.90 K=24:0.00/0.88 K=28:0.00/0.93 K=32:0.00/0.85
+  sigma=0.2   (pinv loop / attention) K=4:1.00/1.00 K=8:0.60/0.92 K=12:0.29/0.96 K=16:0.17/0.95 K=20:0.03/0.92 K=24:0.00/0.91 K=28:0.00/0.93 K=32:0.00/0.90
+  E6 grid: 484.7 s
+E6: Capacity (largest K with >= 90% exact recall) per sigma: pinv_loop: s=0.0->0, s=0.02->4, s=0.04->0, s=0.08->0, s=0.12->4, s=0.2->4; pinv_direct: s=0.0->0, s=0.02->4, s=0.04->0, s=0.08->0, s=0.12->4, s=0.2->4; delta_loop: s=0.0->0, s=0.02->4, s=0.04->4, s=0.08->0, s=0.12->4, s=0.2->4; attention: s=0.0->20, s=0.02->28, s=0.04->28, s=0.08->28, s=0.12->28, s=0.2->28
+[e6] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e6/results.json
+[e6] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e6_memory.png

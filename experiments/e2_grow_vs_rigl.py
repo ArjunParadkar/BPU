@@ -60,6 +60,28 @@ def load_mnist(data_dir=None):
     return out
 
 
+def load_cifar10(data_dir=None):
+    """CIFAR-10 python batches (data/cifar-10-python.tar.gz, downloaded if missing), flattened to 3072 floats."""
+    import pickle, tarfile
+    d = pathlib.Path(data_dir or ROOT / "data"); d.mkdir(parents=True, exist_ok=True)
+    tgz = d / "cifar-10-python.tar.gz"
+    if not tgz.exists():
+        urllib.request.urlretrieve("https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz", tgz)
+    xs, ys, xt, yt = [], [], None, None
+    with tarfile.open(tgz) as tf:
+        for m in tf.getmembers():
+            name = m.name.split("/")[-1]
+            if name.startswith("data_batch") or name == "test_batch":
+                batch = pickle.load(tf.extractfile(m), encoding="bytes")
+                X = batch[b"data"].astype(np.float32) / 255.0; y = np.array(batch[b"labels"], dtype=np.int64)
+                if name == "test_batch":
+                    xt, yt = X, y
+                else:
+                    xs.append(X); ys.append(y)
+    X = np.concatenate(xs); mean, std = X.mean(0), X.std(0) + 1e-6
+    return {"train_x": (X - mean) / std, "train_y": np.concatenate(ys), "test_x": (xt - mean) / std, "test_y": yt}
+
+
 def synthetic_mnist(rng, n_train=6000, n_test=1000):
     """Stand-in data for --smoke runs without network access: 10 Gaussian class prototypes."""
     protos = rng.standard_normal((10, 784)) * 0.5
@@ -70,11 +92,12 @@ def synthetic_mnist(rng, n_train=6000, n_test=1000):
     return {"train_x": xtr.astype(np.float32), "train_y": ytr, "test_x": xte.astype(np.float32), "test_y": yte}
 
 
-def run_method(method, data, seed, device, epochs, density, update_every, drop_frac, batch, lr, noise_sigma):
+def run_method(method, data, seed, device, epochs, density, update_every, drop_frac, batch, lr, noise_sigma, arch="784-256-10"):
     import torch
     import torch.nn.functional as F
     torch.manual_seed(seed); rng = np.random.default_rng(seed)
-    dims = [(784, 256), (256, 10)]
+    sizes = [int(v) for v in arch.split("-")]
+    dims = list(zip(sizes[:-1], sizes[1:]))
     Ws, masks, Cs = [], [], []
     for (i, o) in dims:
         W = (torch.randn(i, o) * (2.0 / i) ** 0.5).to(device)
@@ -174,13 +197,21 @@ def main():
     ap.add_argument("--lr", type=float, default=0.1)
     ap.add_argument("--noise", type=float, default=0.1)
     ap.add_argument("--smoke", action="store_true", help="synthetic data, 1 epoch, 1 seed")
+    ap.add_argument("--dataset", type=str, default="mnist", choices=["mnist", "cifar10"])
+    ap.add_argument("--arch", type=str, default=None, help="layer sizes, default 784-256-10 (mnist) / 3072-512-512-10 (cifar10)")
+    ap.add_argument("--name", type=str, default=None, help="results name (default e2 / e2_cifar)")
     ap.add_argument("--out", type=str, default=None)
     ap.add_argument("--no-fig", action="store_true")
     args = ap.parse_args()
     seeds = 10 if args.full else args.seeds
     epochs = 8 if args.full else args.epochs
+    arch = args.arch or ("3072-512-512-10" if args.dataset == "cifar10" else "784-256-10")
+    name = args.name or ("e2_cifar" if args.dataset == "cifar10" else "e2")
     if args.smoke:
         data = synthetic_mnist(np.random.default_rng(0)); seeds = 1; epochs = 1
+    elif args.dataset == "cifar10":
+        with Timer("CIFAR-10"):
+            data = load_cifar10()
     else:
         with Timer("MNIST"):
             data = load_mnist()
@@ -190,10 +221,10 @@ def main():
         for seed in range(seeds):
             for m in methods:
                 runs[m].append(run_method(m, data, seed, args.device, epochs, args.density, args.update_every,
-                                          args.drop_frac, args.batch, args.lr, args.noise))
+                                          args.drop_frac, args.batch, args.lr, args.noise, arch))
     from bpusim.noise import summarize
     summary = {m: summarize([r["final_acc"] for r in runs[m]]) for m in methods}
-    out = {"seeds": seeds, "epochs": epochs, "density": args.density, "update_every": args.update_every,
+    out = {"seeds": seeds, "epochs": epochs, "density": args.density, "dataset": args.dataset, "arch": arch, "update_every": args.update_every,
            "drop_frac": args.drop_frac, "noise_sigma": args.noise, "smoke": args.smoke, "runs": runs, "summary": summary}
     gap = summary["local"]["mean"] - summary["rigl"]["mean"]
     gap_rand = summary["local"]["mean"] - summary["random"]["mean"]
@@ -209,9 +240,9 @@ def main():
                            ("success criterion met: within a few percent of RigL (gap %+.4f), not worse than random (%+.4f)" % (gap, gap_rand)
                             if within_few_pct else "trails RigL by %.4f, not worse than random" % -gap)))}
     print("E2 verdict:", out["verdict"]["statement"])
-    save_results("e2", out, args.out)
+    save_results(name, out, args.out)
     if not args.no_fig:
-        plot(out, figure_path("e2_grow_vs_rigl"))
+        plot(out, figure_path(name if name != "e2" else "e2_grow_vs_rigl"))
 
 
 def plot(res, path):
@@ -223,7 +254,7 @@ def plot(res, path):
         A = np.array([r["test_acc"] for r in runs])
         ep = np.arange(1, A.shape[1] + 1)
         ax.errorbar(ep, A.mean(0), A.std(0) / np.sqrt(len(A)), marker="o", capsize=3, label=m)
-    ax.set_xlabel("epoch"); ax.set_ylabel("test accuracy"); ax.set_title(f"E2: regrowth criterion at {100 * res['density']:.0f}% density", fontsize=10)
+    ax.set_xlabel("epoch"); ax.set_ylabel("test accuracy"); ax.set_title(f"E2 ({res.get('dataset', 'mnist')}, {res.get('arch', '')}): regrowth criterion at {100 * res['density']:.0f}% density", fontsize=10)
     ax.legend(); fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
     print(f"[e2] figure {path}")
 

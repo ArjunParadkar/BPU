@@ -49,10 +49,10 @@ def profile(W, theta):
     return (0.5 * (bins[1:] + bins[:-1])).tolist(), prof.tolist()
 
 
-def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: str = "sweep"):
+def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: str = "sweep", write_budget: float = 0.0):
     rng = np.random.default_rng(seed)
     theta = 2 * np.pi * np.arange(N) / N
-    cfg = SelfOrgConfig()
+    cfg = SelfOrgConfig(write_budget=write_budget)
     sheet = SelfOrganizingSheet(theta, ring_dist, rng, cfg)
     W0 = sheet.tile.W.copy(); n_active0 = sheet.tile.n_active
     starts = rng.uniform(-np.pi, np.pi, 40)
@@ -96,31 +96,46 @@ def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: s
     }
 
 
+def _job(a):
+    return run_seed(*a)
+
+
 def main():
     ap = base_parser("E4 ring self-organisation", default_seeds=3)
     ap.add_argument("--steps", type=int, default=40000, help="development steps (dt = 1 ms)")
+    ap.add_argument("--write-budget", type=float, default=0.0, help="endurance cap, write events per device per second (6e-3 = the technical document's budget)")
+    ap.add_argument("--procs", type=int, default=1)
     ap.add_argument("--cue", type=str, default="sweep", choices=["sweep", "walk"])
     ap.add_argument("--checkpoints", type=int, default=5)
     ap.add_argument("--null", type=int, default=20)
     args = ap.parse_args()
     seeds = 10 if args.full else args.seeds
     runs = []
-    for seed in range(seeds):
-        with Timer(f"seed {seed}"):
-            r = run_seed(seed, args.steps, args.checkpoints, args.null, args.cue)
-        runs.append(r)
+    if args.procs > 1:
+        import multiprocessing as mp
+        with mp.Pool(args.procs) as pool:
+            runs = pool.map(_job, [(seed, args.steps, args.checkpoints, args.null, args.cue, args.write_budget) for seed in range(seeds)])
+    else:
+        for seed in range(seeds):
+            with Timer(f"seed {seed}"):
+                runs.append(run_seed(seed, args.steps, args.checkpoints, args.null, args.cue, args.write_budget))
+    for r in runs:
+        seed = r["seed"]
         print(f"  seed {seed}: certified={r['certified_ring']} betti1={r['betti1']} extra betti0={r['betti0_extra']} writes/dev/s={r['writes_per_device_per_s']:.3g} top H1={np.round(r['top_H1_lifetimes'][:3], 3)} thr={r['H1_threshold']:.3f}"
               f" | control certified={r['control_certified_ring']} betti1={r['control_betti1']} | persists {r['bump_persists_frac']:.2f} (ctrl {r['control_bump_persists_frac']:.2f})"
               f" | occupancy {r['ring_occupancy_bins_of_8']}/8 bins, drift {r['median_drift_from_cue_rad']:.2f} rad"
               f" | synapses {r['n_active_initial']}->{r['n_active_final']}")
     n_cert = sum(r["certified_ring"] for r in runs); n_ctrl = sum(r["control_certified_ring"] for r in runs)
     occ = [r["ring_occupancy_bins_of_8"] for r in runs]
-    out = {"seeds": seeds, "dev_steps": args.steps, "cue": args.cue, "runs": runs,
+    out = {"seeds": seeds, "dev_steps": args.steps, "cue": args.cue, "write_budget": args.write_budget,
+           "development_time_s": args.steps * 1e-3, "runs": runs,
            "verdict": {"certified_fraction": n_cert / seeds, "control_certified_fraction": n_ctrl / seeds,
                        "mean_occupancy_bins_of_8": float(np.mean(occ)),
                        "statement": f"{n_cert}/{seeds} trained rings certified beta1 = 1 against the circular-shift null "
                                     f"({n_ctrl}/{seeds} untrained controls certified); released bumps occupy "
-                                    f"{np.mean(occ):.1f}/8 bins of the ring on average (8 = a fully explored ring)."}}
+                                    f"{np.mean(occ):.1f}/8 bins of the ring on average (8 = a fully explored ring); "
+                                    f"development {args.steps * 1e-3:.0f} s at {np.mean([r['writes_per_device_per_s'] for r in runs]):.3g} writes/device/s"
+                                    + (f" (capped at {args.write_budget:g})" if args.write_budget else " (uncapped)") + "."}}
     print("E4 verdict:", out["verdict"]["statement"])
     save_results("e4", out, args.out)
     if not args.no_fig:
