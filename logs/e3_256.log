@@ -10,3 +10,19 @@ N=256: velocity gain c = -95.23; tiles per matrix = 64
     N256_mismatch0.05_tauH0 sweep (9 x 10): 3433.7 s
     RMSE: 0.0:0.284 0.005:0.280 0.01:0.282 0.02:0.275 0.03:0.289 0.05:0.269 0.08:0.293 0.12:0.373 0.2:0.402
     NOT U-shaped: interior minimum at sigma=0.05 not significant (5/10 seeds, p=1); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.020633755831143494])
+[e3_256] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_256/results.json
+    N256_mismatch0.1_tauH0 landscape: 19.8 s
+    Delta U = 0.233 +- 0.028 (rad^2/s units of U), rms drift 0.0686 rad/s
+    N256_mismatch0.1_tauH0 sweep (9 x 10): 3395.2 s
+    RMSE: 0.0:0.507 0.005:0.522 0.01:0.506 0.02:0.501 0.03:0.485 0.05:0.510 0.08:0.581 0.12:0.535 0.2:0.605
+    NOT U-shaped: interior minimum at sigma=0.03 not significant (8/10 seeds, p=0.109); fitted sigma* = 0.018 (bootstrap 95% CI [0.005, 0.2])
+[e3_256] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_256/results.json
+    N256_mismatch0.0_tauH0 landscape: 10.5 s
+    Delta U = 0.000265 +- 0 (rad^2/s units of U), rms drift 0.00165 rad/s
+    N256_mismatch0.0_tauH0 sweep (9 x 10): 2682.0 s
+    RMSE: 0.0:0.167 0.005:0.170 0.01:0.165 0.02:0.170 0.03:0.173 0.05:0.173 0.08:0.185 0.12:0.269 0.2:0.425
+    NOT U-shaped: interior minimum at sigma=0.01 not significant (6/10 seeds, p=0.754); fitted sigma* = 0.015 (bootstrap 95% CI [0.005, 0.020633755831143494])
+[e3_256] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_256/results.json
+E3 verdict: 0/3 mismatched conditions (N x sigma_d2d) show a significant U; N256_mismatch0.02_tauH0: NOT U-shaped: interior minimum at sigma=0.05 not significant (6/10 seeds, p=0.754); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.018043389642038884]); N256_mismatch0.05_tauH0: NOT U-shaped: interior minimum at sigma=0.05 not significant (5/10 seeds, p=1); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.020633755831143494]); N256_mismatch0.1_tauH0: NOT U-shaped: interior minimum at sigma=0.03 not significant (8/10 seeds, p=0.109); fitted sigma* = 0.018 (bootstrap 95% CI [0.005, 0.2])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_256/results.json
+[e3] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e3_drift.png

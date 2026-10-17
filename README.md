@@ -199,7 +199,7 @@ met**: the persistence-gated transfer forgets more than naive fine-tuning.
   ≈ 1.6 rad at every noise level, including the mismatch-free control): a
   dwelling bump adapts its own gain away. The fitted E(D) model puts σ* at
   the lowest or highest swept value in every condition, i.e. no interior
-  optimum. N = 256 (homeostasis off, 10 seeds) PENDING_E3_256
+  optimum. N = 256 (homeostasis off, 10 seeds) **0/3 U-shaped** as well: RMSE at zero noise 0.16 / 0.28 / 0.51 rad (control 0.17), best interior points not significant (p ≥ 0.11); ΔU 0.04 / 0.10 / 0.23, i.e. the pinning barrier does not shrink from N = 128 to 256 at fixed relative mismatch. Nine mismatched conditions over two sizes and two homeostasis settings, none with a noise optimum: the attractor noise-optimum hypothesis is not supported by this simulator at these scales.
 * **E4** (10 seeds, sweep cue): 5/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.7/8 bins of the ring on average (8 = a fully explored ring); development 40 s at 0.111 writes/device/s (uncapped). Capped at the endurance
   budget: 0/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.6/8 bins of the ring on average (8 = a fully explored ring); development 720 s at 0.00598 writes/device/s (capped at 0.006).
 * **E5**: the programmed Burak–Fiete module at 32×32 (1024 neurons on 1024
