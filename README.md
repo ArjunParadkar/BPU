@@ -166,9 +166,11 @@ side is measured on hardware; the paper must state it that way.
 (nats/char) frozen / local three-factor / feedback alignment: Shakespeare
 1.67 / 4.47 / 2.39, Python 6.02 / 4.52 / 2.39, Shakespeare again
 1.67 / 4.49 / 2.18. **Feedback alignment through the tiles does adapt**
-(it halves its gap on the new corpus within 56 steps and ends 3.6 nats below
-the frozen model), the Hebbian three-factor rule degrades the model on
-every segment, and neither meets the letter of the criterion: 90 % recovery
+(it halves its gap on the new corpus within roughly 60 steps and ends 3.6
+nats below the frozen model there), but its pulsed, noisy updates also cost
+0.7 nats on the original corpus (2.39 vs the frozen 1.67 at the end of each
+Shakespeare segment); the Hebbian three-factor rule degrades the model on
+every segment; and neither meets the letter of the criterion: 90 % recovery
 takes 1226 and 599 steps for FA (limit 300), and both local rules write
 1.41–1.69 times per device per second at the assumed 10 ms per step,
 about 250× the 6e-3 endurance budget. **Criterion not met**; the frozen
