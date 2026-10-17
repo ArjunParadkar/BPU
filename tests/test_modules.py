@@ -5,9 +5,9 @@ from bpusim.modules import ModuleGraph, GraphConfig, layered_routing
 from bpusim.metrics import modularity
 
 
-def _graph(fixed=False, seed=0):
+def _graph(fixed=False, seed=0, n=8, n_relax=4):
     rng = np.random.default_rng(seed)
-    cfg = GraphConfig(n_per_module=8, n_modules=4, n_relax=4, edge_budget=4)
+    cfg = GraphConfig(n_per_module=n, n_modules=4, n_relax=n_relax, edge_budget=4)
     R = layered_routing(4, [0], [1, 2], [3]) if fixed else None
     return ModuleGraph(cfg, {0: 3}, 2, [0], [3], rng, DeviceParams(), R_fixed=R), rng
 
@@ -39,11 +39,12 @@ def test_route_statistic_detects_useful_connection():
 
 
 def test_learning_reduces_loss_fixed_graph():
-    g, rng = _graph(fixed=True)
+    # 16 neurons per module and 8 relaxation steps so the input signal reaches the output module
+    g, rng = _graph(fixed=True, n=16, n_relax=8)
     xs = [np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0])]
     targets = [np.array([1.0, 0.0]), np.array([0.0, 1.0])]
     losses = []
-    for t in range(1000):
+    for t in range(1500):
         i = t % 2
         fwd = g.forward({0: xs[i]})
         loss = float(np.sum((fwd["y"] - targets[i]) ** 2))

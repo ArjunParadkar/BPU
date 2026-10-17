@@ -165,7 +165,7 @@ def main():
     ap = argparse.ArgumentParser(description="E2 grow rule vs RigL vs random")
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--full", action="store_true")
-    ap.add_argument("--epochs", type=int, default=3)
+    ap.add_argument("--epochs", type=int, default=5)
     ap.add_argument("--device", type=str, default="cpu")
     ap.add_argument("--density", type=float, default=0.1)
     ap.add_argument("--update-every", type=int, default=100)

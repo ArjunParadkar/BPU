@@ -41,9 +41,11 @@ def population_angle(r, theta):
 def profile(W, theta):
     """Mean weight as a function of the angular difference (binned)."""
     d = circ_dist(theta[None, :], theta[:, None])
+    off = ~np.eye(len(theta), dtype=bool)          # no self-connections: leave the diagonal out
     bins = np.linspace(-np.pi, np.pi, 17)
-    idx = np.digitize(d.ravel(), bins) - 1
-    prof = np.array([W.ravel()[idx == b].mean() if np.any(idx == b) else 0 for b in range(16)])
+    idx = np.digitize(d[off], bins) - 1
+    w = W[off]
+    prof = np.array([w[idx == b].mean() if np.any(idx == b) else 0 for b in range(16)])
     return (0.5 * (bins[1:] + bins[:-1])).tolist(), prof.tolist()
 
 

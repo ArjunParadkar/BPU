@@ -40,11 +40,12 @@ class GraphConfig:
     explore_one: bool = True        # per trial, only one randomly chosen module carries the probe noise
                                     # (a global gating signal; raises the estimate's SNR by ~sqrt(K))
     r_max: float = 2.0
-    I_tonic: float = 0.5            # background drive so every module has baseline activity to probe
-    eta: float = 0.003              # three-factor learning rate; the applied rate is eta / sigma_xi**2
+    I_tonic: float = 0.25           # background drive so every module has baseline activity to probe
+    eta: float = 1e-4               # three-factor learning rate; the applied rate is eta / sigma_xi**2
                                     # because the node-perturbation estimate <m x xi> = sigma_xi**2 * gradient
-                                    # (node perturbation has SNR ~ 1/sqrt(#perturbed units) per trial, so the
-                                    # rate must be small; see DECISIONS.md)
+                                    # (node perturbation has SNR ~ 1/sqrt(#perturbed units) per trial; at
+                                    # 3e-3 the hidden updates randomised the features faster than the readout
+                                    # could track them and accuracy fell to chance; see DECISIONS.md)
     theta_w: float = 0.005          # write threshold
     eta_readout: float = 0.03       # readout uses the delta rule with the output error as the (vector)
                                     # modulator: dW_out = eta_readout z (target - y)^T, a local three-factor
@@ -182,7 +183,7 @@ class ModuleGraph:
                 trace.append(np.concatenate([m.z for m in self.modules]))
         z_out = np.concatenate([self.modules[k].z for k in self.output_modules])
         y = self.readout.read(z_out)
-        return {"y": y, "elig_W": elig_W, "elig_B": elig_B, "elig_U": elig_U, "z_out": z_out,
+        return {"y": y, "elig_W": elig_W, "elig_B": elig_B, "elig_U": elig_U, "z_out": z_out, "probe": probe,
                 "xi_mean": [x / cfg.n_relax for x in xi_sum], "z_mean": [z / cfg.n_relax for z in z_sum],
                 "trace": np.array(trace) if record else None}
 
@@ -214,14 +215,19 @@ class ModuleGraph:
             dW, k_ = self.readout_gate(cfg.eta_readout * np.outer(fwd["z_out"], err)); writes += k_
             if k_:
                 self.readout.update(dW)
-        # route statistic for every ordered pair (k -> l), k != l
+        # route statistic for every ordered pair (k -> l), k != l.  With single-module
+        # exploration the estimate for target l is conditioned on the trials where l carried
+        # the probe (otherwise xi_l = 0 and the average would be diluted by 1/K).
         a = 1.0 / cfg.tau_C
-        for k in range(self.K):
-            zk = fwd["z_mean"][k]
-            for l in range(self.K):
+        probe = fwd.get("probe")
+        for l in range(self.K):
+            if probe is not None and l != probe:
+                continue
+            xl = fwd["xi_mean"][l]
+            for k in range(self.K):
                 if k == l:
                     continue
-                est = m_mod * np.outer(zk, fwd["xi_mean"][l])
+                est = m_mod * np.outer(fwd["z_mean"][k], xl)
                 self.Cmat[k, l] += a * (est - self.Cmat[k, l])
         self.C = np.linalg.norm(self.Cmat, axis=(2, 3))
         grown = pruned = 0

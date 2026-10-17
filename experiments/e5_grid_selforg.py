@@ -54,18 +54,21 @@ def reference_cloud(nx, ny, rng, n_steps=4000, every=4, v_sigma=0.15):
 
 def run_sheet(nx, ny, seed, n_dev, n_null, n_points, cfg_kw, n_starts=160):
     rng = np.random.default_rng([seed, nx, ny])
+    if nx * ny > 64:            # large sheets: a 256x256 tile costs ~1 ms per step, so sample more sparingly
+        n_starts = 100; n_dev = min(n_dev, 12000)
     coords = sheet_coords(nx, ny)
     dist = torus_dist_factory(nx, ny)
     cfg = SelfOrgConfig(cue_width=1.0, **cfg_kw)
     sheet = SelfOrganizingSheet(coords, dist, rng, cfg)
     starts = random_positions(rng, nx, ny, n_starts)
-    X_ctrl, pers_ctrl = sheet.sample_manifold(starts, n_cue=80, n_free=200, n_keep=5)
+    n_free = 200 if nx * ny <= 64 else 120
+    X_ctrl, pers_ctrl = sheet.sample_manifold(starts, n_cue=80, n_free=n_free, n_keep=5)
     ctrl = certify_sheet(X_ctrl, rng, n_null, n_points)
     cue = sweep_2d(rng, n_dev, nx, ny, speed=3.0)
     for t in range(n_dev):
         sheet.step(cue[t], learn=True)
     sheet.finish_development()
-    X, pers = sheet.sample_manifold(starts, n_cue=80, n_free=200, n_keep=5)
+    X, pers = sheet.sample_manifold(starts, n_cue=80, n_free=n_free, n_keep=5)
     trained = certify_sheet(X, rng, n_null, n_points)
     ref = certify_sheet(reference_cloud(nx, ny, rng), rng, n_null, n_points)
     return {"seed": seed, "sheet": [nx, ny], "trained": trained, "control": ctrl, "reference_programmed": ref,

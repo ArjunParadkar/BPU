@@ -137,8 +137,8 @@ def run_seed(seed, n_base, n_ft, cfg_kw):
 
 def main():
     ap = base_parser("E7 modular self-assembly", default_seeds=3)
-    ap.add_argument("--base-trials", type=int, default=4000)
-    ap.add_argument("--ft-trials", type=int, default=1500)
+    ap.add_argument("--base-trials", type=int, default=3000)
+    ap.add_argument("--ft-trials", type=int, default=1000)
     ap.add_argument("--edge-budget", type=int, default=12)
     ap.add_argument("--theta-e", type=float, default=0.02)
     args = ap.parse_args()
