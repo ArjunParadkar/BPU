@@ -10,3 +10,52 @@ ideal val loss: {'shakespeare': 1.8135273158550262, 'python_source': 6.027023124
     frozen step 600 seg 0 loss 1.667 (1135s)
     frozen step 800 seg 0 loss 1.660 (1220s)
     frozen step 1000 seg 0 loss 1.667 (1300s)
+    frozen step 1200 seg 1 loss 6.024 (1371s)
+    frozen step 1400 seg 1 loss 6.031 (1472s)
+    frozen step 1600 seg 1 loss 6.032 (1599s)
+    frozen step 1800 seg 1 loss 6.020 (1711s)
+    frozen step 2000 seg 1 loss 6.021 (1835s)
+    frozen step 2200 seg 2 loss 1.663 (1956s)
+    frozen step 2400 seg 2 loss 1.665 (2081s)
+    frozen step 2600 seg 2 loss 1.664 (2223s)
+    frozen step 2800 seg 2 loss 1.662 (2364s)
+    frozen step 3000 seg 2 loss 1.665 (2498s)
+  stream: frozen: 2497.9 s
+  frozen: segment-end losses [1.667 6.021 1.665], recovery [991, 592], writes/device/s 0
+    local step 200 seg 0 loss 3.108 (176s)
+    local step 400 seg 0 loss 4.325 (350s)
+    local step 600 seg 0 loss 4.401 (522s)
+    local step 800 seg 0 loss 4.336 (700s)
+    local step 1000 seg 0 loss 4.470 (875s)
+    local step 1200 seg 1 loss 4.593 (1048s)
+    local step 1400 seg 1 loss 4.497 (1216s)
+    local step 1600 seg 1 loss 4.566 (1395s)
+    local step 1800 seg 1 loss 4.541 (1569s)
+    local step 2000 seg 1 loss 4.518 (1724s)
+    local step 2200 seg 2 loss 4.467 (1857s)
+    local step 2400 seg 2 loss 4.543 (2001s)
+    local step 2600 seg 2 loss 4.501 (2139s)
+    local step 2800 seg 2 loss 4.566 (2266s)
+    local step 3000 seg 2 loss 4.486 (2409s)
+  stream: local: 2409.1 s
+  local: segment-end losses [4.47  4.518 4.486], recovery [326, 145], writes/device/s 1.69
+    fa step 200 seg 0 loss 2.816 (216s)
+    fa step 400 seg 0 loss 2.728 (440s)
+    fa step 600 seg 0 loss 2.527 (647s)
+    fa step 800 seg 0 loss 2.451 (870s)
+    fa step 1000 seg 0 loss 2.387 (1097s)
+    fa step 1200 seg 1 loss 3.252 (1306s)
+    fa step 1400 seg 1 loss 2.661 (1529s)
+    fa step 1600 seg 1 loss 2.536 (1740s)
+    fa step 1800 seg 1 loss 2.449 (1946s)
+    fa step 2000 seg 1 loss 2.393 (2140s)
+    fa step 2200 seg 2 loss 2.475 (2364s)
+    fa step 2400 seg 2 loss 2.310 (2571s)
+    fa step 2600 seg 2 loss 2.248 (2773s)
+    fa step 2800 seg 2 loss 2.202 (2964s)
+    fa step 3000 seg 2 loss 2.175 (3075s)
+  stream: fa: 3074.9 s
+  fa: segment-end losses [2.387 2.393 2.175], recovery [1226, 599], writes/device/s 1.41
+E9 verdict: frozen: python-segment loss 6.021 (no recovery by construction); local three-factor: 4.518, recovery [326, 145], 1.69 writes/dev/s; feedback alignment: 2.393, recovery [1226, 599], 1.41 writes/dev/s; budget 6e-3 at 0.01 s/step; criterion not met: local tracks=False budget=False, fa tracks=False budget=False
+[e9] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e9/results.json
+[e9] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e9_trainability.png

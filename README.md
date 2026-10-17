@@ -161,7 +161,20 @@ budget and MAC energy only 11.3 nJ/token. Projected latency
 37 µs/token vs 357 µs/token measured on this CPU. Nothing on the BPU
 side is measured on hardware; the paper must state it that way.
 
-**E9 — trainability under drift.** PENDING_E9
+**E9 — trainability under drift.** Same architecture as E8, LOADed into tiles at σ = 0.04, then a stream of
+1000 steps Shakespeare → 1000 Python source → 1000 Shakespeare. Segment-end losses
+(nats/char) frozen / local three-factor / feedback alignment: Shakespeare
+1.67 / 4.47 / 2.39, Python 6.02 / 4.52 / 2.39, Shakespeare again
+1.67 / 4.49 / 2.18. **Feedback alignment through the tiles does adapt**
+(it halves its gap on the new corpus within 56 steps and ends 3.6 nats below
+the frozen model), the Hebbian three-factor rule degrades the model on
+every segment, and neither meets the letter of the criterion: 90 % recovery
+takes 1226 and 599 steps for FA (limit 300), and both local rules write
+1.41–1.69 times per device per second at the assumed 10 ms per step,
+about 250× the 6e-3 endurance budget. **Criterion not met**; the frozen
+accelerator's failure (6.0 nats on the new corpus, no recovery) is
+confirmed, trainability on-chip is shown for FA at an unaffordable write
+rate.
 
 **E10 — continual learning.** Permuted MNIST, five tasks, tiled
 784-256-256-10, 3 seeds. Average accuracy after the sequence: joint
@@ -172,8 +185,19 @@ met**: the persistence-gated transfer forgets more than naive fine-tuning.
 
 ### The substrate, after the fixes
 
-* **E3** (N = 128, T = 30 s, 20 seeds, mismatch 0.02/0.05/0.10, homeostasis
-  off and on): PENDING_E3
+* **E3** (N = 128 on 16 tiles, T = 30 s, 20 seeds paired by mismatch draw,
+  mismatch 0.02/0.05/0.10, homeostasis off and on): **0/6 mismatched
+  conditions U-shaped.** Homeostasis off: RMSE at zero dynamic noise
+  0.25 / 0.51 / 1.14 rad for the three mismatch levels (control 0.19), each
+  curve flat-to-rising with its best interior point never significant
+  (p ≥ 0.82); the measured pinning barrier ΔU grows with mismatch
+  (0.11 / 0.23 / 0.41 vs 0.001 without mismatch), so pinning is real but
+  dynamic noise does not release it at these N and T. Homeostasis on
+  (τ_H = 5 s, read-side gain) destroys path integration outright (RMSE
+  ≈ 1.6 rad at every noise level, including the mismatch-free control): a
+  dwelling bump adapts its own gain away. The fitted E(D) model puts σ* at
+  the lowest or highest swept value in every condition, i.e. no interior
+  optimum. N = 256 (homeostasis off, 10 seeds) PENDING_E3_256
 * **E4** (10 seeds, sweep cue): 5/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.7/8 bins of the ring on average (8 = a fully explored ring); development 40 s at 0.111 writes/device/s (uncapped). Capped at the endurance
   budget: 0/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.6/8 bins of the ring on average (8 = a fully explored ring); development 720 s at 0.00598 writes/device/s (capped at 0.006).
 * **E5**: the programmed Burak–Fiete module at 32×32 (1024 neurons on 1024

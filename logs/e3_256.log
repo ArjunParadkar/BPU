@@ -1,0 +1,12 @@
+N=256: velocity gain c = -95.23; tiles per matrix = 64
+    N256_mismatch0.02_tauH0 landscape: 19.4 s
+    Delta U = 0.0395 +- 0.0058 (rad^2/s units of U), rms drift 0.0155 rad/s
+    N256_mismatch0.02_tauH0 sweep (9 x 10): 10376.2 s
+    RMSE: 0.0:0.160 0.005:0.160 0.01:0.155 0.02:0.174 0.03:0.176 0.05:0.151 0.08:0.207 0.12:0.248 0.2:0.330
+    NOT U-shaped: interior minimum at sigma=0.05 not significant (6/10 seeds, p=0.754); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.018043389642038884])
+[e3_256] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_256/results.json
+    N256_mismatch0.05_tauH0 landscape: 15.9 s
+    Delta U = 0.0963 +- 0.014 (rad^2/s units of U), rms drift 0.0369 rad/s
+    N256_mismatch0.05_tauH0 sweep (9 x 10): 3433.7 s
+    RMSE: 0.0:0.284 0.005:0.280 0.01:0.282 0.02:0.275 0.03:0.289 0.05:0.269 0.08:0.293 0.12:0.373 0.2:0.402
+    NOT U-shaped: interior minimum at sigma=0.05 not significant (5/10 seeds, p=1); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.020633755831143494])
