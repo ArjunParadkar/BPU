@@ -453,3 +453,10 @@ documents where they are more specific than the brief:
   entirely on the converter architecture and constant, not on the MACs
   (11 nJ/token).  Write energy is amortised from the measured writes per
   device per fine-tuning step (~4e-4) at 1.5 pulses per write.
+* **E9 segment length.** Run with 1000-step segments instead of the planned
+  2000: on this loaded CPU the frozen pass alone ran at 1.3 s/step
+  (6000 steps = 2.2 h) and the local and feedback-alignment passes are
+  slower, which would have pushed E9 past midnight.  The recovery criterion
+  (tracking within 300 steps of a switch) is unchanged; the first attempt's
+  frozen pass (logs/e9_firsttry.log) showed the Python-source segment at
+  6.0 nats/char against 1.66 on Shakespeare, as expected.

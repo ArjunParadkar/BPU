@@ -34,3 +34,19 @@ N=128: velocity gain c = -95.23; tiles per matrix = 16
     N128_mismatch0.05_tauH5 sweep (9 x 20): 1180.2 s
     RMSE: 0.0:1.663 0.005:1.632 0.01:1.659 0.02:1.660 0.03:1.662 0.05:1.641 0.08:1.602 0.12:1.630 0.2:1.580
     NOT U-shaped: interior minimum at sigma=0.2 not significant (10/20 seeds, p=1); fitted sigma* = 0.2 (bootstrap 95% CI [0.005, 0.2])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+    N128_mismatch0.1_tauH5 landscape: 3.8 s
+    Delta U = 0.49 +- 0.075 (rad^2/s units of U), rms drift 0.338 rad/s
+    N128_mismatch0.1_tauH5 sweep (9 x 20): 1433.3 s
+    RMSE: 0.0:1.709 0.005:1.722 0.01:1.724 0.02:1.728 0.03:1.708 0.05:1.731 0.08:1.734 0.12:1.697 0.2:1.653
+    NOT U-shaped: interior minimum at sigma=0.2 not significant (10/20 seeds, p=1); fitted sigma* = 0.2 (bootstrap 95% CI [0.005, 0.2])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+    N128_mismatch0.0_tauH5 landscape: 5.0 s
+    Delta U = 0.452 +- 1.9e-17 (rad^2/s units of U), rms drift 0.228 rad/s
+    N128_mismatch0.0_tauH5 sweep (9 x 20): 1317.5 s
+    RMSE: 0.0:1.674 0.005:1.673 0.01:1.671 0.02:1.678 0.03:1.648 0.05:1.641 0.08:1.636 0.12:1.669 0.2:1.581
+    NOT U-shaped: interior minimum at sigma=0.2 not significant (9/20 seeds, p=0.824); fitted sigma* = 0.2 (bootstrap 95% CI [0.03346390503133933, 0.2])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+E3 verdict: 0/6 mismatched conditions (N x sigma_d2d) show a significant U; N128_mismatch0.02_tauH0: NOT U-shaped: interior minimum at sigma=0.01 not significant (11/20 seeds, p=0.824); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.005]); N128_mismatch0.05_tauH0: NOT U-shaped: minimum at zero noise; fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.018043389642038884]); N128_mismatch0.1_tauH0: NOT U-shaped: interior minimum at sigma=0.08 not significant (10/20 seeds, p=1); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.2]); N128_mismatch0.02_tauH5: NOT U-shaped: interior minimum at sigma=0.2 not significant (8/20 seeds, p=0.503); fitted sigma* = 0.2 (bootstrap 95% CI [0.025022546224332812, 0.2]); N128_mismatch0.05_tauH5: NOT U-shaped: interior minimum at sigma=0.2 not significant (10/20 seeds, p=1); fitted sigma* = 0.2 (bootstrap 95% CI [0.005, 0.2]); N128_mismatch0.1_tauH5: NOT U-shaped: interior minimum at sigma=0.2 not significant (10/20 seeds, p=1); fitted sigma* = 0.2 (bootstrap 95% CI [0.005, 0.2])
+[e3] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3/results.json
+[e3] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e3_drift.png
