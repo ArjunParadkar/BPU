@@ -1,0 +1,13 @@
+  seed 0: certified=True betti1=1 extra betti0=0 writes/dev/s=0.109 top H1=[0.257 0.029 0.027] thr=0.182 | control certified=False betti1=0 | persists 0.72 (ctrl 0.00) | occupancy 5/8 bins, drift 1.93 rad | synapses 92->768
+  seed 1: certified=True betti1=1 extra betti0=0 writes/dev/s=0.111 top H1=[0.195 0.048 0.039] thr=0.156 | control certified=False betti1=0 | persists 0.50 (ctrl 0.00) | occupancy 8/8 bins, drift 1.81 rad | synapses 92->768
+  seed 2: certified=False betti1=0 extra betti0=0 writes/dev/s=0.108 top H1=[0.101 0.029 0.025] thr=0.124 | control certified=False betti1=0 | persists 0.45 (ctrl 0.00) | occupancy 5/8 bins, drift 2.14 rad | synapses 79->768
+  seed 3: certified=True betti1=1 extra betti0=0 writes/dev/s=0.11 top H1=[0.172 0.029 0.024] thr=0.140 | control certified=False betti1=0 | persists 0.25 (ctrl 0.00) | occupancy 8/8 bins, drift 2.72 rad | synapses 99->768
+  seed 4: certified=False betti1=0 extra betti0=0 writes/dev/s=0.113 top H1=[0.164 0.031 0.03 ] thr=0.280 | control certified=False betti1=0 | persists 1.00 (ctrl 0.00) | occupancy 3/8 bins, drift 1.27 rad | synapses 92->768
+  seed 5: certified=True betti1=1 extra betti0=0 writes/dev/s=0.112 top H1=[0.206 0.036 0.029] thr=0.137 | control certified=False betti1=0 | persists 0.82 (ctrl 0.00) | occupancy 3/8 bins, drift 2.12 rad | synapses 114->768
+  seed 6: certified=False betti1=0 extra betti0=0 writes/dev/s=0.111 top H1=[0.14  0.028 0.026] thr=0.157 | control certified=True betti1=1 | persists 1.00 (ctrl 0.00) | occupancy 3/8 bins, drift 1.62 rad | synapses 95->768
+  seed 7: certified=False betti1=0 extra betti0=0 writes/dev/s=0.112 top H1=[0.194 0.03  0.022] thr=0.213 | control certified=False betti1=0 | persists 1.00 (ctrl 0.00) | occupancy 3/8 bins, drift 1.69 rad | synapses 102->768
+  seed 8: certified=False betti1=0 extra betti0=0 writes/dev/s=0.114 top H1=[0.122 0.028 0.024] thr=0.138 | control certified=False betti1=0 | persists 0.62 (ctrl 0.00) | occupancy 3/8 bins, drift 1.52 rad | synapses 104->768
+  seed 9: certified=True betti1=1 extra betti0=0 writes/dev/s=0.113 top H1=[0.294 0.023 0.022] thr=0.177 | control certified=False betti1=0 | persists 0.65 (ctrl 0.00) | occupancy 6/8 bins, drift 2.27 rad | synapses 78->768
+E4 verdict: 5/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.7/8 bins of the ring on average (8 = a fully explored ring); development 40 s at 0.111 writes/device/s (uncapped).
+[e4] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e4/results.json
+[e4] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e4_ring_selforg.png

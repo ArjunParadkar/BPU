@@ -1,0 +1,8 @@
+N=128: velocity gain c = -95.23; tiles per matrix = 16
+    N128_mismatch0.02_tauH5 landscape: 6.5 s
+    Delta U = 0.454 +- 0.014 (rad^2/s units of U), rms drift 0.277 rad/s
+    N128_mismatch0.02_tauH5 sweep (9 x 20): 1698.9 s
+    RMSE: 0.0:1.660 0.005:1.658 0.01:1.654 0.02:1.646 0.03:1.649 0.05:1.632 0.08:1.590 0.12:1.643 0.2:1.583
+    NOT U-shaped: interior minimum at sigma=0.2 not significant (8/20 seeds, p=0.503); fitted sigma* = 0.2 (bootstrap 95% CI [0.025022546224332812, 0.2])
+/usr/lib/python3.14/multiprocessing/resource_tracker.py:475: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown: {'/mp-4tpwo6hk', '/mp-g37hofzs', '/mp-y6tv3joa', '/mp-rs795fu4', '/mp-lgorp1np', '/mp-gm3qmkq0'}
+  warnings.warn(

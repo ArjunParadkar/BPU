@@ -9,3 +9,5 @@ seed 0: ideal model 2.72M params
     ideal training: 1544.1 s
   ideal val loss 1.6771
     na s=0.0 step 200/300 loss 1.470 (305s)
+    sigma=0.0 noise-aware fine-tune: 647.1 s
+  sigma=0.0: deploy 1.6839 (+0.40%)  noise-aware 1.6563 (-1.24%)  writes/dev/step 0.000733

@@ -303,3 +303,125 @@ documents where they are more specific than the brief:
   structural change (claim 15; SV is computed, the gate is a one-line
   policy on top), spawn-on-error of whole modules in E7 (claim 3; `growth.spawn`
   exists at tile level), the control-plane/security layer (Section 9).
+
+## Weekend programme (2026-10-17): E8-E10 and the fixes to E2-E7
+
+### Torch tile layer (`bpusim/torchtile.py`)
+* `TileLinear` mirrors `tile.Tile` for model-scale work: differential pairs
+  `w+`, `w-` in [0, 1], mask, fixed d2d gain per device, fresh read noise per
+  device per forward, and **pulsed soft-bound writes**: the optimiser proposes
+  a float step, the tile converts it to a whole number of pulses of size
+  `alpha exp(-beta w)` (alpha = 0.02 so a device has ~230 levels, about the
+  4 bits per device the technical document quotes), applies per-pulse c2c
+  noise, keeps the sub-pulse residual in a pending accumulator.  The pulse
+  count uses the step size at the start of the write (not one pulse at a
+  time), a simplification that matters only for writes of many pulses.
+* `LOAD` by write-verify is emulated as programming to within
+  `max(tol, half a pulse)` with one uniform error draw per device rather
+  than by iterating reads, because 10M devices x 8 verify reads per
+  iteration is not affordable in the inner loop of E8.
+* Embeddings and layer norms stay digital (periphery); the attention cache is
+  a volatile crossbar (write noise when K/V are stored, read noise on both
+  reads).  The backward pass of a tile is counted as 2x the forward MACs.
+* Feedback alignment is a custom autograd function: forward through the
+  noisy read, input gradient through a fixed random matrix, weight gradient
+  local.
+
+### E8 protocol
+* Ideal baseline 1500 AdamW steps, batch 24, context 128 (2.72M parameters:
+  the brief's "~10M" with d = 192 and 6 layers is 2.7M; d = 384 would be 10.6M
+  and ~4x slower, so the architecture in the brief was kept and the
+  parameter count is reported).  Noise-aware training is **fine-tuning from
+  the ideal checkpoint** for 300 steps at each sigma (the E1 protocol), not
+  training from scratch at each sigma; deploy mode loads the ideal weights
+  and evaluates.  All three share one validation generator so losses are
+  paired.
+
+### E9 protocol
+* The second corpus is this repository's own Python source, repeated to the
+  length of Shakespeare (a plain-text file in the repo, as the brief allows).
+* The local three-factor rule uses a purely Hebbian eligibility
+  `<pre_i post_j>` with the z-scored, clipped loss modulator and homeostatic
+  column scaling; there is no noise-correlation term, so on a transformer it
+  is expected to be weak and is reported as it comes out.
+* Chip time per training step is an assumption (10 ms by default,
+  `--step-seconds`) because the write-rate budget is per second and a
+  simulation step has no physical duration.
+
+### E10 protocol
+* `DualTileLinear`: a volatile tile (`tau_f` = 2000 steps = 20 s at 10 ms per
+  step) in parallel with a nonvolatile tile; learning writes the volatile
+  one; consolidation during replay **transfers** weight from fast to slow
+  (conserving `G_eff`), gated per postsynaptic unit by its Feature
+  Persistence Lifetime.  FPL per unit is operationalised as the unit's own
+  H0 death time in a single-linkage filtration of the unit activity vectors
+  over the replay set (how long the unit stays a distinct feature); units
+  above the median consolidate, the rest fade.  The paper's FPL is per
+  topological feature of the activity cloud; this per-unit form is the
+  closest quantity that can gate synapses.
+* "After rest" numbers evaluate the network after one `tau_f` of no input,
+  when the un-consolidated fast weights have decayed.
+
+### Fixes and what they revealed
+* **A write-dropping bug made the first E7 weaker than it should have been.**
+  The module graph released accumulated updates from the surprise gate and
+  the tile rounded sub-pulse requests to zero, so almost nothing below half a
+  pulse (0.025 in weight units) was ever written.  With the residual kept
+  (`modules.gated_write`), the two-input test graph trains to loss 0.004
+  (local rule) / 0.010 (node perturbation) where it stalled at 0.39 before.
+  The E7 verdicts are re-run with the fix; the earlier E7 null should be read
+  with this in mind.
+* **E7 learning rule.** Layer-local losses: every module has its own readout
+  to the task target and minimises its own loss with a one-step gradient that
+  never leaves the module (its readout, recurrent tile, incoming routes and
+  input tile); node perturbation is kept for the route statistic only.
+  Baselines: the fixed layered graph at matched synapses and the same trials,
+  and at matched compute (trials scaled by the ratio of MACs per trial).
+* **Homeostasis in E3.** The paper's rule with tau_H = 5 s applied to a
+  running-mean rate with tau_rate = 1 s destroyed path integration on a
+  mismatch-free ring (RMSE 1.25 rad vs 0.05 without homeostasis): the gain
+  chased the moving bump.  tau_rate = 20 s and a uniform initial running mean
+  reduce the damage but a dwelling bump still adapts its own gain away
+  (0.2 rad/s drift at zero mismatch), so E3 is run as two arms, tau_H = 5 s
+  and off, and both are reported.  The homeostatic gain is a read-side
+  per-neuron gain (no device rewrites).
+* **E3 pinning landscape** is measured directly: the bump is placed at 48
+  positions, its drift velocity at zero dynamic noise is integrated around
+  the ring to U(phi), and Delta U = max U - min U.  The fit
+  `E(D) = c1 exp(DeltaU/D) + 2 k D T` with `D = sigma^2` is done by
+  least squares with a bootstrap over seeds for sigma*.
+* **E4 endurance cap.** Capping development at 6e-3 writes per device per
+  second by flushing only the largest pending changes each step (a per-tile
+  write quota) and running 18x longer (720 s) gives 0/10 certified rings
+  against 5/10 uncapped (10 seeds, 1/10 control false positive): the quota
+  starves the small depression writes that shape the kernel.  A rate cap is
+  not a free substitute for fewer, larger writes; this is reported, not
+  tuned away.
+* **E5 certifier.** Three changes, each forced by a measured failure on a
+  synthetic torus at the experiment's own sampling density (test
+  `test_certify_torus_at_experiment_sampling_density`): (1) a bar must also
+  be at least half the longest bar in its dimension (sampling-hole bars of a
+  large torus exceed the shift null, whose clouds are blobs); (2) H0
+  fragments are components that outlive 3x the median H0 bar, not every
+  finite bar above the null (max-min sampling makes all merge distances
+  similar); (3) H2 may be computed on a smaller subsample than H1
+  (`n_points_h2`).  A further finding: for a lattice that sweeps the torus
+  along straight lines every neuron's trace is periodic, and the circular
+  shift of periodic traces is not a null at all (it keeps the loops), so the
+  programmed reference is driven with frequent random turns.
+* **E6** now flips 20 % of the cue bits (no erasure) as asked; the 50 %
+  erasure result is kept in the git history (commit 0963cca).
+* **E5 reference protocol.** With the three certifier changes above, the
+  programmed 32x32 module still failed when driven for 3 s along straight
+  sweeps (its H1 bars 3.2 and 2.8 against a null of 2.8: periodic traces
+  survive a circular shift) or with turns every 0.2 s (four equal loops and no
+  H2: the torus was covered by a few line segments).  Thirty seconds of
+  trajectory with a random turn every 0.3 s, sampled every 30 ms, covers the
+  torus densely and certifies: H1 bars 2.36 and 2.05 against a null of 0.65,
+  one H2 bar 1.18 against 0.28, no fragments.  `reference_cloud` uses that.
+  The 5x6 and 16x16 verdicts from the first version stand as reported there;
+  BPU-1 tile B should be reassigned (a 5x6 sheet cannot host a torus).
+* **Thread oversubscription.** Multiprocessing workers each spawned a full
+  set of OpenBLAS threads (8 workers x 20 threads on 20 cores), which stalled
+  every job on the machine; all pool-based scripts are launched with
+  `OMP_NUM_THREADS=1` (see `scripts/run_weekend.sh`, `scripts/e5_chain.sh`).

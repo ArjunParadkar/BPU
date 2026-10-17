@@ -46,7 +46,8 @@ class GraphConfig:
                                     # (node perturbation has SNR ~ 1/sqrt(#perturbed units) per trial; at
                                     # 3e-3 the hidden updates randomised the features faster than the readout
                                     # could track them and accuracy fell to chance; see DECISIONS.md)
-    theta_w: float = 0.005          # write threshold
+    theta_w: float = 0.02           # write threshold (~ half a pulse from w = 0; smaller requests round to
+                                    # no pulse and would be lost without the residual-keeping gate)
     eta_readout: float = 0.03       # readout uses the delta rule with the output error as the (vector)
                                     # modulator: dW_out = eta_readout z (target - y)^T, a local three-factor
                                     # rule because the error is available at the output neurons
@@ -61,6 +62,12 @@ class GraphConfig:
     prune_patience: int = 300       # ... for this many trials
     recurrent_density: float = 0.3
     recurrent_scale: float = 0.2
+    rule: str = "local"             # "local": every module minimises its own readout loss (layer-local
+                                    # gradient inside the module, no gradient between modules); node
+                                    # perturbation is used for structural decisions only.  "np": the
+                                    # original node-perturbation weight learning.
+    eta_local: float = 0.01         # layer-local learning rate
+    out_dim: int = 16
 
 
 class Module:
@@ -73,6 +80,11 @@ class Module:
         self.gate = SurpriseGate((n, n), cfg.theta_w)
         self.z = np.zeros(n)
         self.xi = np.zeros(n)
+        self.u = np.zeros(n)
+        # local readout (layer-local loss): y_k = R_k^T z_k
+        self.R = Tile(n, cfg.out_dim, rng, params)
+        self.R.program(rng.uniform(-0.1, 0.1, (n, cfg.out_dim)))
+        self.R_gate = SurpriseGate((n, cfg.out_dim), 0.2 * cfg.theta_w)
 
     def reset(self):
         self.z[:] = 0.0; self.xi[:] = 0.0
@@ -84,15 +96,16 @@ class ModuleGraph:
         """in_dims: {module index: external input dimension}; R_fixed: a frozen routing matrix (baseline)."""
         self.cfg, self.rng = cfg, rng
         self.params = params or DeviceParams()
+        cfg.out_dim = int(out_dim)          # local readouts share the task's output dimension
         K, n = cfg.n_modules, cfg.n_per_module
         self.K, self.n = K, n
         self.modules = [Module(k, n, rng, self.params, cfg) for k in range(K)]
         self.input_modules = list(input_modules); self.output_modules = list(output_modules)
-        self.U = {}
+        self.U = {}; self.U_gate = {}
         for k, d in in_dims.items():
             t = Tile(d, n, rng, self.params)
             t.program(rng.uniform(-1, 1, (d, n)) * 0.8)
-            self.U[k] = t
+            self.U[k] = t; self.U_gate[k] = SurpriseGate((d, n), cfg.theta_w)
         self.out_dim = out_dim
         self.readout = Tile(n * len(output_modules), out_dim, rng, self.params)
         self.readout.program(rng.uniform(-0.1, 0.1, (n * len(output_modules), out_dim)))
@@ -110,6 +123,13 @@ class ModuleGraph:
         self.L_bar = {}
         self.history = {"Q": [], "edges": [], "trial": [], "loss": []}
         self.trial = 0
+        self.macs_total = 0
+
+    def macs_per_trial(self) -> int:
+        """Multiply-accumulates of one trial: recurrent + route + input reads per relaxation step, readout."""
+        n = self.n
+        per_step = sum(m.W.n_active for m in self.modules) + sum(t.n_active for t in self.B.values()) + sum(t.n_active for t in self.U.values())
+        return int(self.cfg.n_relax * per_step + self.readout.n_active)
 
     # ----------------------------------------------------------------- routes
     def _create_route(self, k, l, seed=None):
@@ -170,6 +190,7 @@ class ModuleGraph:
                 target = np.clip(u + cfg.I_tonic, 0.0, cfg.r_max)
                 m.z = (1 - a) * m.z + a * (target + xi)
                 m.xi = xi
+                m.u = u + cfg.I_tonic
             # eligibilities: pre activity x post noise (node perturbation)
             for l, m in enumerate(self.modules):
                 elig_W[l] += np.outer(z_prev[l], m.xi)
@@ -183,7 +204,9 @@ class ModuleGraph:
                 trace.append(np.concatenate([m.z for m in self.modules]))
         z_out = np.concatenate([self.modules[k].z for k in self.output_modules])
         y = self.readout.read(z_out)
+        self.macs_total += self.macs_per_trial()
         return {"y": y, "elig_W": elig_W, "elig_B": elig_B, "elig_U": elig_U, "z_out": z_out, "probe": probe,
+                "z_prev": z_prev, "inputs": inputs,
                 "xi_mean": [x / cfg.n_relax for x in xi_sum], "z_mean": [z / cfg.n_relax for z in z_sum],
                 "trace": np.array(trace) if record else None}
 
@@ -198,23 +221,20 @@ class ModuleGraph:
         Ls_new = Ls + (abs(loss - Lb) - Ls) / cfg.tau_L
         self.L_bar[task] = (Lb_new, Ls_new)
         writes = 0
-        eta = cfg.eta / cfg.sigma_xi ** 2
-        for l, mod in enumerate(self.modules):
-            dW, k_ = mod.gate(eta * m_mod * fwd["elig_W"][l]); writes += k_
-            if k_:
-                mod.W.update(dW)
-        for kl, t in self.B.items():
-            dW, k_ = self.B_gate[kl](eta * m_mod * fwd["elig_B"][kl]); writes += k_
-            if k_:
-                t.update(dW)
-        for k, t in self.U.items():
-            if k in fwd["elig_U"]:
-                t.update(eta * m_mod * fwd["elig_U"][k])
+        if cfg.rule == "local" and target is not None:
+            writes += self._learn_local(fwd, np.asarray(target, float))
+        else:
+            eta = cfg.eta / cfg.sigma_xi ** 2
+            for l, mod in enumerate(self.modules):
+                writes += gated_write(mod.W, mod.gate, eta * m_mod * fwd["elig_W"][l])
+            for kl, t in self.B.items():
+                writes += gated_write(t, self.B_gate[kl], eta * m_mod * fwd["elig_B"][kl])
+            for k, t in self.U.items():
+                if k in fwd["elig_U"]:
+                    writes += gated_write(t, self.U_gate[k], eta * m_mod * fwd["elig_U"][k])
         if target is not None:
             err = np.asarray(target, float) - fwd["y"]
-            dW, k_ = self.readout_gate(cfg.eta_readout * np.outer(fwd["z_out"], err)); writes += k_
-            if k_:
-                self.readout.update(dW)
+            writes += gated_write(self.readout, self.readout_gate, cfg.eta_readout * np.outer(fwd["z_out"], err))
         # route statistic for every ordered pair (k -> l), k != l.  With single-module
         # exploration the estimate for target l is conditioned on the trials where l carried
         # the probe (otherwise xi_l = 0 and the average would be diluted by 1/K).
@@ -235,6 +255,27 @@ class ModuleGraph:
             grown, pruned = self._structure_step()
         self.trial += 1
         return {"m": m_mod, "writes": writes, "grown": grown, "pruned": pruned}
+
+    def _learn_local(self, fwd, target) -> int:
+        """Layer-local losses: module k minimises ||R_k^T z_k - target||^2 with gradients that stay inside
+        the module (its readout, its recurrent tile, its incoming routes and input tile); nothing
+        propagates between modules.  One-step gradient at the final relaxation state."""
+        cfg = self.cfg; writes = 0; n = self.n
+        for k, mod in enumerate(self.modules):
+            y_k = mod.R.read(mod.z)
+            err = y_k - target                                   # d L_k / d y_k (up to 2)
+            writes += gated_write(mod.R, mod.R_gate, -cfg.eta_local * np.outer(mod.z, err))
+            active = ((mod.u > 0) & (mod.u < cfg.r_max)).astype(float)   # f'(u) of the clipped relu
+            delta = (mod.R.W @ err) * active * cfg.dt_over_tau       # d L_k / d u_k
+            if not np.any(delta):
+                continue
+            writes += gated_write(mod.W, mod.gate, -cfg.eta_local * np.outer(fwd["z_prev"][k], delta))
+            for l in range(self.K):
+                if self.R[l, k]:
+                    writes += gated_write(self.B[(l, k)], self.B_gate[(l, k)], -cfg.eta_local * np.outer(fwd["z_prev"][l], delta))
+            if k in self.U and k in fwd["inputs"]:
+                writes += gated_write(self.U[k], self.U_gate[k], -cfg.eta_local * np.outer(fwd["inputs"][k], delta))
+        return writes
 
     def _structure_step(self):
         cfg = self.cfg
@@ -268,6 +309,17 @@ class ModuleGraph:
         Q, _ = self.modularity()
         self.history["Q"].append(Q); self.history["edges"].append(self.n_edges)
         self.history["trial"].append(self.trial); self.history["loss"].append(float(loss))
+
+
+def gated_write(tile: Tile, gate: SurpriseGate, dW: np.ndarray) -> int:
+    """Accumulate dW in the surprise gate, write what crosses the threshold, and put back whatever
+    the pulsed tile could not realise (changes below half a pulse), so small persistent updates are
+    eventually written instead of being silently dropped."""
+    out, k = gate(dW)
+    if k:
+        realised = tile.update(out)
+        gate.pending += out - realised
+    return k
 
 
 def layered_routing(K: int, inputs: list, hidden: list, outputs: list) -> np.ndarray:
