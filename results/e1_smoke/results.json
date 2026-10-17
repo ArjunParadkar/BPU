@@ -1,0 +1,80 @@
+{
+ "sigmas": [
+  0.0,
+  0.01,
+  0.02,
+  0.04,
+  0.06,
+  0.08,
+  0.12
+ ],
+ "rows": [
+  {
+   "sigma": 0.0,
+   "ppl_pretrained_noisy": 522.7335276888128,
+   "ppl_finetuned_noisy": 517.8399480875798,
+   "ppl_finetuned_clean_read": 517.8399480875798,
+   "seconds": 0.39259934425354004
+  },
+  {
+   "sigma": 0.01,
+   "ppl_pretrained_noisy": 522.6785690193622,
+   "ppl_finetuned_noisy": 517.9740459010892,
+   "ppl_finetuned_clean_read": 517.9757748288791,
+   "seconds": 0.22617840766906738
+  },
+  {
+   "sigma": 0.02,
+   "ppl_pretrained_noisy": 522.6965140719799,
+   "ppl_finetuned_noisy": 517.9286018686425,
+   "ppl_finetuned_clean_read": 517.9043996090719,
+   "seconds": 0.2406148910522461
+  },
+  {
+   "sigma": 0.04,
+   "ppl_pretrained_noisy": 522.9035498141934,
+   "ppl_finetuned_noisy": 517.9426792133028,
+   "ppl_finetuned_clean_read": 517.8818036223287,
+   "seconds": 0.20831918716430664
+  },
+  {
+   "sigma": 0.06,
+   "ppl_pretrained_noisy": 522.1784740444199,
+   "ppl_finetuned_noisy": 517.9893594623209,
+   "ppl_finetuned_clean_read": 517.949100585305,
+   "seconds": 0.20154094696044922
+  },
+  {
+   "sigma": 0.08,
+   "ppl_pretrained_noisy": 522.7134627429435,
+   "ppl_finetuned_noisy": 517.3749496668169,
+   "ppl_finetuned_clean_read": 517.8983492208915,
+   "seconds": 0.21421170234680176
+  },
+  {
+   "sigma": 0.12,
+   "ppl_pretrained_noisy": 522.2002614826564,
+   "ppl_finetuned_noisy": 517.9675007267325,
+   "ppl_finetuned_clean_read": 518.0286334064095,
+   "seconds": 1.1183476448059082
+  }
+ ],
+ "steps": 20,
+ "block": 64,
+ "batch": 4,
+ "lr": 2e-05,
+ "smoke": true,
+ "device": "cpu",
+ "c2c": 0.0,
+ "verdict": {
+  "best_sigma_after_finetune": 0.08,
+  "statement": "SMOKE RUN (random tiny model): numbers are meaningless. lowest fine-tuned perplexity at sigma=0.08 (517.37); pretrained-at-noise rises from 522.73 to 522.20"
+ },
+ "meta": {
+  "experiment": "e1",
+  "git": "1aef894",
+  "python": "3.14.7",
+  "numpy": "2.4.4",
+  "finished": "2026-10-16 21:00:58"
+ }
+}

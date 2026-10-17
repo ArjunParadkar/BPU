@@ -132,14 +132,14 @@ def run_method(method, data, seed, device, epochs, density, update_every, drop_f
                         if method == "rigl":
                             xb, yb = xtr[perm[:1024]], ytr[perm[:1024]]
                             # dense gradient of the loss w.r.t. all weights of this layer
-                            h = xb
-                            for lj, (Wj, mj) in enumerate(zip(Ws, masks)):
-                                if lj == li:
-                                    Wd = (Wj * mj).detach().requires_grad_(True); h = h @ Wd
-                                else:
-                                    h = h @ (Wj * mj)
-                                h = F.relu(h) if lj < len(Ws) - 1 else h
                             with torch.enable_grad():
+                                h = xb
+                                for lj, (Wj, mj) in enumerate(zip(Ws, masks)):
+                                    if lj == li:
+                                        Wd = (Wj * mj).detach().requires_grad_(True); h = h @ Wd
+                                    else:
+                                        h = h @ (Wj * mj).detach()
+                                    h = F.relu(h) if lj < len(Ws) - 1 else h
                                 lg = F.cross_entropy(h, yb)
                                 gd = torch.autograd.grad(lg, Wd)[0]
                             gscore = torch.where(inactive, gd.abs(), torch.full_like(W, -1.0))

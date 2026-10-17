@@ -3,8 +3,9 @@
 Same developmental protocol as E4 on a periodic 2D sheet: sparse random
 tile, exploration cue sweeping the torus along an irrational heading, STDP + growth + normalisation
 with a fixed global inhibition and a developmental (sub-threshold) gain.
-After development the cue is removed, the sheet is kicked to random
-positions and the free-running activity is certified against the
+After development the cue is removed, the sheet is kicked to 160 random
+positions (5 free-running samples kept per kick, so the torus is covered
+as a point sample rather than as a few clusters) and the activity is certified against the
 circular-shift null: a torus requires exactly two significant H1 bars and
 one H2 bar.  The programmed difference-of-Gaussians module (GridModule) is
 certified alongside as a positive reference, and the untrained tile as a
@@ -36,36 +37,35 @@ def certify_sheet(X, rng, n_null, n_points):
             "diagram_H2": c["diagrams"][2]}
 
 
-def reference_cloud(nx, ny, rng, n_pos=40, n_keep=25):
-    """Programmed DoG grid module driven to random phases: positive reference for the certifier."""
+def reference_cloud(nx, ny, rng, n_steps=4000, every=4, v_sigma=0.15):
+    """Programmed DoG grid module path-integrating a random velocity: the lattice phase
+    wanders continuously over the torus (positive reference for the certifier)."""
     g = GridModule(nx, ny, rng=rng, use_tiles=True)
-    coords = sheet_coords(nx, ny)
-    dist = torus_dist_factory(nx, ny)
-    clouds = []
-    for pos in random_positions(rng, nx, ny, n_pos):
-        g.reset(0.05)
-        I = 1.0 * np.exp(-dist(coords, pos) ** 2 / 2.0)
-        for _ in range(150):
-            g.step(I_ext=I)
-        traj = np.array([g.step().copy() for _ in range(250)])
-        clouds.append(traj[-n_keep:])
-    return np.concatenate(clouds, 0)
+    g.settle(400)
+    vx = vy = 0.0; k = np.exp(-1e-3 / 0.5); sd = v_sigma * np.sqrt(1 - k * k)
+    out = []
+    for t in range(n_steps):
+        vx = k * vx + sd * rng.standard_normal(); vy = k * vy + sd * rng.standard_normal()
+        r = g.step(vx=vx, vy=vy)
+        if t % every == 0:
+            out.append(r.copy())
+    return np.array(out)
 
 
-def run_sheet(nx, ny, seed, n_dev, n_null, n_points, cfg_kw):
+def run_sheet(nx, ny, seed, n_dev, n_null, n_points, cfg_kw, n_starts=160):
     rng = np.random.default_rng([seed, nx, ny])
     coords = sheet_coords(nx, ny)
     dist = torus_dist_factory(nx, ny)
     cfg = SelfOrgConfig(cue_width=1.0, **cfg_kw)
     sheet = SelfOrganizingSheet(coords, dist, rng, cfg)
-    starts = random_positions(rng, nx, ny, 40)
-    X_ctrl, pers_ctrl = sheet.sample_manifold(starts, n_keep=25)
+    starts = random_positions(rng, nx, ny, n_starts)
+    X_ctrl, pers_ctrl = sheet.sample_manifold(starts, n_cue=80, n_free=200, n_keep=5)
     ctrl = certify_sheet(X_ctrl, rng, n_null, n_points)
     cue = sweep_2d(rng, n_dev, nx, ny, speed=3.0)
     for t in range(n_dev):
         sheet.step(cue[t], learn=True)
     sheet.finish_development()
-    X, pers = sheet.sample_manifold(starts, n_keep=25)
+    X, pers = sheet.sample_manifold(starts, n_cue=80, n_free=200, n_keep=5)
     trained = certify_sheet(X, rng, n_null, n_points)
     ref = certify_sheet(reference_cloud(nx, ny, rng), rng, n_null, n_points)
     return {"seed": seed, "sheet": [nx, ny], "trained": trained, "control": ctrl, "reference_programmed": ref,
@@ -76,7 +76,7 @@ def run_sheet(nx, ny, seed, n_dev, n_null, n_points, cfg_kw):
 
 def main():
     ap = base_parser("E5 grid self-organisation", default_seeds=3)
-    ap.add_argument("--steps", type=int, default=30000)
+    ap.add_argument("--steps", type=int, default=20000)
     ap.add_argument("--null", type=int, default=8)
     ap.add_argument("--points", type=int, default=250)
     ap.add_argument("--sheets", type=str, default="5x6,16x16")

@@ -37,9 +37,11 @@ class GraphConfig:
     dt_over_tau: float = 0.5        # relaxation step per iteration
     n_relax: int = 8                # iterations per trial
     sigma_xi: float = 0.1           # neuron noise (the node-perturbation probe)
+    explore_one: bool = True        # per trial, only one randomly chosen module carries the probe noise
+                                    # (a global gating signal; raises the estimate's SNR by ~sqrt(K))
     r_max: float = 2.0
     I_tonic: float = 0.5            # background drive so every module has baseline activity to probe
-    eta: float = 0.001              # three-factor learning rate; the applied rate is eta / sigma_xi**2
+    eta: float = 0.003              # three-factor learning rate; the applied rate is eta / sigma_xi**2
                                     # because the node-perturbation estimate <m x xi> = sigma_xi**2 * gradient
                                     # (node perturbation has SNR ~ 1/sqrt(#perturbed units) per trial, so the
                                     # rate must be small; see DECISIONS.md)
@@ -153,6 +155,7 @@ class ModuleGraph:
         z_sum = [np.zeros(n) for _ in self.modules]
         trace = [] if record else None
         a = cfg.dt_over_tau
+        probe = int(self.rng.integers(self.K)) if cfg.explore_one else None
         for it in range(cfg.n_relax):
             z_prev = [m.z.copy() for m in self.modules]
             for l, m in enumerate(self.modules):
@@ -162,7 +165,7 @@ class ModuleGraph:
                 for k in range(self.K):
                     if self.R[k, l]:
                         u = u + self.B[(k, l)].read(z_prev[k])
-                xi = cfg.sigma_xi * self.rng.standard_normal(n)
+                xi = cfg.sigma_xi * self.rng.standard_normal(n) if (probe is None or probe == l) else np.zeros(n)
                 target = np.clip(u + cfg.I_tonic, 0.0, cfg.r_max)
                 m.z = (1 - a) * m.z + a * (target + xi)
                 m.xi = xi

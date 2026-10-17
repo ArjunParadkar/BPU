@@ -367,7 +367,7 @@ class SelfOrgConfig:
     struct_every: int = 100        # steps between grow/prune
     sigma_neuron: float = 0.02
     r_max: float = 2.0             # rate saturation (bounds the Hebbian positive feedback)
-    max_grow_per_step: int = 8     # synapses grown per structural step
+    max_grow_per_step: int | None = None   # synapses grown per structural step (default max(8, N // 4))
 
 
 class SelfOrganizingSheet:
@@ -397,7 +397,8 @@ class SelfOrganizingSheet:
         self.stdp = STDP(self.N, self.N, c.A_plus, c.A_minus, c.tau_plus, c.tau_minus, dt=c.rate_dt)
         self.growth = GrowthRule(self.tile, theta_grow=c.theta_grow, theta_prune=c.theta_prune,
                                  T_prune=c.T_prune, budget=int(c.budget_density * self.N * self.N),
-                                 tau_C=200, tau_mean=50, seed_w=0.05, max_grow_per_call=c.max_grow_per_step)
+                                 tau_C=200, tau_mean=50, seed_w=0.05,
+                                 max_grow_per_call=c.max_grow_per_step or max(8, self.N // 4))
         self.pending = np.zeros((self.N, self.N))
         self.r_bar = np.full(self.N, np.nan)   # running mean rate per neuron
         self.h = np.ones(self.N)                # homeostatic scale of each neuron's incoming column
