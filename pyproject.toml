@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bpusim"
+version = "0.1.0"
+description = "Simulator for the BrAIn Processing Unit (BPU): stochastic MoS2 memristor tiles, local plasticity, growth, attractors, memory, module graphs and topological certification."
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7", "ripser>=0.6", "networkx>=3.0", "scikit-learn>=1.3"]
+
+[tool.setuptools.packages.find]
+include = ["bpusim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
