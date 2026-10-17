@@ -155,7 +155,7 @@ def main():
     ap.add_argument("--edge-budget", type=int, default=12)
     ap.add_argument("--theta-e", type=float, default=0.02)
     ap.add_argument("--rule", type=str, default="local", choices=["local", "np"])
-    ap.add_argument("--eta-local", type=float, default=0.01)
+    ap.add_argument("--eta-local", type=float, default=0.001)
     ap.add_argument("--procs", type=int, default=1)
     args = ap.parse_args()
     seeds = 10 if args.full else args.seeds

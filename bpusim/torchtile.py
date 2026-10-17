@@ -139,8 +139,9 @@ class TileLinear(nn.Module):
     def read_weight(self) -> torch.Tensor:
         if self.ideal or self.sigma_r == 0:
             return self.W * self.A
-        # noise on each device of the pair, added around the differentiable W
-        noise = self.scale * self.A * self.sigma_r * (self.wp * torch.randn_like(self.wp) - self.wm * torch.randn_like(self.wm))
+        # independent read noise on each device of the pair: (w+ e1 - w- e2) has variance w+^2 + w-^2,
+        # so one Gaussian draw scaled by sqrt(w+^2 + w-^2) is the same distribution at half the cost
+        noise = self.scale * self.A * self.sigma_r * torch.sqrt(self.wp ** 2 + self.wm ** 2) * torch.randn_like(self.wp)
         return self.W * self.A + noise.detach()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

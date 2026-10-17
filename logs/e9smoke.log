@@ -1,0 +1,10 @@
+  pretrain ideal on Shakespeare: 102.5 s
+ideal val loss: {'shakespeare': 3.664112389087677, 'python_source': 3.87451149225235}
+  stream: frozen: 204.6 s
+  frozen: segment-end losses [3.654 3.878 3.657], recovery [None, None], writes/device/s 0
+  stream: local: 330.9 s
+  local: segment-end losses [3.733 4.309 4.327], recovery [None, None], writes/device/s 0.548
+  stream: fa: 294.3 s
+  fa: segment-end losses [4.067 4.334 3.578], recovery [None, None], writes/device/s 1.66
+E9 verdict: SMOKE RUN. frozen: python-segment loss 3.878 (no recovery by construction); local three-factor: 4.309, recovery [None, None], 0.548 writes/dev/s; feedback alignment: 4.334, recovery [None, None], 1.66 writes/dev/s; budget 6e-3 at 0.01 s/step; criterion not met: local tracks=False budget=False, fa tracks=False budget=False
+[e9] wrote /tmp/claude-1000/-home-god/6e71cf42-2cc4-463b-a25e-2ae2f4c2459d/scratchpad/e9smoke/results.json

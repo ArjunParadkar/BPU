@@ -65,7 +65,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(RES / "index.html"))
     args = ap.parse_args()
-    R = {k: load(k) for k in ("e1", "e2", "e2_cifar", "e3", "e4", "e4_capped", "e5", "e5_48", "e5_selforg32", "e6", "e7", "e8", "e8b", "e9", "e10")}
+    R = {k: load(k) for k in ("e1", "e2", "e2_cifar", "e3", "e3_256", "e4", "e4_capped", "e5", "e5_48", "e5_selforg32", "e6", "e7", "e8", "e8b", "e9", "e10")}
+    # merge the N = 256 E3 run into the main record
+    if R["e3"] and R["e3_256"] and "verdicts" in R["e3"] and "verdicts" in R["e3_256"]:
+        for key in ("sweeps", "landscape", "fits", "verdicts", "velocity_gain"):
+            R["e3"][key].update(R["e3_256"].get(key, {}))
+        R["e3"]["N"] = sorted(set(R["e3"]["N"]) | set(R["e3_256"]["N"]))
+        mk = [k for k in R["e3"]["verdicts"] if "mismatch0.0_" not in k]
+        n_u = sum(R["e3"]["verdicts"][k].get("u_shaped", False) for k in mk)
+        R["e3"]["verdict"] = {"n_u_shaped": n_u, "n_conditions": len(mk),
+                              "statement": f"{n_u}/{len(mk)} mismatched conditions (N x sigma_d2d x homeostasis) show a significant U; " +
+                                           "; ".join(f"{k}: {R['e3']['verdicts'][k]['statement']}" for k in mk)}
     # merge the large-sheet E5 runs into one record
     if R["e5"]:
         for extra in ("e5_48", "e5_selforg32"):

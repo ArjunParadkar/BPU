@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import multiprocessing as mp
 import os
+import pathlib
 
 import numpy as np
 
@@ -157,6 +158,10 @@ def main():
                                                   if u else f"NOT U-shaped: " + ("minimum at zero noise" if i_min == 0 else f"interior minimum at sigma={LEVELS[i_min]} not significant ({wins}/{seeds} seeds, p={p:.3g})" if p >= 0.05 else "no rise at high noise"))
                                     + f"; fitted sigma* = {fit.get('sigma_star', float('nan')):.3g} (bootstrap 95% CI {fit.get('sigma_star_bootstrap_CI95')})"}
             print("    " + out["verdicts"][key]["statement"], flush=True)
+            # incremental save so a long sweep that is interrupted still leaves its finished conditions
+            partial = dict(out); partial["partial"] = True
+            partial["verdict"] = {"statement": "PARTIAL: " + "; ".join(f"{k}: {v['statement']}" for k, v in out["verdicts"].items())}
+            save_results("e3" if args.out is None else pathlib.Path(args.out).name, partial, args.out)
     pool.close(); pool.join()
     main_keys = [k for k in out["verdicts"] if "mismatch0.0_" not in k]
     n_u = sum(out["verdicts"][k]["u_shaped"] for k in main_keys)

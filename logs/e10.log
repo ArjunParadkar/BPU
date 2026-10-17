@@ -1,0 +1,18 @@
+  seed 0 naive: avg acc 0.856 forgetting 0.126 final [0.669 0.826 0.897 0.928 0.961] (2139s)
+  seed 0 frozen: avg acc 0.262 forgetting 0.001 final [0.959 0.074 0.089 0.091 0.095] (2033s)
+  seed 0 joint: avg acc 0.955 forgetting 0.000 final [0.954 0.954 0.954 0.954 0.956] (157s)
+  seed 0 bpu: avg acc 0.765 forgetting 0.240 final [0.58  0.637 0.762 0.889 0.954] | after rest avg 0.781 forg 0.204 (187s)
+  seed 0: 4522.8 s
+  seed 1 naive: avg acc 0.856 forgetting 0.122 final [0.696 0.801 0.927 0.904 0.954] (87s)
+  seed 1 frozen: avg acc 0.261 forgetting 0.001 final [0.954 0.108 0.054 0.076 0.111] (53s)
+  seed 1 joint: avg acc 0.951 forgetting 0.000 final [0.954 0.946 0.946 0.959 0.952] (228s)
+  seed 1 bpu: avg acc 0.846 forgetting 0.139 final [0.724 0.785 0.84  0.923 0.958] | after rest avg 0.854 forg 0.116 (692s)
+  seed 1: 1061.9 s
+  seed 2 naive: avg acc 0.821 forgetting 0.172 final [0.537 0.832 0.894 0.887 0.956] (252s)
+  seed 2 frozen: avg acc 0.262 forgetting 0.000 final [0.953 0.05  0.076 0.103 0.129] (32s)
+  seed 2 joint: avg acc 0.956 forgetting 0.000 final [0.956 0.958 0.955 0.955 0.953] (230s)
+  seed 2 bpu: avg acc 0.759 forgetting 0.247 final [0.515 0.607 0.855 0.858 0.958] | after rest avg 0.794 forg 0.190 (500s)
+  seed 2: 1015.9 s
+E10 verdict: average accuracy after 5 tasks: joint 0.954, BPU 0.790 (after rest 0.809), naive 0.845, frozen 0.262; forgetting: BPU 0.209, naive 0.140; criterion not met (gap to joint +0.164, BPU forgetting 0.209)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+[e10] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e10_continual.png

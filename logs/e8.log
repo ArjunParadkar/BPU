@@ -1,13 +1,13 @@
 seed 0: ideal model 2.72M params
-    ideal step 200/1500 loss 2.654 (109s)
-    ideal step 400/1500 loss 2.192 (268s)
-    ideal step 600/1500 loss 1.924 (329s)
-    ideal step 800/1500 loss 1.748 (617s)
-    ideal step 1000/1500 loss 1.634 (658s)
-    ideal step 1200/1500 loss 1.551 (803s)
-    ideal step 1400/1500 loss 1.511 (1390s)
-    ideal training: 1544.1 s
-  ideal val loss 1.6771
-    na s=0.0 step 200/300 loss 1.470 (305s)
-    sigma=0.0 noise-aware fine-tune: 647.1 s
-  sigma=0.0: deploy 1.6839 (+0.40%)  noise-aware 1.6563 (-1.24%)  writes/dev/step 0.000733
+    ideal step 200/1500 loss 2.654 (285s)
+    ideal step 400/1500 loss 2.192 (823s)
+    ideal step 600/1500 loss 1.924 (1089s)
+    ideal step 800/1500 loss 1.748 (1382s)
+    ideal step 1000/1500 loss 1.634 (1550s)
+    ideal step 1200/1500 loss 1.551 (1714s)
+    ideal step 1400/1500 loss 1.511 (2223s)
+    ideal training: 2534.0 s
+  ideal val loss 1.6755
+    na s=0.0 step 200/200 loss 1.469 (1017s)
+    sigma=0.0 noise-aware fine-tune: 1017.3 s
+  sigma=0.0: deploy 1.6825 (+0.41%)  noise-aware 1.6588 (-1.00%)  writes/dev/step 0.000499

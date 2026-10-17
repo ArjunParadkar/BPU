@@ -1,0 +1,21 @@
+    grown: base training (9000 trials): 626.2 s
+    grown: composite fine-tune (3000 trials): 200.5 s
+  seed 1 grown: edges=12 syn=8475 Q=0.000 nav acc=0.16 (err 1.23) recall bits=0.62 | composite zero-shot 0.11 -> after ft 0.11 (err 1.55) | MI max 1.00 bits
+    fixed: base training (9000 trials): 2328.9 s
+    fixed: composite fine-tune (3000 trials): 172.8 s
+  seed 1 fixed: edges=16 syn=8499 Q=0.000 nav acc=0.10 (err 1.63) recall bits=0.55 | composite zero-shot 0.10 -> after ft 0.12 (err 1.56) | MI max 1.00 bits
+    fixed_compute: base training (9346 trials): 584.8 s
+    fixed_compute: composite fine-tune (3115 trials): 240.9 s
+  seed 1 fixed_compute: edges=16 syn=8499 Q=0.000 nav acc=0.20 (err 1.25) recall bits=0.53 | composite zero-shot 0.09 -> after ft 0.09 (err 1.63) | MI max 1.00 bits
+    grown: base training (9000 trials): 648.6 s
+    grown: composite fine-tune (3000 trials): 219.2 s
+  seed 2 grown: edges=12 syn=8478 Q=0.033 nav acc=0.17 (err 1.21) recall bits=0.64 | composite zero-shot 0.14 -> after ft 0.07 (err 1.64) | MI max 1.00 bits
+    fixed: base training (9000 trials): 2319.8 s
+    fixed: composite fine-tune (3000 trials): 178.9 s
+  seed 2 fixed: edges=16 syn=8351 Q=0.000 nav acc=0.23 (err 1.03) recall bits=0.56 | composite zero-shot 0.10 -> after ft 0.16 (err 1.62) | MI max 1.00 bits
+    fixed_compute: base training (9536 trials): 648.8 s
+    fixed_compute: composite fine-tune (3178 trials): 246.5 s
+  seed 2 fixed_compute: edges=16 syn=8351 Q=0.000 nav acc=0.29 (err 1.04) recall bits=0.49 | composite zero-shot 0.12 -> after ft 0.10 (err 1.63) | MI max 1.00 bits
+E7 verdict: Q(final, grown) = 0.04 +- 0.03 (does not rise over training); 83% of modules carry > 0.1 bit about the task above shuffle; compositional transfer gap (grown - fixed) = -0.03 at matched synapses (sign test p = 1), +0.00 at matched compute; base-task accuracy: nav 0.18 / 0.14, recall bits 0.57 / 0.51 (grown / fixed)
+[e7] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e7/results.json
+[e7] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e7_modularity.png

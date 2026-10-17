@@ -66,8 +66,15 @@ class GraphConfig:
                                     # gradient inside the module, no gradient between modules); node
                                     # perturbation is used for structural decisions only.  "np": the
                                     # original node-perturbation weight learning.
-    eta_local: float = 0.01         # layer-local learning rate
+    eta_local: float = 0.001        # layer-local learning rate (0.01 saturated 32-neuron modules; 0.001 gives nav 0.97 on the fixed graph)
     out_dim: int = 16
+
+
+def _scale_for(n: int) -> float:
+    """Weight scales are set for 16-neuron modules; larger modules sum more inputs, so scale by
+    sqrt(16 / n) to keep the layer gain (and the fraction of saturated units) the same.  Without
+    this, 32-neuron modules saturated at r_max and learned nothing (nav accuracy 0.18 vs 0.94)."""
+    return float(np.sqrt(16.0 / n))
 
 
 class Module:
@@ -76,7 +83,8 @@ class Module:
         mask = rng.random((n, n)) < cfg.recurrent_density
         np.fill_diagonal(mask, False)
         self.W = Tile(n, n, rng, params, mask=mask)
-        self.W.program(np.where(mask, rng.uniform(-cfg.recurrent_scale, cfg.recurrent_scale, (n, n)), 0.0))
+        sc = cfg.recurrent_scale * _scale_for(n)
+        self.W.program(np.where(mask, rng.uniform(-sc, sc, (n, n)), 0.0))
         self.gate = SurpriseGate((n, n), cfg.theta_w)
         self.z = np.zeros(n)
         self.xi = np.zeros(n)
@@ -104,7 +112,7 @@ class ModuleGraph:
         self.U = {}; self.U_gate = {}
         for k, d in in_dims.items():
             t = Tile(d, n, rng, self.params)
-            t.program(rng.uniform(-1, 1, (d, n)) * 0.8)
+            t.program(rng.uniform(-1, 1, (d, n)) * 0.8)   # input fan-in d is task-fixed, not n
             self.U[k] = t; self.U_gate[k] = SurpriseGate((d, n), cfg.theta_w)
         self.out_dim = out_dim
         self.readout = Tile(n * len(output_modules), out_dim, rng, self.params)
@@ -136,10 +144,11 @@ class ModuleGraph:
         n = self.n
         mask = self.rng.random((n, n)) < self.cfg.B_density
         t = Tile(n, n, self.rng, self.params, mask=mask)
+        sc = self.cfg.seed_scale * _scale_for(n)
         if seed is None:
-            W0 = self.rng.uniform(-self.cfg.seed_scale, self.cfg.seed_scale, (n, n))
+            W0 = self.rng.uniform(-sc, sc, (n, n))
         else:
-            W0 = self.cfg.seed_scale * np.sign(seed) * (np.abs(seed) / max(np.abs(seed).max(), 1e-12))
+            W0 = sc * np.sign(seed) * (np.abs(seed) / max(np.abs(seed).max(), 1e-12))
         t.program(np.where(mask, W0, 0.0))
         self.B[(k, l)] = t
         self.B_gate[(k, l)] = SurpriseGate((n, n), self.cfg.theta_w)

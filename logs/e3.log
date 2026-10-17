@@ -1,0 +1,6 @@
+N=128: velocity gain c = -95.23; tiles per matrix = 16
+    N128_mismatch0.02_tauH0 landscape: 3.9 s
+    Delta U = 0.11 +- 0.0086 (rad^2/s units of U), rms drift 0.0356 rad/s
+    N128_mismatch0.02_tauH0 sweep (9 x 20): 1568.9 s
+    RMSE: 0.0:0.251 0.005:0.235 0.01:0.231 0.02:0.251 0.03:0.262 0.05:0.294 0.08:0.294 0.12:0.311 0.2:0.448
+    NOT U-shaped: interior minimum at sigma=0.01 not significant (11/20 seeds, p=0.824); fitted sigma* = 0.005 (bootstrap 95% CI [0.005, 0.005])

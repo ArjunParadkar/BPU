@@ -425,3 +425,19 @@ documents where they are more specific than the brief:
   set of OpenBLAS threads (8 workers x 20 threads on 20 cores), which stalled
   every job on the machine; all pool-based scripts are launched with
   `OMP_NUM_THREADS=1` (see `scripts/run_weekend.sh`, `scripts/e5_chain.sh`).
+* **E7 module size.** Doubling modules to 32 neurons without rescaling the
+  weights saturated them at `r_max` and both rules collapsed to chance on
+  the navigation task (0.18 correct).  Initial weight scales now shrink by
+  `sqrt(16/n)` (`modules._scale_for`), after which node perturbation reaches
+  0.83 and the local rule 0.97 on the fixed graph in 2000 trials; the local
+  learning rate had to drop from 0.01 to 0.001 at this size.  The first
+  32-neuron E7 run (results/e7_firsttry) is kept for the record.
+* **E10 first result** (3 seeds): BPU consolidation average accuracy 0.79
+  (0.81 after rest) vs joint 0.95, naive 0.85, frozen 0.26; BPU forgetting
+  0.21 vs naive 0.14.  The criterion is not met: the persistence-gated
+  transfer loses the un-gated half of each task's fast weights and does not
+  protect old tasks from the next task's fast weights.  Reported as is; a
+  gate-fraction / tau_f scan is on the Monday list.
+* **E2 CIFAR-10 at 3 % density** (3072-512-512-10, 5 epochs, 3 seeds): local
+  0.420, RigL 0.433, random 0.433: refuted by the document's own criterion
+  (clearly worse than random regrowth).
