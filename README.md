@@ -123,3 +123,71 @@ heteroassociation with attractor cleanup, Hopfield attention
 certification against a circular-shift null, and the module graph with
 routing matrix, modularity and task information).  Where an equation left a
 free choice, `DECISIONS.md` records what was chosen and why.
+
+## Weekend programme (2026-10-17): claims E8–E10 and the fixed E2–E7
+
+Full details: `results/index.html` (built by `scripts/make_results_page.py`),
+`DECISIONS.md` (end), `MONDAY.md` (cluster jobs), `scripts/run_weekend.sh`.
+Long jobs ran as user services; logs are in `logs/`.
+
+### The three claims
+
+**E8 — accelerator parity (laptop stand-in for E1).** nanoGPT (6 layers,
+d = 192, 2.72M parameters, context 128) on tiny Shakespeare, 2 seeds:
+ideal val loss 1.675. Every Linear and the attention
+cache run through the tile model (pulsed soft-bound writes, read noise per
+read, Hopfield-form attention through volatile crossbars).
+
+| noise σ_eff | deploy only (load ideal weights, no training) | noise-aware fine-tune (300 steps) |
+|---|---|---|
+| σ = 0.0 | +0.49 % | -1.09 % |
+| σ = 0.02 | +0.53 % | -0.95 % |
+| σ = 0.04 | +0.56 % | -0.85 % |
+| σ = 0.06 | +0.78 % | -0.71 % |
+| σ = 0.1 | +1.48 % | -0.17 % |
+
+**Criterion met**: noise-aware tiles stay within 2 % of the ideal at every
+σ ≤ 0.06 (they are slightly *better* because fine-tuning continues
+training); deploy-only is within 1 % up to σ = 0.06 and +1.5 % at σ = 0.10.
+
+**E8b — energy and latency, a projection.** With the stated constants
+(4 fJ/MAC, 256 pJ per 8-bit conversion, 100 pJ/pulse, 10 pJ/event; digital
+3.7 pJ/MAC + 640 pJ per weight fetch) the result hinges on where values are
+converted: converting every 32×32 tile output costs 22.3 µJ/token,
+**twice the digital baseline** (11.0 µJ/token); accumulating partial
+sums in analog across the tiles of a layer and converting once per output
+gives 3.6 µJ/token, **3× better**, with conversion still 99 % of the
+budget and MAC energy only 11.3 nJ/token. Projected latency
+37 µs/token vs 357 µs/token measured on this CPU. Nothing on the BPU
+side is measured on hardware; the paper must state it that way.
+
+**E9 — trainability under drift.** PENDING_E9
+
+**E10 — continual learning.** Permuted MNIST, five tasks, tiled
+784-256-256-10, 3 seeds. Average accuracy after the sequence: joint
+0.954, BPU with volatile/nonvolatile consolidation 0.790
+(0.809 after one τ_f of rest), naive fine-tune 0.845, frozen
+0.262; forgetting BPU 0.209 vs naive 0.140. **Criterion not
+met**: the persistence-gated transfer forgets more than naive fine-tuning.
+
+### The substrate, after the fixes
+
+* **E3** (N = 128, T = 30 s, 20 seeds, mismatch 0.02/0.05/0.10, homeostasis
+  off and on): PENDING_E3
+* **E4** (10 seeds, sweep cue): 5/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.7/8 bins of the ring on average (8 = a fully explored ring); development 40 s at 0.111 writes/device/s (uncapped). Capped at the endurance
+  budget: 0/10 trained rings certified beta1 = 1 against the circular-shift null (1/10 untrained controls certified); released bumps occupy 4.6/8 bins of the ring on average (8 = a fully explored ring); development 720 s at 0.00598 writes/device/s (capped at 0.006).
+* **E5**: the programmed Burak–Fiete module at 32×32 (1024 neurons on 1024
+  tiles) certifies as a torus in 100% of seeds once the certifier
+  uses a persistence-gap rule, an H0 fragment rule and a dense 30 s
+  trajectory with frequent turns (DECISIONS.md). PENDING_E5
+* **E6** (20 % of cue bits flipped): Capacity (largest K with >= 90% exact recall) per sigma: pinv_loop: s=0.0->0, s=0.02->4, s=0.04->0, s=0.08->0, s=0.12->4, s=0.2->4; pinv_direct: s=0.0->0, s=0.02->4, s=0.04->0, s=0.08->0, s=0.12->4, s…
+* **E7** (layer-local learning, 32-neuron modules, 9000 + 3000 trials):
+  Q = 0.11 ± 0.05 and rising, 92 % of modules task-informative;
+  base tasks learned (navigation grown 0.62 vs fixed 0.84, recall bits
+  0.80 vs 0.82); compositional gap +0.04 at matched synapses,
+  +0.03 at matched compute, with the composite task at chance for every
+  arm. Node-perturbation arm: Q 0.10, navigation 0.15 / 0.31.
+  A write-dropping bug in the first E7 was found and fixed (DECISIONS.md).
+* **E2 CIFAR-10** (3072-512-512-10, 3 % density, 5 epochs): local
+  0.420, RigL 0.433, random 0.433: refuted by the document's
+  criterion (clearly worse than random regrowth).

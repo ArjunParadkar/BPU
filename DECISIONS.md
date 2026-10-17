@@ -441,3 +441,15 @@ documents where they are more specific than the brief:
 * **E2 CIFAR-10 at 3 % density** (3072-512-512-10, 5 epochs, 3 seeds): local
   0.420, RigL 0.433, random 0.433: refuted by the document's own criterion
   (clearly worse than random regrowth).
+* **E8 result and the E8b accounting.** Noise-aware tiles meet the 2 % band
+  at every sigma <= 0.06 (two seeds; a third was dropped when the noisy
+  forward ran at 15 s/step under CPU contention).  E8b counts A/D
+  conversions two ways because the brief and the technical document differ:
+  one conversion per 32-row tile partial sum ("tile boundaries only") makes
+  the BPU projection *twice as expensive* as digital at 256 pJ per
+  conversion; analog accumulation across the tiles of a layer with one
+  conversion per output ("values stay analog inside tiles") makes it 3x
+  cheaper, still 99 % conversion.  Both are reported; the energy claim rests
+  entirely on the converter architecture and constant, not on the MACs
+  (11 nJ/token).  Write energy is amortised from the measured writes per
+  device per fine-tuning step (~4e-4) at 1.5 pulses per write.

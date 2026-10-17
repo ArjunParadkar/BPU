@@ -36,3 +36,18 @@ seed 1: ideal model 2.72M params
     na s=0.0 step 200/200 loss 1.470 (401s)
     sigma=0.0 noise-aware fine-tune: 401.3 s
   sigma=0.0: deploy 1.6836 (+0.57%)  noise-aware 1.6545 (-1.18%)  writes/dev/step 0.000484
+    na s=0.02 step 200/200 loss 1.471 (307s)
+    sigma=0.02 noise-aware fine-tune: 306.9 s
+  sigma=0.02: deploy 1.6836 (+0.57%)  noise-aware 1.6570 (-1.03%)  writes/dev/step 0.000443
+    na s=0.04 step 200/200 loss 1.473 (569s)
+    sigma=0.04 noise-aware fine-tune: 568.8 s
+  sigma=0.04: deploy 1.6851 (+0.65%)  noise-aware 1.6598 (-0.86%)  writes/dev/step 0.000408
+    na s=0.06 step 200/200 loss 1.476 (234s)
+    sigma=0.06 noise-aware fine-tune: 234.1 s
+  sigma=0.06: deploy 1.6905 (+0.97%)  noise-aware 1.6623 (-0.71%)  writes/dev/step 0.000393
+    na s=0.1 step 200/200 loss 1.487 (529s)
+    sigma=0.1 noise-aware fine-tune: 529.0 s
+  sigma=0.1: deploy 1.6994 (+1.51%)  noise-aware 1.6711 (-0.19%)  writes/dev/step 0.000399
+E8 verdict: noise-aware tiles stay within 2% of the ideal val loss at every sigma <= 0.06 (worst -0.71%)
+[e8] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e8/results.json
+[e8] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e8_nanogpt_tiles.png

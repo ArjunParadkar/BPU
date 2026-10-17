@@ -35,7 +35,8 @@ from torch import nn
 class OpCounter:
     macs: int = 0
     reads: int = 0            # tile read operations (one matrix-vector product each)
-    conversions: int = 0      # A/D conversions at tile outputs
+    conversions: int = 0      # A/D conversions at tile outputs (one per 32-row tile partial sum)
+    conversions_out: int = 0  # A/D conversions if partial sums are accumulated in analog across tiles (one per layer output)
     pulses: int = 0           # device write pulses
     writes: int = 0           # synapses that received >= 1 pulse (write events)
     events: int = 0           # routed vectors between tiles / layers
@@ -44,10 +45,10 @@ class OpCounter:
     log: dict = field(default_factory=dict)
 
     def reset(self):
-        self.macs = self.reads = self.conversions = self.pulses = self.writes = self.events = self.cache_writes = 0
+        self.macs = self.reads = self.conversions = self.conversions_out = self.pulses = self.writes = self.events = self.cache_writes = 0
 
     def snapshot(self):
-        return {"macs": self.macs, "reads": self.reads, "conversions": self.conversions, "pulses": self.pulses,
+        return {"macs": self.macs, "reads": self.reads, "conversions": self.conversions, "conversions_out": self.conversions_out, "pulses": self.pulses,
                 "writes": self.writes, "events": self.events, "cache_writes": self.cache_writes}
 
 
@@ -151,6 +152,7 @@ class TileLinear(nn.Module):
             self.counter.macs += n_vec * int(self.A.sum()) if self.A.dtype == torch.bool else n_vec * self.in_features * self.out_features
             self.counter.reads += n_vec * self.n_tiles
             self.counter.conversions += n_vec * self.out_features * math.ceil(self.in_features / self.tile)
+            self.counter.conversions_out += n_vec * self.out_features
             self.counter.events += n_vec
         if self.fa:
             return _FALinear.apply(x, W_read, self.b, self.B_fa)
@@ -251,7 +253,8 @@ def tile_attention(q, k, v, sigma_w: float, sigma_r: float, counter: OpCounter |
         n_pairs = T * (T + 1) // 2 if causal else T * T
         counter.macs += 2 * B * H * n_pairs * d
         counter.reads += 2 * B * H * T * math.ceil(T / tile) * math.ceil(d / tile)
-        counter.conversions += B * H * (n_pairs + T * d)
+        counter.conversions += B * H * (n_pairs + T * d) * math.ceil(d / tile)
+        counter.conversions_out += B * H * (n_pairs + T * d)
         counter.cache_writes += 2 * B * H * T * d
         counter.events += 2 * B * H * T
     return out
