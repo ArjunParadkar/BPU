@@ -55,10 +55,10 @@ confirmed.
 | Exp | What was measured | Outcome (3 seeds unless stated) | Verdict |
 |---|---|---|---|
 | E1 | GPT-2 124M perplexity through noisy tiles, with noise-aware fine-tuning | **not run here** (GPU host); `--smoke` pipeline check passes on CPU | pending |
-| E2 | MNIST MLP at 10 % density: local grow rule vs RigL vs random regrowth, 5 epochs | test acc local 0.914 +- 0.003, RigL 0.923 +- 0.001, random 0.914 +- 0.002 | local rule = random, trails RigL by 0.9 pt |
+| E2 | MNIST MLP at 10 % density: local grow rule vs RigL vs random regrowth, 5 epochs | test acc local 0.914 +- 0.003, RigL 0.923 +- 0.001, random 0.914 +- 0.002 | **success criterion met** (within a few percent of RigL, not worse than random); no advantage over random regrowth |
 | E3 | 32-ring on a 32x32 tile, mismatch 0.05, path-integration RMSE vs dynamic noise, **10 seeds** | RMSE 0.38 (sigma 0) -> 0.33 (sigma 0.05, 7/10 seeds better) -> 0.41 (sigma 0.2); no-mismatch control 0.05 -> 0.34 monotonic | **not U-shaped** at p = 0.34; shallow dip inside the error bars |
-| E4 | ring self-organised from a sparse random tile (STDP + growth + normalisation), beta1 = 1 vs circular-shift null | 2/3 seeds certified (H1 bars 0.26, 0.20 vs null 0.19, 0.16; third seed 0.10 vs 0.13); 0/3 untrained controls; released bumps cover 6/8 ring bins | **partial**: ring forms in most seeds, kernel still translation-variant |
-| E5 | grid self-organisation on 5x6 and 16x16 sheets, torus (1,2,1) vs null | 0/3 + 0/3 self-organised; **programmed DoG reference also 0/3 + 0/3** (5x6: 1-6 H1 bars, 0-1 H2; 16x16: 0-3 H1, 0-1 H2); 0/3 controls | **not certified**; the certifier does not pass even the programmed module at these sizes |
+| E4 | ring self-organised from a sparse random tile (STDP + growth + normalisation), beta1 = 1 vs circular-shift null | 2/3 seeds certified (H1 bars 0.26, 0.20 vs null 0.18, 0.16; third seed 0.10 vs 0.12), no extra β0 components in any seed; 0/3 untrained controls; released bumps cover 6/8 ring bins; 0.11 writes per device per second during development vs the 6e-3 endurance budget | **partial**: ring forms in most seeds, kernel still translation-variant; development is 18x over the write budget |
+| E5 | grid self-organisation on 5x6 and 16x16 sheets, torus (1,2,1) vs null | 0/3 + 0/3 self-organised; **programmed DoG reference also 0/3 + 0/3** (5x6: 1-6 H1 bars, 0-1 H2; 16x16: 0-3 H1, 0-1 H2 and 12-39 extra β0 components, i.e. the lattice hops between discrete states instead of sliding); 0/3 controls | **not certified**; the certifier does not pass even the programmed module at these sizes |
 | E6 | 32 +-1 pairs on 32x32 tiles, recall from 50 %-erased cues, sigma in {0 .. 0.2} | pseudo-inverse scaffold: >= 90 % exact recall only up to K = 4-8; delta-rule scaffold the same; **attention: 32/32 at every sigma** (0.98-1.00) | device noise is not the limit, the erasure is; attention wins by a wide margin |
 | E7 | 8 generic modules, NAV + RECALL, grown module graph vs fixed layered graph at equal synapses | Q(grown) = 0.12 +- 0.01, rises from 0 as 12 routes grow; all modules carry > 0.1 bit about the task; nav accuracy grown 0.15 vs fixed 0.39, recall bits 0.70 vs 0.76; compositional transfer gap +0.01 (p = 1) | **null**: the graph grows and becomes weakly modular but learns the tasks worse than the fixed graph and composes no better |
 
@@ -94,8 +94,18 @@ confirmed.
   they should (toward the output modules) and Q rises to ~0.12, but the
   local learner is too weak: the grown graph solves the tasks worse than a
   fixed layered graph with the same synapse budget, and neither composes.
-* **E2**: the local grow rule is indistinguishable from random regrowth and
-  0.9 points below RigL after 5 epochs.  **E1** is ready for a GPU host.
+* **E2** meets the technical document's success criterion (within a few
+  percent of RigL, not worse than random) but shows no advantage over
+  random regrowth.  **E1** is ready for a GPU host.
+* **Write budget.** Self-organisation in E4 costs 0.11 writes per device per
+  second, 18x the endurance budget of 6e-3 from the technical document; a
+  developmental phase of this intensity has to be short or sparser.
+
+The certifier follows the technical document: threshold at the 99th
+percentile of the longest null feature, and a ring/torus certificate also
+requires no extra persistent β0 component (fragmentation by pinning).  The
+alignment of the code with the *Technical Document* and the *Patent-Style
+Disclosure* is itemised at the end of `DECISIONS.md`.
 
 Timings on this laptop (20-core CPU): E3 23 s, E4 48 s, E5 ~10 min
 (16x16 tiles), E6 109 s, E7 100 s; `scripts/run_all.sh` ~15 min with 3

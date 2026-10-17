@@ -14,7 +14,17 @@ def _ring_cloud(rng, T=1500, N=32):
 def test_certify_ring():
     rng = np.random.default_rng(0)
     c = certify(_ring_cloud(rng), maxdim=1, n_points=250, n_null=10, rng=rng)
-    assert c["verdict"] == "ring" and c["betti"][1] == 1
+    assert c["verdict"] == "ring" and c["betti"][1] == 1 and c["betti"][0] == 0
+
+
+def test_fragmented_cloud_is_not_a_ring():
+    """Four tight clusters on a circle: H0 reports extra components, so no ring certificate."""
+    rng = np.random.default_rng(5)
+    theta = 2 * np.pi * np.arange(32) / 32
+    a = np.repeat(2 * np.pi * np.arange(4) / 4, 300) + 0.02 * rng.standard_normal(1200)
+    X = np.maximum(np.cos(a[:, None] - theta[None, :]) - 0.3, 0) + 0.01 * rng.standard_normal((1200, 32))
+    c = certify(X, maxdim=1, n_points=200, n_null=8, rng=rng)
+    assert c["betti"][0] >= 1 and not c["is_ring"]
 
 
 def test_certify_torus():

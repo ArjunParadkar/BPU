@@ -196,10 +196,18 @@ def main():
     out = {"seeds": seeds, "epochs": epochs, "density": args.density, "update_every": args.update_every,
            "drop_frac": args.drop_frac, "noise_sigma": args.noise, "smoke": args.smoke, "runs": runs, "summary": summary}
     gap = summary["local"]["mean"] - summary["rigl"]["mean"]
-    out["verdict"] = {"local_minus_rigl": gap, "local_minus_random": summary["local"]["mean"] - summary["random"]["mean"],
-                      "statement": "local grow rule %s RigL (%.4f vs %.4f test accuracy, random %.4f) at %.0f%% density" % (
-                          "matches" if abs(gap) <= 2 * max(summary["local"]["sem"], summary["rigl"]["sem"], 1e-4) else ("beats" if gap > 0 else "trails"),
-                          summary["local"]["mean"], summary["rigl"]["mean"], summary["random"]["mean"], 100 * args.density)}
+    gap_rand = summary["local"]["mean"] - summary["random"]["mean"]
+    # criteria from the technical document: success = within a few percent of RigL at equal budget;
+    # refuted = clearly worse than random regrowth
+    within_few_pct = abs(gap) <= 0.03
+    worse_than_random = gap_rand < -2 * max(summary["local"]["sem"], summary["random"]["sem"], 1e-4) and gap_rand < -0.005
+    out["verdict"] = {"local_minus_rigl": gap, "local_minus_random": gap_rand,
+                      "within_few_percent_of_rigl": within_few_pct, "clearly_worse_than_random": worse_than_random,
+                      "statement": "local %.4f, RigL %.4f, random %.4f test accuracy at %.0f%% density: %s" % (
+                          summary["local"]["mean"], summary["rigl"]["mean"], summary["random"]["mean"], 100 * args.density,
+                          ("REFUTED (clearly worse than random regrowth)" if worse_than_random else
+                           ("success criterion met: within a few percent of RigL (gap %+.4f), not worse than random (%+.4f)" % (gap, gap_rand)
+                            if within_few_pct else "trails RigL by %.4f, not worse than random" % -gap)))}
     print("E2 verdict:", out["verdict"]["statement"])
     save_results("e2", out, args.out)
     if not args.no_fig:

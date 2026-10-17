@@ -78,9 +78,11 @@ def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: s
     ang, prof0 = profile(W0, theta)
     _, prof1 = profile(sheet.tile.W, theta)
     return {
-        "seed": seed, "certified_ring": cert["is_ring"], "betti1": cert["betti"][1],
+        "seed": seed, "certified_ring": cert["is_ring"], "betti1": cert["betti"][1], "betti0_extra": cert["betti"][0],
+        "writes_per_device_per_s": sheet.tile.writes_per_device(seconds=n_dev * 1e-3),
+        "write_budget_per_device_per_s": 6e-3,
         "top_H1_lifetimes": cert["top_lifetimes"][1], "H1_threshold": cert["threshold"][1],
-        "control_certified_ring": cert_ctrl["is_ring"], "control_betti1": cert_ctrl["betti"][1],
+        "control_certified_ring": cert_ctrl["is_ring"], "control_betti1": cert_ctrl["betti"][1], "control_betti0_extra": cert_ctrl["betti"][0],
         "control_top_H1": cert_ctrl["top_lifetimes"][1], "control_H1_threshold": cert_ctrl["threshold"][1],
         "bump_persists_frac": float(persisted.mean()), "control_bump_persists_frac": float(persisted_ctrl.mean()),
         "ring_occupancy_bins_of_8": int(np.count_nonzero(occupancy)), "occupancy": occupancy.tolist(),
@@ -107,7 +109,7 @@ def main():
         with Timer(f"seed {seed}"):
             r = run_seed(seed, args.steps, args.checkpoints, args.null, args.cue)
         runs.append(r)
-        print(f"  seed {seed}: certified={r['certified_ring']} betti1={r['betti1']} top H1={np.round(r['top_H1_lifetimes'][:3], 3)} thr={r['H1_threshold']:.3f}"
+        print(f"  seed {seed}: certified={r['certified_ring']} betti1={r['betti1']} extra betti0={r['betti0_extra']} writes/dev/s={r['writes_per_device_per_s']:.3g} top H1={np.round(r['top_H1_lifetimes'][:3], 3)} thr={r['H1_threshold']:.3f}"
               f" | control certified={r['control_certified_ring']} betti1={r['control_betti1']} | persists {r['bump_persists_frac']:.2f} (ctrl {r['control_bump_persists_frac']:.2f})"
               f" | occupancy {r['ring_occupancy_bins_of_8']}/8 bins, drift {r['median_drift_from_cue_rad']:.2f} rad"
               f" | synapses {r['n_active_initial']}->{r['n_active_final']}")

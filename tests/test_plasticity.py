@@ -1,7 +1,7 @@
 import numpy as np
 
 from bpusim.plasticity import (STDP, EligibilityTrace, stdp_window, three_factor, homeostatic_scaling,
-                               oja_update, normalize_columns, SurpriseGate)
+                               oja_update, normalize_columns, SurpriseGate, ConsolidationPair)
 
 
 def test_stdp_online_matches_window():
@@ -55,3 +55,17 @@ def test_oja_converges_to_unit_norm():
     assert abs(W[0, 0]) > 0.9  # aligned with the principal component
     Wn = normalize_columns(rng.standard_normal((5, 3)), 2.0)
     np.testing.assert_allclose(np.linalg.norm(Wn, axis=0), 2.0)
+
+
+def test_consolidation_pair_forgets_fast_and_keeps_replayed():
+    c = ConsolidationPair((1,), tau_f=1.0, tau_c=1.0, dt=1e-3)
+    c.step(1.0 / 1e-3)                 # one unit of learning into the fast device
+    assert abs(c.g_f[0] - 1.0) < 1e-6 and c.g_s[0] == 0.0
+    for _ in range(3000):              # no replay: the fast trace decays, nothing consolidates
+        c.step(0.0, replay=False)
+    assert c.g_f[0] < 0.06 and c.g_s[0] == 0.0
+    c2 = ConsolidationPair((1,), tau_f=1e9, tau_c=1.0, dt=1e-3)
+    c2.step(1.0 / 1e-3)
+    for _ in range(3000):              # replay: the slow device copies the fast one
+        c2.step(0.0, replay=True)
+    assert c2.g_s[0] > 0.9

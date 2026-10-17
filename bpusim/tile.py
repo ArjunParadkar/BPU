@@ -42,6 +42,9 @@ class Tile:
         self.A = np.ones(shape, bool) if mask is None else np.asarray(mask, bool).copy()
         self.G_scale = self.p.G_range
         self.n_writes = 0
+        # eta(V_G): the memtransistor gate scales plasticity without touching the stored state;
+        # 0 is the hardware kill switch (claim 6), 1 is nominal
+        self.plasticity_gain = 1.0
 
     # ----------------------------------------------------------------- views
     @property
@@ -89,7 +92,7 @@ class Tile:
         so a caller accumulating sub-pulse changes can keep the residual.
         ``self.n_writes`` counts synapses that received at least one pulse.
         """
-        dW = np.asarray(dW, float) * self.A
+        dW = np.asarray(dW, float) * self.A * self.plasticity_gain
         W_before = self.W
         if not np.any(dW):
             return np.zeros(self.shape)
@@ -117,6 +120,17 @@ class Tile:
         self.gm.pulse(n_m)
         self.n_writes += int(((n_p != 0) | (n_m != 0)).sum())
         return self.W - W_before
+
+    @property
+    def n_pulses(self) -> int:
+        return self.gp.n_pulses + self.gm.n_pulses
+
+    def writes_per_device(self, seconds: float | None = None) -> float:
+        """Average write events per device (per second if ``seconds`` is given).  The
+        technical document's endurance budget is ~6e-3 writes per device per second
+        (1e6 cycles over 5 years)."""
+        w = self.n_writes / (2.0 * self.A.size)
+        return w / seconds if seconds else w
 
     def program(self, W_target: np.ndarray, tol: float = 0.02, max_iter: int = 400) -> int:
         """Write-verify the whole tile to W_target in [-1, 1] (positive part on G+, negative on G-)."""

@@ -57,3 +57,15 @@ def test_dead_synapse_reads_zero_once_pruned(rng):
     assert np.all(t.W[t.gp.dead] <= 1e-9)
     GrowthRule(t).prune()
     assert np.all(t.W[t.dead] == 0.0) and not np.any(t.A & t.dead)
+
+
+def test_plasticity_gain_kill_switch_and_write_accounting(rng):
+    t = Tile(6, 6, rng, DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0))
+    t.plasticity_gain = 0.0                      # V_G = 0: plasticity frozen in hardware
+    t.update(np.full((6, 6), 0.3))
+    assert np.all(t.W == 0.0) and t.n_writes == 0
+    t.plasticity_gain = 1.0
+    t.update(np.full((6, 6), 0.3))
+    assert t.W.min() > 0.25 and t.n_writes == 36
+    assert abs(t.writes_per_device() - 0.5) < 1e-12   # 36 writes over 72 devices
+    assert abs(t.writes_per_device(seconds=10.0) - 0.05) < 1e-12

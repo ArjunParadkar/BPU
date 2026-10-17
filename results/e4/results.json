@@ -7,6 +7,9 @@
    "seed": 0,
    "certified_ring": true,
    "betti1": 1,
+   "betti0_extra": 0,
+   "writes_per_device_per_s": 0.108837890625,
+   "write_budget_per_device_per_s": 0.006,
    "top_H1_lifetimes": [
     0.25706760585308075,
     0.0289943665266037,
@@ -14,9 +17,10 @@
     0.02439030259847641,
     0.024034947156906128
    ],
-   "H1_threshold": 0.1860790103673935,
+   "H1_threshold": 0.18199981316924094,
    "control_certified_ring": false,
    "control_betti1": 0,
+   "control_betti0_extra": 1,
    "control_top_H1": [
     0.01484600454568863,
     0.012538738548755646,
@@ -24,7 +28,7 @@
     0.012126274406909943,
     0.011760435998439789
    ],
-   "control_H1_threshold": 0.01862385869026184,
+   "control_H1_threshold": 0.018398708701133727,
    "bump_persists_frac": 0.725,
    "control_bump_persists_frac": 0.0,
    "ring_occupancy_bins_of_8": 5,
@@ -2716,6 +2720,9 @@
    "seed": 1,
    "certified_ring": true,
    "betti1": 1,
+   "betti0_extra": 0,
+   "writes_per_device_per_s": 0.11090087890625,
+   "write_budget_per_device_per_s": 0.006,
    "top_H1_lifetimes": [
     0.19493286311626434,
     0.04826413094997406,
@@ -2723,9 +2730,10 @@
     0.018775589764118195,
     0.01791089028120041
    ],
-   "H1_threshold": 0.1577642261981964,
+   "H1_threshold": 0.15638289913535117,
    "control_certified_ring": false,
    "control_betti1": 0,
+   "control_betti0_extra": 0,
    "control_top_H1": [
     0.016805239021778107,
     0.013315826654434204,
@@ -2733,7 +2741,7 @@
     0.011899247765541077,
     0.01132000982761383
    ],
-   "control_H1_threshold": 0.02323334664106369,
+   "control_H1_threshold": 0.02251468233764171,
    "bump_persists_frac": 0.5,
    "control_bump_persists_frac": 0.0,
    "ring_occupancy_bins_of_8": 8,
@@ -5405,6 +5413,9 @@
    "seed": 2,
    "certified_ring": false,
    "betti1": 0,
+   "betti0_extra": 0,
+   "writes_per_device_per_s": 0.108154296875,
+   "write_budget_per_device_per_s": 0.006,
    "top_H1_lifetimes": [
     0.1008390486240387,
     0.02872718870639801,
@@ -5412,9 +5423,10 @@
     0.018955357372760773,
     0.01772218942642212
    ],
-   "H1_threshold": 0.12469834089279175,
+   "H1_threshold": 0.12426316812634468,
    "control_certified_ring": false,
    "control_betti1": 0,
+   "control_betti0_extra": 0,
    "control_top_H1": [
     0.01605331152677536,
     0.015739090740680695,
@@ -5422,7 +5434,7 @@
     0.012567870318889618,
     0.012314632534980774
    ],
-   "control_H1_threshold": 0.016175948083400726,
+   "control_H1_threshold": 0.016164970025420188,
    "bump_persists_frac": 0.45,
    "control_bump_persists_frac": 0.0,
    "ring_occupancy_bins_of_8": 5,
@@ -8343,9 +8355,9 @@
  },
  "meta": {
   "experiment": "e4",
-  "git": "54f766d",
+  "git": "ebece43",
   "python": "3.14.7",
   "numpy": "2.4.4",
-  "finished": "2026-10-16 22:20:38"
+  "finished": "2026-10-16 22:26:59"
  }
 }

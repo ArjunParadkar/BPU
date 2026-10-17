@@ -136,13 +136,15 @@
  "verdict": {
   "local_minus_rigl": -0.009500006834666008,
   "local_minus_random": 9.999672571814333e-05,
-  "statement": "local grow rule trails RigL (0.9136 vs 0.9231 test accuracy, random 0.9135) at 10% density"
+  "within_few_percent_of_rigl": true,
+  "clearly_worse_than_random": false,
+  "statement": "local 0.9136, RigL 0.9231, random 0.9135 test accuracy at 10% density: success criterion met: within a few percent of RigL (gap -0.0095), not worse than random (+0.0001)"
  },
  "meta": {
   "experiment": "e2",
-  "git": "54f766d",
+  "git": "ebece43",
   "python": "3.14.7",
   "numpy": "2.4.4",
-  "finished": "2026-10-16 21:10:37"
+  "finished": "2026-10-16 22:26:27"
  }
 }

@@ -262,3 +262,44 @@ honest partial result, not a certified continuous attractor in every seed.
   `--full` uses 10 seeds.  Timings are in the README (~15 min for 3 seeds;
   E5's 16x16 sheets dominate, so they use 12k development steps and 100
   kick positions instead of 20k and 160).
+
+## Alignment with the two BPU documents (2026-10-16)
+
+Checked against *BPU Technical Document — Architecture, Mathematics, and
+Contribution* and *BPU Patent-Style Disclosure* (both in `~/Downloads`).
+The equations match the brief and the code.  Changes made to match the
+documents where they are more specific than the brief:
+
+* **Certification threshold** is now the technical document's definition:
+  the 99th percentile of the *longest* null feature per dimension (the
+  pooled 99th percentile is still recorded as `threshold_pooled`).
+* **Betti-0 failure signature.**  The document's ring signature is
+  (1, 1, 0) and its failure mode is "extra beta0 bars (fragmented by
+  pinning)".  `certify` now counts significant finite H0 bars as
+  `betti[0]` and a ring or torus certificate requires zero of them.  This
+  is stricter than the brief's "exactly one H1 bar" and is applied to E4/E5.
+* **Writes per device against the cycle budget** (Section 11 of the
+  technical document, budget ~6e-3 writes per device per second):
+  `Tile.writes_per_device(seconds)`; E4 reports it next to the budget.
+* **Gate-scaled plasticity / kill switch** (claims 5-6): `Tile.plasticity_gain`
+  multiplies every write; 0 freezes plasticity.
+* **Fast/slow consolidation pair** (Section 5.1, claim 16):
+  `plasticity.ConsolidationPair` implements `G_eff = g_f + g_s` with
+  volatile decay and replay-gated transfer.  Not used by any experiment.
+* **E2 verdict wording** follows the document's criteria: success = within
+  a few percent of RigL at equal budget; refuted = clearly worse than random
+  regrowth.
+* **Attention beta.**  The document uses `beta = 1/sqrt(d)` for the
+  transformer identity; E6 uses `beta = 0.5` (`1/sqrt(32) = 0.18` would be
+  the literal value).  Kept at 0.5 because the point of E6 is recall
+  capacity under noise, not transformer equivalence; the constant is one
+  line (`BETA`) in `e6_memory.py`.
+* **Hardware note.**  BPU-1 assigns tile B to a 5x6 grid module.  In this
+  simulator a 5x6 sheet with the DoG kernels tried does not form a clean 2D
+  attractor (the bump hops between columns and the programmed module does
+  not certify as a torus under the document's own null); the E5 result
+  should inform that tile's design before tape-out.
+* **Not implemented** (no experiment needs them): SV-gated inhibition of
+  structural change (claim 15; SV is computed, the gate is a one-line
+  policy on top), spawn-on-error of whole modules in E7 (claim 3; `growth.spawn`
+  exists at tile level), the control-plane/security layer (Section 9).

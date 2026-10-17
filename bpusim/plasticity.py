@@ -125,3 +125,30 @@ def normalize_columns(W, target_norm=1.0, eps=1e-12):
     W = np.asarray(W, float)
     n = np.linalg.norm(W, axis=0, keepdims=True)
     return W * (target_norm / np.maximum(n, eps))
+
+
+class ConsolidationPair:
+    """Fast volatile device g_f + slow nonvolatile device g_s per synapse (L3 consolidation).
+
+        G_eff = g_f + g_s,   tau_f dg_f/dt = -g_f + tau_f * delta_learn,
+        tau_c dg_s/dt = (g_f - g_s) * 1[replay]
+
+    Learning writes to the volatile device, which forgets with tau_f; during a
+    replay phase the slow device copies the fast one with tau_c (Benna and
+    Fusi, 2016 two-variable cascade).
+    """
+
+    def __init__(self, shape, tau_f=10.0, tau_c=100.0, dt=1e-3):
+        self.g_f = np.zeros(shape)
+        self.g_s = np.zeros(shape)
+        self.tau_f, self.tau_c, self.dt = tau_f, tau_c, dt
+
+    @property
+    def G_eff(self):
+        return self.g_f + self.g_s
+
+    def step(self, delta_learn=0.0, replay: bool = False):
+        self.g_f += self.dt * (-self.g_f / self.tau_f + np.asarray(delta_learn))
+        if replay:
+            self.g_s += self.dt * (self.g_f - self.g_s) / self.tau_c
+        return self.G_eff

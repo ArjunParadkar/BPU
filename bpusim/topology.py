@@ -6,14 +6,17 @@ Pipeline
 2. Vietoris-Rips persistent homology (ripser; gudhi fallback) up to ``maxdim``.
 3. Null model: circularly shift each neuron's trace by an independent random
    offset (destroys the joint structure, keeps every marginal), recompute the
-   diagrams ``n_null`` times, pool the lifetimes per dimension and take the
-   99th percentile as the significance threshold.
-   A bar is significant if it exceeds that percentile *and* the largest
-   lifetime seen in any single null diagram (the pooled percentile alone is
-   dominated by the many short null bars and is too permissive).
-4. Certify a *ring* if exactly one H1 bar is significant (and no H2 bar is
-   when H2 was computed); a *torus* if H1 has exactly two and H2 exactly one
-   significant bar.
+   diagrams ``n_null`` times, and set the threshold per dimension at the
+   99th percentile of the *longest* null feature (the technical document's
+   definition; with few null draws this is the largest null lifetime).  The
+   99th percentile of the pooled null lifetimes is also recorded.
+4. Certify a *ring* if exactly one H1 bar is significant, no H2 bar is (when
+   H2 was computed) and no finite H0 bar is (an extra persistent H0 bar
+   means the cloud is fragmented into clusters, the pinning failure
+   signature); a *torus* if H1 has exactly two and H2 exactly one significant
+   bar and again no extra H0 bar.  Betti-0 is reported as the number of
+   significant *finite* H0 bars, i.e. components beyond the one that never
+   dies.
 """
 from __future__ import annotations
 
@@ -73,8 +76,7 @@ def diagrams(X: np.ndarray, maxdim: int = 1) -> list[np.ndarray]:
     out = []
     for d, D in enumerate(dg):
         D = np.asarray(D, float).reshape(-1, 2)
-        if d > 0:
-            D = D[np.isfinite(D[:, 1])]
+        D = D[np.isfinite(D[:, 1])]          # drop the one infinite H0 bar as well
         out.append(D)
     return out
 
@@ -110,35 +112,37 @@ def certify(X: np.ndarray, maxdim: int = 1, n_pca: int = 20, n_points: int = 300
     Xr = pca_reduce(X, n_pca)
     Xs = subsample(Xr, n_points, rng)
     dg = diagrams(Xs, maxdim)
-    null_L = {d: [] for d in range(1, maxdim + 1)}
-    null_max = {d: [] for d in range(1, maxdim + 1)}
+    dims = range(0, maxdim + 1)
+    null_L = {d: [] for d in dims}
+    null_max = {d: [] for d in dims}
     for _ in range(n_null):
         Xn = circular_shift_null(X, rng)
         Xn = subsample(pca_reduce(Xn, n_pca), n_points, rng)
         dgn = diagrams(Xn, maxdim)
-        for d in range(1, maxdim + 1):
+        for d in dims:
             L = lifetimes(dgn[d])
             null_L[d].extend(L.tolist())
             null_max[d].append(float(L.max()) if L.size else 0.0)
-    thr, betti, sig = {}, {}, {}
-    for d in range(1, maxdim + 1):
+    thr, thr_pool, betti, sig = {}, {}, {}, {}
+    for d in dims:
         pool = np.asarray(null_L[d]) if len(null_L[d]) >= min_null_bars else np.zeros(1)
-        thr_pool = float(np.percentile(pool, q)) if pool.size else 0.0
-        thr_max = float(np.max(null_max[d])) if null_max[d] else 0.0
-        thr[d] = max(thr_pool, thr_max)
+        thr_pool[d] = float(np.percentile(pool, q)) if pool.size else 0.0
+        thr[d] = float(np.percentile(null_max[d], q)) if null_max[d] else 0.0
         L = lifetimes(dg[d])
         sig[d] = np.sort(L[L > thr[d]])[::-1]
         betti[d] = int(sig[d].size)
-    is_ring = betti.get(1, 0) == 1 and (maxdim < 2 or betti.get(2, 0) == 0)
-    is_torus = maxdim >= 2 and betti.get(1, 0) == 2 and betti.get(2, 0) == 1
+    no_fragments = betti.get(0, 0) == 0
+    is_ring = no_fragments and betti.get(1, 0) == 1 and (maxdim < 2 or betti.get(2, 0) == 0)
+    is_torus = no_fragments and maxdim >= 2 and betti.get(1, 0) == 2 and betti.get(2, 0) == 1
     verdict = "torus" if is_torus else ("ring" if is_ring else "none")
     return {
         "verdict": verdict, "is_ring": bool(is_ring), "is_torus": bool(is_torus),
-        "betti": {int(k): v for k, v in betti.items()},
+        "betti": {int(k): v for k, v in betti.items()},            # betti[0] = extra (finite) components
         "threshold": {int(k): v for k, v in thr.items()},
+        "threshold_pooled": {int(k): v for k, v in thr_pool.items()},
         "null_max_lifetime": {int(k): float(np.max(v)) if v else 0.0 for k, v in null_max.items()},
         "significant_lifetimes": {int(k): v.tolist() for k, v in sig.items()},
-        "top_lifetimes": {int(d): np.sort(lifetimes(dg[d]))[::-1][:5].tolist() for d in range(1, maxdim + 1)},
+        "top_lifetimes": {int(d): np.sort(lifetimes(dg[d]))[::-1][:5].tolist() for d in dims},
         "diagrams": [D.tolist() for D in dg],
         "n_points": int(Xs.shape[0]), "n_null": int(n_null), "q": q,
     }
