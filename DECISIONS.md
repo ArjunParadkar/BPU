@@ -460,3 +460,14 @@ documents where they are more specific than the brief:
   (tracking within 300 steps of a switch) is unchanged; the first attempt's
   frozen pass (logs/e9_firsttry.log) showed the Python-source segment at
   6.0 nats/char against 1.66 on Shakespeare, as expected.
+* **E5 at 32x32 and 48x48 (Saturday night).** Programmed Burak-Fiete
+  references on tiles certify as tori: 3/3 draws at 32x32 (H1 2.2-2.75 vs
+  null ~0.5, H2 1.2-1.7 vs 0.13) and 1/1 at 48x48 (H1 5.3/5.2 vs 0.94, H2
+  3.3 vs 0.28; 9 h single-threaded).  A fourth 32x32 draw, computed inside
+  the self-organisation run, did not certify (78 near-equal H1 bars: the
+  lattice hopped instead of sliding), so sliding is draw-dependent at the
+  5 % mismatch default.  The self-organised 32x32 sheet formed no attractor
+  at all (uniform activity, 99 release clusters, as the untrained control);
+  the ring recipe does not transfer to a 1024-neuron sheet unchanged and is
+  not tuned here.  BPU-1 tile B must be reassigned: a 5x6 grid cannot host a
+  torus, and the smallest sheet that certified is 32x32.

@@ -12,6 +12,7 @@ and are merged into the page with `python scripts/make_figures.py`.
 | E3 50 seeds | `python experiments/e3_drift.py --full --procs 32` | CPU node, 32 cores, ~4 h | fitted sigma* with tight bootstrap CI, both homeostasis arms |
 | E3 N = 512 | `python experiments/e3_drift.py --N 512 --seeds 20 --procs 32` | CPU node, ~8 h | does Delta U shrink with N (Burak-Fiete 1/N diffusion) |
 | E7 10 seeds | `python experiments/e7_modularity.py --full --procs 10` | CPU node, 10 cores, ~2 h | Q, MI, compositional gap with error bars; also `--rule np` for the node-perturbation arm |
+| E5 programmed 32x32 over mismatch draws | `python experiments/e5_grid_selforg.py --reference-only --sheets 32x32 --seeds 10 --points 800 --points-h2 350 --procs 5` | CPU node, ~2 h | 3 of 4 draws certified on Saturday; the failing draw showed a hopping lattice (78 near-equal H1 bars): find the mismatch level at which the sliding breaks |
 | E5 self-organisation at 32x32 | `python experiments/e5_grid_selforg.py --sheets 32x32 --seeds 3 --points 800 --points-h2 350 --procs 3` | CPU node, ~6 h | only meaningful if the programmed reference certified on Saturday |
 | E9 longer stream | `python experiments/e9_trainability.py --seg 5000 --threads 16` | CPU node | recovery times with less noise |
 | E10 10 seeds | `python experiments/e10_continual.py --full --threads 8` | CPU node, ~1 h | consolidation result with error bars |

@@ -1,0 +1,5 @@
+  32x32 seed 0: 9294.1 s
+  32x32 seed 0: trained none betti={0: 99, 1: 0, 2: 1} | control none {0: 99, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 78, 2: 39} | persists 1.00
+E5 verdict: 32x32: programmed DoG reference 0/1; 0/1 self-organised sheets certified (1,2,1); untrained control 0/1
+[e5] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e5_selforg32/results.json
+[e5] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e5_grid_selforg.png
