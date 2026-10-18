@@ -4,3 +4,8 @@
 E5 verdict: 32x32: programmed DoG reference 3/3
 [e5] wrote ../results/e5/results.json
 [e5] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e5_grid_selforg.png
+  48x48 seed 0 (reference): 32453.4 s
+  48x48 seed 0: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[5.32 5.17 1.53] H2=[3.26 0.08] thr={0: 1.64, 1: 0.94, 2: 0.28}
+E5 verdict: 48x48: programmed DoG reference 1/1
+[e5] wrote ../results/e5_48/results.json
+[e5] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e5_grid_selforg.png
