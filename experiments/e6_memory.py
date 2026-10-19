@@ -4,7 +4,9 @@
 32x32 tiles.  Recall uses the loop cue -> index -> attractor cleanup ->
 content with corrupted cues: by default 20% of the cue bits are flipped
 (``--flip``); ``--erase`` erases a fraction instead or in addition (the
-first version of this experiment erased 50%).  Three
+first version of this experiment erased 50%).  Exact sign ties (a read of
+0) are broken at random to +-1 from a fixed-seed generator (``signz``); the
+first version mapped ties to +1.  Three
 readers are compared: the pseudo-inverse scaffold (write-verify programmed),
 the delta-rule scaffold (learned through the noisy tile), and Hopfield
 attention over the content patterns.  Accuracy (fraction of pairs recalled
@@ -16,7 +18,7 @@ from __future__ import annotations
 import numpy as np
 
 from common import base_parser, save_results, figure_path, Timer
-from bpusim.memory import ScaffoldMemory, HopfieldAttention
+from bpusim.memory import ScaffoldMemory, HopfieldAttention, signz
 from bpusim.noise import equal_split, summarize
 
 COUNTS = [4, 8, 12, 16, 20, 24, 28, 32]
@@ -49,10 +51,10 @@ def run_cell(K: int, sigma: float, seed: int, n_cues: int = 2, flip: float = 0.0
         for _ in range(n_cues):
             cue = corrupt(rng, S[:, mu], erase=erase, flip=flip)
             r = mem.recall(cue)["content"]; acc["pinv_loop"].append(np.array_equal(r, S[:, mu])); bits["pinv_loop"].append(np.mean(r == S[:, mu]))
-            r = np.sign(mem.W_ps.read(np.sign(mem.W_sp.read(cue)))); r[r == 0] = 1
+            r = signz(mem.W_ps.read(signz(mem.W_sp.read(cue))))
             acc["pinv_direct"].append(np.array_equal(r, S[:, mu])); bits["pinv_direct"].append(np.mean(r == S[:, mu]))
             r = memd.recall(cue)["content"]; acc["delta_loop"].append(np.array_equal(r, S[:, mu])); bits["delta_loop"].append(np.mean(r == S[:, mu]))
-            r = np.sign(att.retrieve(cue)["xi"]); r[r == 0] = 1
+            r = signz(att.retrieve(cue)["xi"])
             acc["attention"].append(np.array_equal(r, S[:, mu])); bits["attention"].append(np.mean(r == S[:, mu]))
     for k in acc:
         out[k] = {"acc": float(np.mean(acc[k])), "bit_acc": float(np.mean(bits[k]))}

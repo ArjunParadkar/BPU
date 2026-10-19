@@ -1,18 +1,189 @@
-  seed 0 naive: avg acc 0.856 forgetting 0.126 final [0.669 0.826 0.897 0.928 0.961] (2139s)
-  seed 0 frozen: avg acc 0.262 forgetting 0.001 final [0.959 0.074 0.089 0.091 0.095] (2033s)
-  seed 0 joint: avg acc 0.955 forgetting 0.000 final [0.954 0.954 0.954 0.954 0.956] (157s)
-  seed 0 bpu: avg acc 0.765 forgetting 0.240 final [0.58  0.637 0.762 0.889 0.954] | after rest avg 0.781 forg 0.204 (187s)
-  seed 0: 4522.8 s
-  seed 1 naive: avg acc 0.856 forgetting 0.122 final [0.696 0.801 0.927 0.904 0.954] (87s)
-  seed 1 frozen: avg acc 0.261 forgetting 0.001 final [0.954 0.108 0.054 0.076 0.111] (53s)
-  seed 1 joint: avg acc 0.951 forgetting 0.000 final [0.954 0.946 0.946 0.959 0.952] (228s)
-  seed 1 bpu: avg acc 0.846 forgetting 0.139 final [0.724 0.785 0.84  0.923 0.958] | after rest avg 0.854 forg 0.116 (692s)
-  seed 1: 1061.9 s
-  seed 2 naive: avg acc 0.821 forgetting 0.172 final [0.537 0.832 0.894 0.887 0.956] (252s)
-  seed 2 frozen: avg acc 0.262 forgetting 0.000 final [0.953 0.05  0.076 0.103 0.129] (32s)
-  seed 2 joint: avg acc 0.956 forgetting 0.000 final [0.956 0.958 0.955 0.955 0.953] (230s)
-  seed 2 bpu: avg acc 0.759 forgetting 0.247 final [0.515 0.607 0.855 0.858 0.958] | after rest avg 0.794 forg 0.190 (500s)
-  seed 2: 1015.9 s
-E10 verdict: average accuracy after 5 tasks: joint 0.954, BPU 0.790 (after rest 0.809), naive 0.845, frozen 0.262; forgetting: BPU 0.209, naive 0.140; criterion not met (gap to joint +0.164, BPU forgetting 0.209)
+  seed 0 float32  naive      tau_ret=inf gate=0.5: avg acc 0.841 forgetting 0.144 final [0.666 0.794 0.879 0.914 0.953] | rest 0.841 | writes/dev/s 0 (0% budget) (108s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  ewc        tau_ret=inf gate=0.5: avg acc 0.947 forgetting 0.005 final [0.947 0.948 0.951 0.946 0.945] | rest 0.947 | writes/dev/s 0 (0% budget) (101s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  replay     tau_ret=inf gate=0.5: avg acc 0.293 forgetting 0.825 final [0.111 0.085 0.11  0.206 0.951] | rest 0.293 | writes/dev/s 0 (0% budget) (43s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  fpl        tau_ret=inf gate=0.5: avg acc 0.853 forgetting 0.130 final [0.735 0.742 0.9   0.927 0.959] | rest 0.760 | writes/dev/s 0 (0% budget) (50s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  fpl_replay tau_ret=inf gate=0.5: avg acc 0.305 forgetting 0.808 final [0.152 0.117 0.119 0.184 0.954] | rest 0.258 | writes/dev/s 0 (0% budget) (51s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  joint      tau_ret=inf gate=0.5: avg acc 0.958 forgetting 0.000 final [0.96  0.953 0.96  0.957 0.958] | rest 0.958 | writes/dev/s 0 (0% budget) (37s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      naive      tau_ret=inf gate=0.5: avg acc 0.766 forgetting 0.237 final [0.49  0.701 0.817 0.863 0.959] | rest 0.765 | writes/dev/s 0.0863 (1438% budget) (126s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      ewc        tau_ret=inf gate=0.5: avg acc 0.943 forgetting 0.007 final [0.938 0.95  0.943 0.941 0.94 ] | rest 0.942 | writes/dev/s 0.15 (2494% budget) (153s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      replay     tau_ret=inf gate=0.5: avg acc 0.284 forgetting 0.829 final [0.129 0.096 0.087 0.163 0.945] | rest 0.284 | writes/dev/s 0.132 (2204% budget) (88s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl        tau_ret=inf gate=0.5: avg acc 0.851 forgetting 0.129 final [0.732 0.784 0.855 0.924 0.957] | rest 0.685 | writes/dev/s 0.0447 (745% budget) (174s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl_replay tau_ret=inf gate=0.5: avg acc 0.291 forgetting 0.819 final [0.117 0.113 0.108 0.173 0.946] | rest 0.195 | writes/dev/s 0.0667 (1112% budget) (247s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      joint      tau_ret=inf gate=0.5: avg acc 0.955 forgetting 0.000 final [0.956 0.95  0.959 0.957 0.955] | rest 0.956 | writes/dev/s 0.0821 (1368% budget) (120s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  naive      tau_ret=inf gate=0.5: avg acc 0.838 forgetting 0.145 final [0.693 0.754 0.88  0.908 0.955] | rest 0.838 | writes/dev/s 0 (0% budget) (32s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  ewc        tau_ret=inf gate=0.5: avg acc 0.945 forgetting 0.006 final [0.945 0.945 0.947 0.944 0.944] | rest 0.945 | writes/dev/s 0 (0% budget) (93s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  replay     tau_ret=inf gate=0.5: avg acc 0.292 forgetting 0.823 final [0.077 0.072 0.137 0.224 0.948] | rest 0.292 | writes/dev/s 0 (0% budget) (52s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  fpl        tau_ret=inf gate=0.5: avg acc 0.851 forgetting 0.132 final [0.787 0.759 0.839 0.911 0.958] | rest 0.751 | writes/dev/s 0 (0% budget) (59s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  fpl_replay tau_ret=inf gate=0.5: avg acc 0.323 forgetting 0.788 final [0.106 0.099 0.186 0.267 0.956] | rest 0.287 | writes/dev/s 0 (0% budget) (67s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  joint      tau_ret=inf gate=0.5: avg acc 0.954 forgetting 0.000 final [0.959 0.952 0.953 0.95  0.956] | rest 0.954 | writes/dev/s 0 (0% budget) (49s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      naive      tau_ret=inf gate=0.5: avg acc 0.824 forgetting 0.163 final [0.657 0.77  0.826 0.912 0.958] | rest 0.825 | writes/dev/s 0.0865 (1442% budget) (165s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      ewc        tau_ret=inf gate=0.5: avg acc 0.943 forgetting 0.006 final [0.943 0.943 0.944 0.944 0.943] | rest 0.943 | writes/dev/s 0.143 (2377% budget) (211s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      replay     tau_ret=inf gate=0.5: avg acc 0.294 forgetting 0.819 final [0.089 0.092 0.131 0.209 0.948] | rest 0.293 | writes/dev/s 0.135 (2247% budget) (137s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl        tau_ret=inf gate=0.5: avg acc 0.835 forgetting 0.148 final [0.776 0.701 0.814 0.926 0.958] | rest 0.712 | writes/dev/s 0.0446 (744% budget) (253s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl_replay tau_ret=inf gate=0.5: avg acc 0.298 forgetting 0.813 final [0.087 0.092 0.131 0.228 0.952] | rest 0.189 | writes/dev/s 0.0671 (1118% budget) (200s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      joint      tau_ret=inf gate=0.5: avg acc 0.958 forgetting 0.000 final [0.96  0.956 0.959 0.959 0.959] | rest 0.959 | writes/dev/s 0.0823 (1371% budget) (120s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  naive      tau_ret=inf gate=0.5: avg acc 0.854 forgetting 0.131 final [0.653 0.824 0.91  0.926 0.958] | rest 0.854 | writes/dev/s 0 (0% budget) (33s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  ewc        tau_ret=inf gate=0.5: avg acc 0.948 forgetting 0.005 final [0.942 0.953 0.944 0.947 0.954] | rest 0.948 | writes/dev/s 0 (0% budget) (62s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  replay     tau_ret=inf gate=0.5: avg acc 0.299 forgetting 0.817 final [0.125 0.089 0.124 0.209 0.949] | rest 0.299 | writes/dev/s 0 (0% budget) (34s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  fpl        tau_ret=inf gate=0.5: avg acc 0.816 forgetting 0.176 final [0.675 0.664 0.904 0.878 0.957] | rest 0.747 | writes/dev/s 0 (0% budget) (41s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  fpl_replay tau_ret=inf gate=0.5: avg acc 0.320 forgetting 0.792 final [0.15  0.134 0.135 0.226 0.953] | rest 0.286 | writes/dev/s 0 (0% budget) (55s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  joint      tau_ret=inf gate=0.5: avg acc 0.955 forgetting 0.000 final [0.952 0.958 0.957 0.95  0.958] | rest 0.955 | writes/dev/s 0 (0% budget) (34s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      naive      tau_ret=inf gate=0.5: avg acc 0.790 forgetting 0.207 final [0.502 0.705 0.889 0.896 0.956] | rest 0.790 | writes/dev/s 0.0854 (1424% budget) (107s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      ewc        tau_ret=inf gate=0.5: avg acc 0.943 forgetting 0.009 final [0.934 0.944 0.948 0.942 0.946] | rest 0.942 | writes/dev/s 0.145 (2424% budget) (139s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      replay     tau_ret=inf gate=0.5: avg acc 0.290 forgetting 0.823 final [0.127 0.086 0.104 0.187 0.947] | rest 0.290 | writes/dev/s 0.135 (2248% budget) (70s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl        tau_ret=inf gate=0.5: avg acc 0.797 forgetting 0.195 final [0.53  0.725 0.874 0.898 0.957] | rest 0.698 | writes/dev/s 0.0433 (722% budget) (228s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl_replay tau_ret=inf gate=0.5: avg acc 0.306 forgetting 0.804 final [0.144 0.117 0.136 0.181 0.95 ] | rest 0.252 | writes/dev/s 0.0655 (1091% budget) (188s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      joint      tau_ret=inf gate=0.5: avg acc 0.957 forgetting 0.000 final [0.956 0.956 0.956 0.961 0.957] | rest 0.957 | writes/dev/s 0.0837 (1394% budget) (152s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  fpl        tau_ret=inf gate=0.0: avg acc 0.917 forgetting 0.047 final [0.856 0.902 0.931 0.94  0.957] | rest 0.923 | writes/dev/s 0 (0% budget) (67s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 float32  fpl_replay tau_ret=inf gate=0.0: avg acc 0.313 forgetting 0.796 final [0.118 0.096 0.131 0.272 0.948] | rest 0.345 | writes/dev/s 0 (0% budget) (70s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl        tau_ret=inf gate=0.0: avg acc 0.880 forgetting 0.090 final [0.755 0.846 0.906 0.937 0.954] | rest 0.884 | writes/dev/s 0.0528 (879% budget) (153s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl_replay tau_ret=inf gate=0.0: avg acc 0.296 forgetting 0.813 final [0.1   0.092 0.119 0.224 0.945] | rest 0.325 | writes/dev/s 0.0804 (1340% budget) (97s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  fpl        tau_ret=inf gate=0.0: avg acc 0.905 forgetting 0.063 final [0.845 0.857 0.939 0.924 0.958] | rest 0.910 | writes/dev/s 0 (0% budget) (26s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 float32  fpl_replay tau_ret=inf gate=0.0: avg acc 0.328 forgetting 0.781 final [0.087 0.086 0.19  0.323 0.955] | rest 0.362 | writes/dev/s 0 (0% budget) (28s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl        tau_ret=inf gate=0.0: avg acc 0.863 forgetting 0.112 final [0.758 0.76  0.905 0.935 0.956] | rest 0.867 | writes/dev/s 0.0536 (894% budget) (85s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl_replay tau_ret=inf gate=0.0: avg acc 0.316 forgetting 0.790 final [0.092 0.076 0.172 0.292 0.947] | rest 0.339 | writes/dev/s 0.0806 (1344% budget) (116s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  fpl        tau_ret=inf gate=0.0: avg acc 0.879 forgetting 0.096 final [0.746 0.868 0.926 0.9   0.955] | rest 0.890 | writes/dev/s 0 (0% budget) (30s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 float32  fpl_replay tau_ret=inf gate=0.0: avg acc 0.338 forgetting 0.768 final [0.13  0.114 0.175 0.318 0.95 ] | rest 0.369 | writes/dev/s 0 (0% budget) (32s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl        tau_ret=inf gate=0.0: avg acc 0.852 forgetting 0.123 final [0.649 0.855 0.881 0.925 0.952] | rest 0.861 | writes/dev/s 0.052 (867% budget) (107s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl_replay tau_ret=inf gate=0.0: avg acc 0.304 forgetting 0.805 final [0.126 0.08  0.125 0.242 0.948] | rest 0.334 | writes/dev/s 0.0798 (1330% budget) (99s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      naive      tau_ret=1000 gate=0.5: avg acc 0.777 forgetting 0.222 final [0.558 0.715 0.769 0.887 0.957] | rest 0.615 | writes/dev/s 0.0852 (1420% budget) (68s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      ewc        tau_ret=1000 gate=0.5: avg acc 0.938 forgetting 0.011 final [0.929 0.942 0.941 0.94  0.94 ] | rest 0.921 | writes/dev/s 0.166 (2759% budget) (97s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      replay     tau_ret=1000 gate=0.5: avg acc 0.281 forgetting 0.833 final [0.114 0.084 0.103 0.16  0.944] | rest 0.269 | writes/dev/s 0.134 (2239% budget) (64s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl        tau_ret=1000 gate=0.5: avg acc 0.862 forgetting 0.112 final [0.762 0.82  0.846 0.928 0.954] | rest 0.294 | writes/dev/s 0.0443 (738% budget) (116s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl_replay tau_ret=1000 gate=0.5: avg acc 0.297 forgetting 0.812 final [0.132 0.12  0.118 0.171 0.944] | rest 0.185 | writes/dev/s 0.0673 (1122% budget) (110s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      naive      tau_ret=10000 gate=0.5: avg acc 0.796 forgetting 0.198 final [0.625 0.756 0.845 0.797 0.957] | rest 0.796 | writes/dev/s 0.0861 (1435% budget) (77s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      ewc        tau_ret=10000 gate=0.5: avg acc 0.941 forgetting 0.006 final [0.936 0.95  0.944 0.94  0.937] | rest 0.941 | writes/dev/s 0.152 (2534% budget) (135s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      replay     tau_ret=10000 gate=0.5: avg acc 0.276 forgetting 0.838 final [0.108 0.09  0.094 0.148 0.94 ] | rest 0.275 | writes/dev/s 0.134 (2234% budget) (103s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl        tau_ret=10000 gate=0.5: avg acc 0.871 forgetting 0.103 final [0.763 0.822 0.873 0.941 0.956] | rest 0.710 | writes/dev/s 0.044 (734% budget) (145s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl_replay tau_ret=10000 gate=0.5: avg acc 0.303 forgetting 0.803 final [0.111 0.126 0.125 0.209 0.945] | rest 0.241 | writes/dev/s 0.0673 (1122% budget) (111s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      naive      tau_ret=100000 gate=0.5: avg acc 0.779 forgetting 0.221 final [0.563 0.757 0.769 0.85  0.957] | rest 0.779 | writes/dev/s 0.085 (1417% budget) (94s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      ewc        tau_ret=100000 gate=0.5: avg acc 0.942 forgetting 0.007 final [0.939 0.949 0.944 0.94  0.941] | rest 0.941 | writes/dev/s 0.152 (2525% budget) (155s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      replay     tau_ret=100000 gate=0.5: avg acc 0.287 forgetting 0.826 final [0.12  0.099 0.116 0.156 0.946] | rest 0.288 | writes/dev/s 0.134 (2232% budget) (137s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl        tau_ret=100000 gate=0.5: avg acc 0.868 forgetting 0.105 final [0.77  0.805 0.883 0.929 0.954] | rest 0.702 | writes/dev/s 0.0439 (732% budget) (201s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 0 bpu      fpl_replay tau_ret=100000 gate=0.5: avg acc 0.284 forgetting 0.829 final [0.117 0.098 0.096 0.16  0.951] | rest 0.198 | writes/dev/s 0.0668 (1113% budget) (188s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      naive      tau_ret=1000 gate=0.5: avg acc 0.802 forgetting 0.192 final [0.645 0.691 0.84  0.876 0.958] | rest 0.618 | writes/dev/s 0.0865 (1442% budget) (120s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      ewc        tau_ret=1000 gate=0.5: avg acc 0.941 forgetting 0.010 final [0.93  0.944 0.946 0.942 0.946] | rest 0.919 | writes/dev/s 0.15 (2492% budget) (136s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      replay     tau_ret=1000 gate=0.5: avg acc 0.291 forgetting 0.820 final [0.068 0.086 0.151 0.204 0.948] | rest 0.278 | writes/dev/s 0.134 (2241% budget) (75s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl        tau_ret=1000 gate=0.5: avg acc 0.799 forgetting 0.192 final [0.686 0.664 0.792 0.897 0.958] | rest 0.186 | writes/dev/s 0.0443 (738% budget) (154s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl_replay tau_ret=1000 gate=0.5: avg acc 0.305 forgetting 0.804 final [0.098 0.099 0.159 0.222 0.949] | rest 0.162 | writes/dev/s 0.0664 (1106% budget) (169s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      naive      tau_ret=10000 gate=0.5: avg acc 0.834 forgetting 0.153 final [0.661 0.804 0.823 0.921 0.96 ] | rest 0.832 | writes/dev/s 0.0859 (1431% budget) (119s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      ewc        tau_ret=10000 gate=0.5: avg acc 0.938 forgetting 0.013 final [0.925 0.942 0.941 0.94  0.943] | rest 0.938 | writes/dev/s 0.145 (2419% budget) (258s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      replay     tau_ret=10000 gate=0.5: avg acc 0.284 forgetting 0.831 final [0.078 0.085 0.114 0.194 0.951] | rest 0.283 | writes/dev/s 0.134 (2240% budget) (165s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl        tau_ret=10000 gate=0.5: avg acc 0.799 forgetting 0.193 final [0.7   0.658 0.766 0.911 0.958] | rest 0.692 | writes/dev/s 0.0445 (741% budget) (294s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl_replay tau_ret=10000 gate=0.5: avg acc 0.301 forgetting 0.808 final [0.093 0.094 0.155 0.215 0.949] | rest 0.226 | writes/dev/s 0.0672 (1120% budget) (283s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      naive      tau_ret=100000 gate=0.5: avg acc 0.826 forgetting 0.161 final [0.648 0.762 0.869 0.892 0.958] | rest 0.827 | writes/dev/s 0.0868 (1447% budget) (71s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      ewc        tau_ret=100000 gate=0.5: avg acc 0.941 forgetting 0.009 final [0.927 0.943 0.946 0.943 0.942] | rest 0.940 | writes/dev/s 0.143 (2381% budget) (99s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      replay     tau_ret=100000 gate=0.5: avg acc 0.277 forgetting 0.840 final [0.072 0.071 0.117 0.177 0.947] | rest 0.276 | writes/dev/s 0.133 (2210% budget) (67s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl        tau_ret=100000 gate=0.5: avg acc 0.839 forgetting 0.143 final [0.732 0.723 0.847 0.933 0.957] | rest 0.730 | writes/dev/s 0.0449 (749% budget) (89s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 1 bpu      fpl_replay tau_ret=100000 gate=0.5: avg acc 0.295 forgetting 0.816 final [0.079 0.087 0.14  0.222 0.946] | rest 0.253 | writes/dev/s 0.0681 (1134% budget) (115s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      naive      tau_ret=1000 gate=0.5: avg acc 0.760 forgetting 0.243 final [0.412 0.712 0.858 0.862 0.956] | rest 0.586 | writes/dev/s 0.0851 (1419% budget) (73s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      ewc        tau_ret=1000 gate=0.5: avg acc 0.942 forgetting 0.010 final [0.935 0.946 0.947 0.94  0.943] | rest 0.913 | writes/dev/s 0.161 (2685% budget) (97s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      replay     tau_ret=1000 gate=0.5: avg acc 0.293 forgetting 0.819 final [0.135 0.1   0.111 0.171 0.948] | rest 0.261 | writes/dev/s 0.134 (2240% budget) (68s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl        tau_ret=1000 gate=0.5: avg acc 0.801 forgetting 0.189 final [0.544 0.743 0.83  0.93  0.957] | rest 0.194 | writes/dev/s 0.0439 (731% budget) (92s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl_replay tau_ret=1000 gate=0.5: avg acc 0.298 forgetting 0.815 final [0.12  0.112 0.121 0.187 0.95 ] | rest 0.140 | writes/dev/s 0.0658 (1097% budget) (59s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      naive      tau_ret=10000 gate=0.5: avg acc 0.793 forgetting 0.202 final [0.48  0.725 0.895 0.909 0.954] | rest 0.792 | writes/dev/s 0.0857 (1428% budget) (70s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      ewc        tau_ret=10000 gate=0.5: avg acc 0.943 forgetting 0.008 final [0.938 0.948 0.943 0.943 0.943] | rest 0.943 | writes/dev/s 0.15 (2496% budget) (93s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      replay     tau_ret=10000 gate=0.5: avg acc 0.294 forgetting 0.818 final [0.128 0.091 0.108 0.195 0.946] | rest 0.294 | writes/dev/s 0.134 (2230% budget) (77s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl        tau_ret=10000 gate=0.5: avg acc 0.801 forgetting 0.190 final [0.533 0.725 0.883 0.907 0.956] | rest 0.712 | writes/dev/s 0.0441 (735% budget) (94s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl_replay tau_ret=10000 gate=0.5: avg acc 0.312 forgetting 0.796 final [0.134 0.102 0.14  0.234 0.95 ] | rest 0.212 | writes/dev/s 0.0651 (1085% budget) (97s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      naive      tau_ret=100000 gate=0.5: avg acc 0.787 forgetting 0.210 final [0.481 0.736 0.862 0.9   0.955] | rest 0.787 | writes/dev/s 0.086 (1433% budget) (42s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      ewc        tau_ret=100000 gate=0.5: avg acc 0.944 forgetting 0.008 final [0.941 0.944 0.947 0.945 0.945] | rest 0.944 | writes/dev/s 0.147 (2453% budget) (80s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      replay     tau_ret=100000 gate=0.5: avg acc 0.290 forgetting 0.821 final [0.116 0.081 0.13  0.182 0.942] | rest 0.291 | writes/dev/s 0.135 (2247% budget) (69s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl        tau_ret=100000 gate=0.5: avg acc 0.782 forgetting 0.212 final [0.52  0.745 0.817 0.873 0.956] | rest 0.647 | writes/dev/s 0.0435 (725% budget) (95s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+  seed 2 bpu      fpl_replay tau_ret=100000 gate=0.5: avg acc 0.307 forgetting 0.801 final [0.142 0.117 0.13  0.199 0.946] | rest 0.269 | writes/dev/s 0.0663 (1105% budget) (102s)
+[e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
+E10 verdict: average accuracy after 5 tasks, float32 / BPU: naive 0.844 / 0.793 (-0.051), ewc 0.947 / 0.943 (-0.004), replay 0.295 / 0.289 (-0.005), fpl 0.840 / 0.828 (-0.012), fpl_replay 0.316 / 0.298 (-0.017), joint 0.956 / 0.957 (+0.001); forgetting float32 / BPU: naive 0.140 / 0.202, ewc 0.006 / 0.007, replay 0.821 / 0.823, fpl 0.146 / 0.157, fpl_replay 0.796 / 0.812; BPU writes: naive 1434% of budget, ewc 2432% of budget, replay 2233% of budget, fpl 737% of budget, fpl_replay 1107% of budget. SUCCESS: BPU-EWC and BPU-replay within 3 points of their float32 twins
 [e10] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e10/results.json
 [e10] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e10_continual.png

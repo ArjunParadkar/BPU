@@ -9,6 +9,10 @@ of devices ``(G+, G-)`` and a boolean mask ``A``::
 ``W_read`` is built from one fresh noisy read of both device arrays.
 ``update(dW)`` converts a desired weight change into signed pulse counts on
 the appropriate device of each pair and applies them with write noise.
+``accumulate(dW)`` is the write-budget path: changes are summed in a digital
+accumulator and a device is pulsed only when a whole conductance level is
+pending (stochastic rounding of the remainder), so writes are counted only on
+pulses; ``flush_rate`` and ``writes_per_device`` report the result.
 """
 from __future__ import annotations
 
@@ -32,7 +36,8 @@ class Tile:
     """
 
     def __init__(self, n_in: int, n_out: int, rng: np.random.Generator,
-                 params: DeviceParams | None = None, mask=None, w_init: float = 0.0, tile_size: int = 32):
+                 params: DeviceParams | None = None, mask=None, w_init: float = 0.0, tile_size: int = 32,
+                 levels: int | None = None, acc_rng: np.random.Generator | None = None):
         """A matrix larger than ``tile_size`` x ``tile_size`` is routed as several physical tiles
         (``n_tiles``); the device model is identical, the difference on hardware is the extra
         A/D conversions and routed events at tile boundaries, which ``conversions_per_read``
@@ -50,6 +55,14 @@ class Tile:
         # eta(V_G): the memtransistor gate scales plasticity without touching the stored state;
         # 0 is the hardware kill switch (claim 6), 1 is nominal
         self.plasticity_gain = 1.0
+        # accumulate-and-flush write budget: a digital per-synapse accumulator of requested changes
+        # (weight units); a device is pulsed only when the accumulator holds at least one conductance
+        # level (1 / L in state units, L distinguishable levels from sigma_eff), see ``accumulate``
+        self.levels = int(levels) if levels else self.p.levels
+        self.acc = np.zeros(shape)
+        self.n_acc_calls = 0          # accumulate() calls
+        self.n_acc_writes = 0         # synapse write events produced by accumulate()
+        self.acc_rng = acc_rng or rng  # stochastic rounding draws
 
     # ----------------------------------------------------------------- views
     @property
@@ -127,6 +140,57 @@ class Tile:
         return self.W - W_before
 
     @property
+    def level(self) -> float:
+        """One conductance level in weight units (= state units for a differential pair): 1 / L."""
+        return 1.0 / self.levels
+
+    def accumulate(self, dW: np.ndarray, write_budget: float | None = None, dt: float | None = None) -> np.ndarray:
+        """Accumulate-and-flush write (the write-budget mechanism).
+
+        ``acc[i, j] += dW[i, j]`` in a digital accumulator; a synapse is written only when
+        ``|acc| >= one conductance level`` (1 / L).  The flushed amount is a whole number of
+        levels: the integer part of ``|acc| / level`` plus the remainder rounded stochastically
+        (probability = remainder), so the expected flushed amount equals the accumulator; the
+        flushed amount (not the realised one) is subtracted, since the digital side does not read
+        the device back.  Writes are counted only when a device is pulsed.  ``write_budget``
+        (write events per device per second, with ``dt`` the call interval) optionally caps the
+        number of flushes per call to the largest accumulators, the quota used by E4.
+        Returns the realised weight change.
+        """
+        dW = np.asarray(dW, float) * self.A * self.plasticity_gain
+        self.acc += dW
+        self.n_acc_calls += 1
+        lvl = self.level
+        q = np.abs(self.acc) / lvl
+        gate = (q >= 1.0) & self.A
+        if write_budget and dt:
+            self.write_credit = getattr(self, "write_credit", 0.0) + write_budget * 2 * self.A.size * dt
+            n_allow = int(self.write_credit)
+            if n_allow < gate.sum():
+                order = np.argsort(-np.where(gate, q, 0.0).ravel())[:n_allow]
+                sel = np.zeros(self.A.size, bool); sel[order] = True
+                gate &= sel.reshape(self.shape)
+        if not gate.any():
+            return np.zeros(self.shape)
+        n_int = np.floor(q)
+        frac = q - n_int
+        n_lv = n_int + (self.acc_rng.random(self.shape) < frac)
+        flushed = np.where(gate, np.sign(self.acc) * n_lv * lvl, 0.0)
+        before = self.n_writes
+        realised = self.update(flushed)
+        self.acc -= flushed
+        self.n_acc_writes += self.n_writes - before
+        if write_budget and dt:
+            self.write_credit -= int(gate.sum())
+        return realised
+
+    @property
+    def flush_rate(self) -> float:
+        """Fraction of accumulate() opportunities (calls x active synapses) that produced a write."""
+        d = self.n_acc_calls * max(self.n_active, 1)
+        return self.n_acc_writes / d if d else 0.0
+
+    @property
     def n_pulses(self) -> int:
         return self.gp.n_pulses + self.gm.n_pulses
 
@@ -156,6 +220,7 @@ class Tile:
         W_target = np.clip(np.asarray(W_target, float), -1.0, 1.0)
         it1 = self.gp.program_target(np.clip(W_target, 0, 1), tol, max_iter)
         it2 = self.gm.program_target(np.clip(-W_target, 0, 1), tol, max_iter)
+        self.acc[:] = 0.0            # a whole-tile rewrite supersedes whatever was pending
         return max(it1, it2)
 
     def reset_pair(self, idx, w_plus: float = 0.0, w_minus: float = 0.0) -> None:
@@ -171,6 +236,7 @@ class Tile:
 
     def set_mask(self, mask) -> None:
         self.A = np.asarray(mask, bool).copy()
+        self.acc[~self.A] = 0.0
 
     def __repr__(self):
         return f"Tile({self.n_in}x{self.n_out}, active={self.n_active}, |W|max={np.abs(self.W).max():.3f})"

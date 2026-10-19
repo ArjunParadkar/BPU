@@ -69,3 +69,36 @@ def test_plasticity_gain_kill_switch_and_write_accounting(rng):
     assert t.W.min() > 0.25 and t.n_writes == 36
     assert abs(t.writes_per_device() - 0.5) < 1e-12   # 36 writes over 72 devices
     assert abs(t.writes_per_device(seconds=10.0) - 0.05) < 1e-12
+
+
+def test_accumulate_and_flush_writes_only_whole_levels(rng):
+    """Accumulate-and-flush: nothing is pulsed until a synapse holds one conductance level (1/L);
+    the flushed amount is a whole number of levels with the remainder rounded stochastically
+    (unbiased), and writes are counted only on pulses."""
+    p = DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0)
+    t = Tile(8, 8, rng, p, levels=20)              # one level = 0.05 in weight units
+    assert abs(t.level - 0.05) < 1e-12
+    for _ in range(4):
+        t.accumulate(np.full((8, 8), 0.01))        # 0.04 pending: below one level
+    assert t.n_writes == 0 and np.abs(t.W).max() == 0 and np.allclose(t.acc, 0.04)
+    t.accumulate(np.full((8, 8), 0.01))            # 0.05 = exactly one level -> every synapse flushes once
+    assert t.n_writes == 64 and abs(t.flush_rate - 1 / 5) < 1e-12
+    assert np.allclose(t.acc, 0.0, atol=1e-12) and np.abs(t.W - 0.05).max() < 0.02
+    # a request of 2.5 levels flushes 2 or 3 levels, 3 with probability one half, mean 2.5
+    t2 = Tile(40, 40, np.random.default_rng(1), p, levels=20)
+    t2.accumulate(np.full((40, 40), 0.125))
+    flushed = 0.125 - t2.acc
+    n_lv = np.rint(flushed / 0.05)
+    assert set(np.unique(n_lv)) <= {2.0, 3.0} and abs(n_lv.mean() - 2.5) < 0.1
+    # the accumulator keeps the un-flushed remainder (+-0.025) and a mask/rewrite clears it
+    assert np.allclose(np.abs(t2.acc), 0.025, atol=1e-9)
+    t2.program(np.zeros((40, 40)))
+    assert np.all(t2.acc == 0)
+
+
+def test_accumulate_respects_write_quota(rng):
+    p = DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0)
+    t = Tile(10, 10, rng, p, levels=10)
+    # a budget of 1 write/device/s over dt = 0.1 s allows 0.1 * 200 devices = 20 synapse writes per call
+    t.accumulate(rng.uniform(0.1, 0.5, (10, 10)), write_budget=1.0, dt=0.1)
+    assert t.n_writes == 20

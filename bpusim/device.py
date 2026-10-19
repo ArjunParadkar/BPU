@@ -57,6 +57,15 @@ class DeviceParams:
     def G_range(self) -> float:
         return self.G_max - self.G_min
 
+    @property
+    def levels(self) -> int:
+        """Number of distinguishable conductance levels L: two levels are distinguishable when they
+        differ by one effective noise standard deviation at full scale, so L = round(1 / sigma_eff),
+        clipped to [2, 256] (8 bits is the most the read-out ever resolves).  One level is
+        (G_max - G_min) / L in conductance, 1 / L in state units."""
+        s = self.sigma_eff
+        return 256 if s <= 0 else int(max(2, min(256, round(1.0 / s))))
+
     def replace(self, **kw) -> "DeviceParams":
         d = asdict(self)
         d.update(kw)

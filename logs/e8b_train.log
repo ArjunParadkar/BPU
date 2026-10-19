@@ -1,0 +1,20 @@
+    ideal step 200/1500 loss 2.652 (99s)
+    ideal step 400/1500 loss 2.203 (137s)
+    ideal step 600/1500 loss 1.927 (186s)
+    ideal step 800/1500 loss 1.744 (230s)
+    ideal step 1000/1500 loss 1.628 (264s)
+    ideal step 1200/1500 loss 1.542 (296s)
+    ideal step 1400/1500 loss 1.502 (333s)
+  ideal training: 360.9 s
+    na step 200/300 loss 1.461 (69s)
+  noise-aware fine-tune at sigma=0.04: 101.6 s
+ideal val loss 1.6571; noise-aware tiles at sigma=0.04: 1.6411 (-0.97%)
+  readout tile  8-bit: val loss 1.6460 (-0.67% vs ideal)
+  readout tile  4-bit: val loss 2.5103 (+51.49% vs ideal)
+  readout layer 8-bit: val loss 1.6460 (-0.67% vs ideal)
+  readout layer 4-bit: val loss 2.6642 (+60.78% vs ideal)
+  readout lif   8-bit: val loss 1.6454 (-0.70% vs ideal), 38.17 spikes per output per token
+  readout lif   4-bit: val loss 2.9179 (+76.09% vs ideal), 1.35 spikes per output per token
+E8b: PROJECTION on the BPU side (device-model constants), MEASURED on the digital side. Same 2.7M-parameter nanoGPT. GPU energy not measured in this run. H100 INT8 at published peak: 1991.6 nJ/token (not measured). BPU inference nJ/token (val-loss gap vs ideal): tile 8-bit 22258 (-0.7%); tile 4-bit 1424 (+51.5%); layer 8-bit 3595 (-0.7%); layer 4-bit 258 (+60.8%); lif 8-bit 7998 (-0.7%); lif 4-bit 318 (+76.1%). Cheapest mode layer 4-bit at 258 nJ/token; MACs alone 11.3 nJ/token; LIF spike rate 38.2 (8-bit window) / 1.35 (4-bit) spikes per output per token.
+[e8b] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e8b/results.json
+[e8b] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e8b_energy.png

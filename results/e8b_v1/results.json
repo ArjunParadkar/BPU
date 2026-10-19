@@ -1,0 +1,147 @@
+{
+ "constants": {
+  "E_MAC_J": 4.000000000000001e-15,
+  "E_ADC_J": 2.56e-10,
+  "E_WRITE_J": 1e-10,
+  "E_ROUTE_J": 1e-11,
+  "t_read_series_s": 1e-06,
+  "E_FP32_MAC_J": 3.7e-12,
+  "E_DRAM_FETCH_J": 6.4e-10
+ },
+ "measured_ops": {
+  "tokens": 3072,
+  "eval_batch": {
+   "macs": 8648589312,
+   "reads": 8902656,
+   "conversions": 266674176,
+   "conversions_out": 42722304,
+   "pulses": 0,
+   "writes": 0,
+   "events": 297984,
+   "cache_writes": 7077888
+  },
+  "train_step": {
+   "macs": 8648589312,
+   "reads": 8902656,
+   "conversions": 266674176,
+   "conversions_out": 42722304,
+   "pulses": 0,
+   "writes": 0,
+   "events": 297984,
+   "cache_writes": 7077888,
+   "macs_backward_estimate": 17297178624
+  },
+  "n_params": 2719104,
+  "n_devices": 5333376,
+  "n_tiles": 2610
+ },
+ "cpu_timing": {
+  "forward_batch_s": 1.0954817295074464,
+  "train_step_s": 3.3545392990112304,
+  "tokens_per_batch": 3072,
+  "threads": 8,
+  "cpu": 20
+ },
+ "per_token_10M": {
+  "bpu_eval_J": 2.2258119184000003e-05,
+  "bpu_eval_parts_J": {
+   "mac_J": 1.1261184000000003e-08,
+   "adc_J": 2.2222848e-05,
+   "route_J": 9.7e-10,
+   "write_J": 0.0,
+   "cache_write_J": 2.3040000000000003e-08
+  },
+  "bpu_train_step_J": 2.2280749231915926e-05,
+  "bpu_train_parts_J": {
+   "mac_J": 3.378355200000001e-08,
+   "adc_J": 2.2222848e-05,
+   "route_J": 9.7e-10,
+   "write_J": 1.0767991592725931e-10,
+   "cache_write_J": 2.3040000000000003e-08
+  },
+  "bpu_eval_J_analog_accumulate": 3.595463184e-06,
+  "bpu_eval_parts_J_analog_accumulate": {
+   "mac_J": 1.1261184000000003e-08,
+   "adc_J": 3.560192e-06,
+   "route_J": 9.7e-10,
+   "write_J": 0.0,
+   "cache_write_J": 2.3040000000000003e-08
+  },
+  "bpu_train_step_J_analog_accumulate": 3.6180932319159275e-06,
+  "digital_eval_J_no_reuse": 1.0972155200000002e-05,
+  "digital_eval_J_10x_reuse": 1.04721512e-05,
+  "digital_train_J_no_reuse": 3.29164656e-05,
+  "digital_train_J_10x_reuse": 3.14164536e-05,
+  "bpu_latency_s_per_token": 3.7e-05,
+  "reads_in_series": 37,
+  "cpu_forward_s_per_token": 0.0003566021254907052,
+  "cpu_train_s_per_token": 0.0010919724280635515
+ },
+ "scaling": [
+  {
+   "model": "10M (E8, measured ops)",
+   "params": 10000000.0,
+   "macs_per_token": 10557275.541795665,
+   "bpu_J_per_token": 8.338087989296087e-05,
+   "bpu_J_per_token_analog_accumulate": 1.3396479768161854e-05,
+   "digital_J_per_token_no_reuse": 0.006439061919504644,
+   "digital_J_per_token_10x_reuse": 0.0006790619195046439,
+   "ratio_no_reuse": 77.22468181878995,
+   "ratio_10x_reuse": 8.14409634890374
+  },
+  {
+   "model": "124M (GPT-2 small)",
+   "params": 124000000.0,
+   "macs_per_token": 130910216.71826625,
+   "bpu_J_per_token": 0.0010339229106727146,
+   "bpu_J_per_token_analog_accumulate": 0.00016611634912520697,
+   "digital_J_per_token_no_reuse": 0.07984436780185758,
+   "digital_J_per_token_10x_reuse": 0.008420367801857585,
+   "ratio_no_reuse": 77.22468181878996,
+   "ratio_10x_reuse": 8.144096348903743
+  },
+  {
+   "model": "1.3B",
+   "params": 1300000000.0,
+   "macs_per_token": 1372445820.4334364,
+   "bpu_J_per_token": 0.010839514386084912,
+   "bpu_J_per_token_analog_accumulate": 0.0017415423698610407,
+   "digital_J_per_token_no_reuse": 0.8370780495356037,
+   "digital_J_per_token_10x_reuse": 0.08827804953560371,
+   "ratio_no_reuse": 77.22468181878996,
+   "ratio_10x_reuse": 8.14409634890374
+  },
+  {
+   "model": "7B",
+   "params": 7000000000.0,
+   "macs_per_token": 7390092879.256966,
+   "bpu_J_per_token": 0.0583666159250726,
+   "bpu_J_per_token_analog_accumulate": 0.009377535837713297,
+   "digital_J_per_token_no_reuse": 4.50734334365325,
+   "digital_J_per_token_10x_reuse": 0.4753433436532507,
+   "ratio_no_reuse": 77.22468181878996,
+   "ratio_10x_reuse": 8.14409634890374
+  },
+  {
+   "model": "70B",
+   "params": 70000000000.0,
+   "macs_per_token": 73900928792.56966,
+   "bpu_J_per_token": 0.5836661592507258,
+   "bpu_J_per_token_analog_accumulate": 0.09377535837713297,
+   "digital_J_per_token_no_reuse": 45.073433436532504,
+   "digital_J_per_token_10x_reuse": 4.753433436532507,
+   "ratio_no_reuse": 77.22468181878997,
+   "ratio_10x_reuse": 8.144096348903744
+  }
+ ],
+ "verdict": {
+  "statement": "PROJECTION (device model constants, not hardware). Inference at 2.7M params: digital 10972 nJ/token with no weight reuse, 10472 nJ/token with 10x reuse. BPU with one A/D conversion per 32-row tile partial sum: 22258 nJ/token (100% conversion) = 0.49x / 0.47x of digital, i.e. WORSE; BPU with analog accumulation across tiles (one conversion per layer output): 3595 nJ/token (99% conversion) = 3.1x / 2.9x better than digital. MAC energy alone is 11.26 nJ/token. Projected latency 37 us/token vs 357 us/token measured on this CPU. Training step: BPU 3618 nJ/token with analog accumulation (writes 0.0%) vs digital 32916 nJ/token. The converter budget decides the claim: with 256 pJ per 8-bit conversion and 32x32 tiles, converting every tile output erases the advantage."
+ },
+ "meta": {
+  "experiment": "e8b",
+  "git": "dfc1707",
+  "python": "3.14.7",
+  "numpy": "2.4.4",
+  "finished": "2026-10-17 15:00:33"
+ }
+}

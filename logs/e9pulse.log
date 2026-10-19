@@ -1,0 +1,74 @@
+    pretrain step 200/1000 loss 2.715 (39s)
+    pretrain step 400/1000 loss 2.214 (74s)
+    pretrain step 600/1000 loss 1.951 (106s)
+    pretrain step 800/1000 loss 1.779 (139s)
+    pretrain step 1000/1000 loss 1.685 (177s)
+  seed 0: pretrain ideal on Shakespeare: 180.8 s
+  ideal val loss: {'shakespeare': 1.819112092256546, 'python_source': 6.046873593330384}
+    sgd_bpu_pulse step 200 seg 0 loss 1.659 (60s)
+    sgd_bpu_pulse step 400 seg 0 loss 1.608 (119s)
+    sgd_bpu_pulse step 600 seg 0 loss 1.572 (180s)
+    sgd_bpu_pulse step 800 seg 0 loss 1.528 (245s)
+    sgd_bpu_pulse step 1000 seg 0 loss 1.506 (305s)
+    sgd_bpu_pulse step 1200 seg 1 loss 2.380 (361s)
+    sgd_bpu_pulse step 1400 seg 1 loss 1.701 (419s)
+    sgd_bpu_pulse step 1600 seg 1 loss 1.475 (465s)
+    sgd_bpu_pulse step 1800 seg 1 loss 1.350 (507s)
+    sgd_bpu_pulse step 2000 seg 1 loss 1.245 (551s)
+    sgd_bpu_pulse step 2200 seg 2 loss 1.700 (595s)
+    sgd_bpu_pulse step 2400 seg 2 loss 1.516 (646s)
+    sgd_bpu_pulse step 2600 seg 2 loss 1.472 (704s)
+    sgd_bpu_pulse step 2800 seg 2 loss 1.448 (760s)
+    sgd_bpu_pulse step 3000 seg 2 loss 1.433 (817s)
+    stream: sgd_bpu_pulse: 817.3 s
+  sgd_bpu_pulse: segment-end losses [1.506 1.245 1.433], recovery [566, 444], writes/dev/s 0.511 (8521% of budget), flush rate 0.011
+    pretrain step 200/1000 loss 2.737 (33s)
+    pretrain step 400/1000 loss 2.214 (66s)
+    pretrain step 600/1000 loss 1.949 (99s)
+    pretrain step 800/1000 loss 1.775 (130s)
+    pretrain step 1000/1000 loss 1.684 (163s)
+  seed 1: pretrain ideal on Shakespeare: 162.9 s
+  ideal val loss: {'shakespeare': 1.8155479073524474, 'python_source': 6.10884428024292}
+    sgd_bpu_pulse step 200 seg 0 loss 1.656 (57s)
+    sgd_bpu_pulse step 400 seg 0 loss 1.610 (111s)
+    sgd_bpu_pulse step 600 seg 0 loss 1.569 (167s)
+    sgd_bpu_pulse step 800 seg 0 loss 1.535 (242s)
+    sgd_bpu_pulse step 1000 seg 0 loss 1.503 (317s)
+    sgd_bpu_pulse step 1200 seg 1 loss 2.371 (387s)
+    sgd_bpu_pulse step 1400 seg 1 loss 1.666 (469s)
+    sgd_bpu_pulse step 1600 seg 1 loss 1.442 (556s)
+    sgd_bpu_pulse step 1800 seg 1 loss 1.311 (639s)
+    sgd_bpu_pulse step 2000 seg 1 loss 1.208 (729s)
+    sgd_bpu_pulse step 2200 seg 2 loss 1.695 (803s)
+    sgd_bpu_pulse step 2400 seg 2 loss 1.509 (866s)
+    sgd_bpu_pulse step 2600 seg 2 loss 1.472 (932s)
+    sgd_bpu_pulse step 2800 seg 2 loss 1.441 (995s)
+    sgd_bpu_pulse step 3000 seg 2 loss 1.429 (1056s)
+    stream: sgd_bpu_pulse: 1055.9 s
+  sgd_bpu_pulse: segment-end losses [1.503 1.208 1.429], recovery [601, 541], writes/dev/s 0.532 (8859% of budget), flush rate 0.011
+    pretrain step 200/1000 loss 2.718 (33s)
+    pretrain step 400/1000 loss 2.202 (69s)
+    pretrain step 600/1000 loss 1.924 (104s)
+    pretrain step 800/1000 loss 1.749 (141s)
+    pretrain step 1000/1000 loss 1.658 (174s)
+  seed 2: pretrain ideal on Shakespeare: 174.0 s
+  ideal val loss: {'shakespeare': 1.796866887807846, 'python_source': 6.135055899620056}
+    sgd_bpu_pulse step 200 seg 0 loss 1.634 (63s)
+    sgd_bpu_pulse step 400 seg 0 loss 1.590 (127s)
+    sgd_bpu_pulse step 600 seg 0 loss 1.544 (186s)
+    sgd_bpu_pulse step 800 seg 0 loss 1.518 (247s)
+    sgd_bpu_pulse step 1000 seg 0 loss 1.489 (304s)
+    sgd_bpu_pulse step 1200 seg 1 loss 2.436 (357s)
+    sgd_bpu_pulse step 1400 seg 1 loss 1.692 (406s)
+    sgd_bpu_pulse step 1600 seg 1 loss 1.476 (454s)
+    sgd_bpu_pulse step 1800 seg 1 loss 1.321 (511s)
+    sgd_bpu_pulse step 2000 seg 1 loss 1.225 (573s)
+    sgd_bpu_pulse step 2200 seg 2 loss 1.688 (630s)
+    sgd_bpu_pulse step 2400 seg 2 loss 1.508 (689s)
+    sgd_bpu_pulse step 2600 seg 2 loss 1.466 (726s)
+    sgd_bpu_pulse step 2800 seg 2 loss 1.437 (764s)
+    sgd_bpu_pulse step 3000 seg 2 loss 1.422 (818s)
+    stream: sgd_bpu_pulse: 818.1 s
+  sgd_bpu_pulse: segment-end losses [1.489 1.225 1.422], recovery [572, 530], writes/dev/s 0.517 (8615% of budget), flush rate 0.011
+E9 (diagnostic): diagnostic arms only: sgd_bpu_pulse post-shift 1.226, 8665% of budget
+[e9] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e9_pulse/results.json

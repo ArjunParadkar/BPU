@@ -381,6 +381,10 @@ class SelfOrgConfig:
                                    # cue's coverage statistics on the weights (see DECISIONS.md), so E4/E5 run
                                    # without it; set e.g. 50.0 to enable
     tau_rate: float = 10.0         # running-mean rate time constant (s)
+    write_mode: str = "threshold"  # "threshold": write when |pending| >= theta_w, keep the sub-pulse residual
+                                   # (the original E4); "level": the tile's accumulate-and-flush write budget
+                                   # (a synapse is pulsed only when one conductance level 1/L is pending,
+                                   # stochastic rounding of the remainder; theta_w is then unused)
     write_budget: float = 0.0      # max write events per device per second during development (0 = no
                                    # cap).  With a cap, pending STDP changes are flushed in order of size
                                    # only as the budget allows (a per-tile write quota), so learning takes
@@ -477,9 +481,13 @@ class SelfOrganizingSheet:
                 rho = r * c.spike_rate_scale
                 dW = (c.A_plus * c.tau_plus - c.A_minus * c.tau_minus) * np.outer(rho, rho) * c.rate_dt * c.eta
             np.fill_diagonal(dW, 0.0)
-            self.pending += dW
-            write = (np.abs(self.pending) >= c.theta_w) & self.tile.A
-            if c.write_budget > 0:
+            if c.write_mode == "level":
+                self.tile.accumulate(dW, write_budget=c.write_budget or None, dt=c.rate_dt)
+                write = np.zeros_like(self.tile.A)
+            else:
+                self.pending += dW
+            write = (np.abs(self.pending) >= c.theta_w) & self.tile.A if c.write_mode != "level" else write
+            if c.write_budget > 0 and c.write_mode != "level":
                 # endurance cap: so many write events per step for the whole tile (2 devices per synapse)
                 self.write_credit += c.write_budget * 2 * self.N * self.N * c.rate_dt
                 n_allow = int(self.write_credit)
@@ -497,6 +505,7 @@ class SelfOrganizingSheet:
                 self.growth.prune()
                 self.growth.grow()
                 self.pending[~self.tile.A] = 0.0
+                self.tile.acc[~self.tile.A] = 0.0
             if (self.t + 1) % c.norm_every == 0:
                 self._normalize()
             self.log["n_active"].append(self.tile.n_active)

@@ -471,3 +471,220 @@ documents where they are more specific than the brief:
   the ring recipe does not transfer to a 1024-neuron sheet unchanged and is
   not tuned here.  BPU-1 tile B must be reassigned: a 5x6 grid cannot host a
   torus, and the smallest sheet that certified is 32x32.
+
+## Substrate programme (2026-10-18): reference-first reporting, the write budget, and the reruns
+
+**Reframe.**  The BPU is a substrate.  From this date every experiment compares the
+SAME algorithm on (a) a float32 reference and (b) noisy BPU tiles, and success means
+the tiles match the reference within a stated tolerance.  Our own local rules
+(feedback alignment, direct feedback alignment, layer-local three-factor, growth)
+are reported as additional arms, never as the headline.  `scripts/make_results_page.py`
+puts a six-row "Substrate claims" scoreboard at the top (E9, E10, E8b, E3, E6, E7),
+then a write-budget box (E4, E9, E10), then the remaining rows.  The weekend
+results that were superseded are kept under `results/e9_v1`, `results/e10_v1`,
+`results/e8b_v1` (git history has the scripts: `experiments/.e9_v1.py.bak` etc.).
+
+### Write budget: accumulate-and-flush (`Tile.accumulate`, `TileLinear(write_mode="level")`)
+* **Mechanism.**  A digital per-synapse accumulator `acc[i, j] += dW`.  A device is
+  pulsed only when `|acc| >= one conductance level`, one level being
+  `(G_max - G_min) / L` in conductance = `1 / L` in state units.  The flushed
+  amount is a whole number of levels: the integer part of `|acc| / level` plus the
+  remainder rounded stochastically (probability = remainder), so the expectation of
+  what is written equals the accumulator.  The flushed amount, not the realised one,
+  is subtracted (the digital side does not read the device back; the pulse-rounding
+  error of the step law stays on the device).  Writes are counted only when a device
+  is pulsed; `flush_rate` = write events / (accumulate calls x active synapses).
+* **L from sigma_eff.**  Two levels are distinguishable when they differ by one
+  effective noise standard deviation at full scale, so `L = round(1 / sigma_eff)`,
+  clipped to [2, 256] (`DeviceParams.levels`).  Defaults: L = 21 for the numpy tile
+  (sigma_eff 0.047), L = 25 for the torch tiles at sigma_eff 0.04.  One level is
+  therefore 0.047 / 0.04 in state units, i.e. about one potentiation pulse near
+  w = 0 and ~19 pulses near w = 1; `pulses_for` converts the flushed level count
+  into pulses through the step law as before.
+* **Accumulator semantics on the torch side.**  `TileOptimizer` keeps Adam's float
+  moments and the per-synapse accumulator in float ("float accumulators"); the
+  parameter the forward pass reads is always the realised device weight ("BPU
+  devices as weights").  The legacy `write_mode="pulse"` (nearest whole pulse,
+  residual kept) is unchanged and is what E8's results were produced with.
+* **E4 with level writes** (10 seeds, 40 s development, no quota): 3/10 rings
+  certify (1/10 controls) at 0.013 writes/device/s = 217 % of the 6e-3 budget,
+  down from 0.111 (1850 %) with threshold writes at theta_w = 0.01, which certified
+  5/10.  **With the 6e-3 quota on top** (720 s development, flushes ordered by
+  accumulator size): 0/10, as with the quota on threshold writes.  Level-gated
+  writes cut the write rate 8.5x and keep most of the self-organisation; the quota
+  still starves the small depression writes that shape the kernel.  The budget is
+  therefore met only by accepting a 10x longer development with a 10x slower cue,
+  which was not run; the number to report is 217 % at the kernel's natural write
+  rate.
+* A whole-tile rewrite (`program`, the sheet's normalisation) clears the
+  accumulator; a mask change clears it for the pruned synapses.
+
+### Torch tile layer on CUDA
+* The tile layer runs unchanged on the GPU (buffers follow `.to(device)`); the only
+  CPU-side tensor was the position index of the nanoGPT.  Speed on this laptop's
+  RTX 5070: 0.12 s per tiled training step vs 0.82 s on the CPU (batch 16 x 128).
+* **The ideal model's attention is explicit softmax, not `scaled_dot_product_attention`**:
+  the fused efficient-attention backward was found to be wrong on this GPU in another
+  project (torch 2.11 cu128/cu130, see `~/blindinglight`), and T = 128 makes the
+  explicit form cheap.  Tiled attention was always explicit.
+* `--out` paths are now resolved against the repository root
+  (`common._out_dir`), whatever the shell's directory.
+
+### E9 (rewritten): six arms, same stream
+* Arms: frozen; SGD-oracle on tiles (true backprop through the noisy reads, Adam in
+  float, level-gated writes: the substrate ceiling); SGD on float32 (reference);
+  feedback alignment; direct feedback alignment (`DFAContext`: the output error,
+  d CE / d logits per token, is broadcast to every tile through its own fixed
+  random matrix, the layer returns a zero input-gradient so nothing travels between
+  layers; the head uses its own error); layer-local three-factor (every tile has a
+  digital readout to the next-token target, minimises its own cross-entropy with a
+  one-step gradient inside the tile: local error x presynaptic activity, nothing
+  between layers; readouts learned digitally).  All gradient arms use AdamW at
+  3e-4 with the same batches of the same stream (seed-paired).
+* Criterion: SGD-oracle within 5 % of the float32 reference on the post-shift loss
+  (mean over the last 200 steps of the Python segment, same step count) and writes
+  within 6e-3 per device per second at the assumed 10 ms per step.  Secondary: the
+  gap of FA / DFA / local to the oracle.  3 seeds; 1000-step segments as in the
+  weekend run (2000-step segments are on the HPCC list).
+* The weekend's Hebbian "local three-factor" rule (purely Hebbian eligibility,
+  scalar modulator) is replaced by the layer-local-loss rule; the Hebbian rule
+  degraded the model on every segment and has no analogue on the float32 side.
+
+### E10 (rewritten): five algorithms x two substrates
+* Arms: naive; EWC (diagonal empirical Fisher from 200 per-sample gradients after
+  each task, penalty lambda / 2 sum F (theta - theta*)^2 on the tile weights,
+  lambda = 100); experience replay (buffer = 1 % of the training set = 600
+  samples shared equally by the tasks seen, half of every batch); FPL-gated
+  consolidation (the weekend's fast/slow pair, gate = units above the median
+  Feature Persistence Lifetime); FPL-gated + replay; joint training as the
+  upper bound.  On float32 the fast/slow pair is two float tensors with the same
+  decay and transfer rule.
+* Ablations on tiles: FPL gate off (every synapse consolidates) and device
+  retention tau_ret in {1e3, 1e4, 1e5, inf} s applied to the nonvolatile devices at
+  10 ms of chip time per step; since the whole sequence is only ~40 s of chip
+  time, every arm is also evaluated after a 1000 s rest (fast devices fully decayed,
+  nonvolatile ones by exp(-1000 / tau_ret)), which is where tau_ret acts.
+* Criterion: BPU-EWC and BPU-replay within 3 points of average accuracy of their
+  float32 twins; forgetting reported per arm; writes against the budget.  3 seeds,
+  run on the GPU.
+
+### E8b (rewritten): measured digital control, 3 x 2 read-out table
+* **Digital control = measured, not Horowitz.**  The same nanoGPT runs on this
+  laptop's GPU with every Linear at INT8 (W8A8: per-channel int8 weights,
+  per-token dynamic int8 activations, int32 accumulation through
+  `torch._int_mm`; attention, LayerNorm, GELU, softmax in FP32 as on any INT8
+  accelerator).  Energy = board power (nvidia-smi at 10 Hz) x time / tokens,
+  reported with the idle power included and subtracted; FP32 on the same GPU the
+  same way.  `torchao` is not installed, so the INT8 kernel is PyTorch's own int8
+  GEMM; `torch.ao.quantization.quantize_dynamic` runs on the CPU only and its
+  energy cannot be measured here (RAPL counters are root-only), so the CPU path is
+  reported as throughput only.  A published H100 INT8 peak (1979 TOPS at 700 W) is
+  included and labelled as published, not measured.  The measurement must be
+  taken on an otherwise idle GPU (`--skip-train` after the training phase).
+* **BPU read-out modes.**  (i) per-tile 8-bit ADC: one conversion per 32-row tile
+  partial sum, added digitally; (ii) analog accumulation across the tiles of a
+  layer, one conversion per output; (iii) spiking LIF read-out with no ADC: a LIF
+  neuron per output integrates the current and its spike count (at most 2^b - 1
+  per token, sign on a complementary pair) encodes the value.  Converter
+  precisions 8-bit (256 pJ) and 4-bit (16 pJ).  Periphery: LIF 5 pJ per update,
+  router 10 pJ per event, write driver 100 pJ per pulse, cache write 10 pJ.  LIF
+  energy is counted per spike (one router event + one LIF update per spike; the
+  integration itself is analog); the alternative of one update per time step of a
+  2^b-step window would cost 2^b x 5 pJ per output and is stated in the JSON.
+* **Accuracy of each mode** is measured in simulation, not assumed: the E8
+  protocol at sigma = 0.04 (1500 ideal steps, 300 noise-aware steps) is re-run
+  on the GPU, and the noise-aware model is evaluated with every read-out emulated
+  (`ReadoutSpec`: converter ranges calibrated on one batch, values clip at the
+  rails, attention score and value reads converted too).  The LIF spike rate is
+  the measured mean count per output per token.
+* **Scaling to 1T** by MACs proportional to parameters, per-layer conversions
+  proportional to layers x d_model, per-tile conversions proportional to
+  layers x d_model^2 / 32 (one conversion per 32-row block), for the standard
+  dense shapes 12x768, 24x2048, 32x4096, 80x8192 and a dense 140x24576 (1.0T).
+
+### E3 (replaced): moving cue instead of static drift
+* A weak external bump (amplitude 0.1 of the tonic drive, width 1 rad) rotates
+  at omega in {0.1, 0.5, 1.0} rad/s; the ring's bump must follow it; tracking
+  error = mean |phi_bump - phi_cue| over 30 s.  Dynamic noise sweep
+  {0.001, 0.002, 0.005, 0.01, 0.02, 0.04, 0.08} plus 0 as the sign-test baseline,
+  tau_H = 0, N = 128, 10 seeds, mismatch {0.02, 0.05, 0.10} plus a mismatch-free
+  tile control and the ideal no-tile ring as the float32 reference.  Delta U is
+  measured as before.  A second arm at cue amplitude 0.05 is run as well.
+* **Why 0.1.**  Pilot (N = 128, 10 s, 2 seeds): the tracking error is dominated by
+  the lag, which falls with the cue amplitude (at omega = 1 rad/s: 0.74 rad at
+  A = 0.05, 0.36 at 0.1, 0.20 at 0.2, 0.12 at 0.4), and the mismatch adds to it only
+  at low speed and weak cue (omega = 0.1: 0.065 -> 0.114 rad from mismatch 0 to
+  0.1 at A = 0.05, 0.035 -> 0.063 at A = 0.1, 0.012 -> 0.021 at A = 0.4).  A = 0.1
+  keeps the attractor dynamics (and their pinning) relevant while the ideal ring
+  still tracks; a strong cue would make the test insensitive to the substrate.
+* The float32 reference carries the dynamic noise as additive neuron noise only
+  (there are no tile reads to perturb); the BPU arms split it half read, half neuron
+  as before.
+
+### E6: sign ties
+* `np.sign` of an exact 0 read was mapped to +1 everywhere (cleanup iterations,
+  the content read, the direct and attention reads), a bias toward the all-ones
+  pattern.  `memory.signz` now breaks ties at random to +-1 from a fixed-seed
+  generator (seed 20261018).  Rerun with 10 seeds (`--full`).
+
+### E7: matched steps and the continued arm
+* "fixed" was already matched in synapses AND training steps; the verdict now
+  says so.  New arm `grown_continued`: after the growth phase the grown graph's
+  structure is frozen and it trains for the fixed graph's trial count again
+  (its final architecture then has had as many steps as the fixed one), then it
+  is evaluated exactly like the other arms.  If it is still behind the fixed
+  graph on the base tasks (nav by more than 0.05 or recall bits by more than
+  0.02) the verdict logs a NEGATIVE.
+* `--noise-free` runs the same script on tiles with zero d2d / c2c / read noise
+  (pulse quantisation only) as the reference substrate (`results/e7_ref`).
+* **E3 run budget (same evening).**  The first launch (T = 30 s, two cue amplitudes, 26
+  arms) ran at ~35 min per arm on the loaded laptop: a profile showed 75 % of every run
+  in the write-verify programming of 2 x 16k devices (8 verify reads per iteration, each a
+  16k-Gaussian draw), repeated for every dynamic-noise level because the verify read noise
+  was tied to sigma_dyn, so every noise level also got a slightly different hardware.  The
+  programmed device states are now cached per (N, mismatch, seed) (verify at the device's
+  nominal read noise 0.02) and reused across the sweep, which is what "one seed = one
+  hardware across every noise level" was meant to be; the cached weights equal the directly
+  programmed ones bit for bit.  The remaining cost is the two 16k-Gaussian read-noise draws
+  per step, so T was cut from 30 s to 15 s and the second cue amplitude (0.05) dropped; the
+  four T = 30 s arms that finished are kept in `results/e3_tracking/partial_T30_4arms.json`
+  (all NOT U-shaped, tracking error 0.037-0.047 rad flat in sigma).  `--finalize` rebuilds
+  the verdict and figure from a partial file.
+* **E10 replay bug (same evening).**  The first full E10 run gave the replay arms 0.29
+  average accuracy with 0.82 forgetting on BOTH substrates: the buffer drew one random
+  permutation for the inputs and another for the labels, so half of every batch was
+  mislabelled.  Fixed (one draw per task, `results/e10/results_replay_bug.json` keeps the
+  bad run) and the replay arms were rerun with `--only-arms replay,fpl_replay`, which
+  merges into the existing results.json; the other arms are untouched.  The incident is
+  also why the page shows forgetting per arm next to the twin gap: a twin gap of -0.005
+  between two broken arms would otherwise have passed the 3-point criterion.
+
+### Outcomes (2026-10-18, laptop, 3 seeds unless stated)
+* **E9**: float32 SGD post-shift 1.184; SGD on tiles with level-gated writes 1.483
+  (+25 %) at 0.0107 writes/device/s = 178 % of budget; FA 2.70, DFA 2.89, layer-local
+  2.70; frozen 5.98.  Not met.  Diagnostic: SGD on tiles with nearest-pulse writes
+  1.226 (+1 %) at 8665 % of budget, so the device noise is free and the whole gap is
+  the write gate, which buys a 50x lower write rate.  Both halves of the criterion pull
+  against each other at lr 3e-4: fewer writes = slower learning.
+* **E10**: twins within 3 points for EWC (0.947 / 0.943) and replay (0.942 / 0.935);
+  met.  Naive 0.844 / 0.793 (the tiles forget more, 0.20 vs 0.14), FPL 0.840 / 0.828,
+  joint 0.956 / 0.957.  FPL gate off is better than on (0.90 / 0.87); FPL arms lose
+  13-16 points after a 1000 s rest (un-consolidated fast weights); tau_ret 1e3 s costs
+  2-17 points after the rest, 1e4 s and above nothing.  Writes 7-24x the budget.
+* **E8b**: GPU INT8 measured 256 uJ/token incl. idle (169 above idle), FP32 180 uJ
+  (the int8 path is slower than FP32 for a model this small); H100 published peak 2.0 uJ.
+  BPU: per-tile 8-bit 22.3 uJ, per-layer 8-bit 3.6 uJ, LIF 8-bit 11.6 uJ (55 spikes per
+  output per token), all at -0.6 to -0.8 % loss (lossless); 4-bit cells 1.4 / 0.26 / 0.53
+  uJ at +31 / +42 / +53 % loss with 99.9th-percentile converter ranges (+52 / +61 / +76 %
+  with full-range converters).  4-bit read-out needs quantisation-aware fine-tuning,
+  which was not run.
+* **E3**: 0/9 U-shaped.  Tracking error is the cue lag (0.036 / 0.18 / 0.37 rad at
+  omega 0.1 / 0.5 / 1), flat in dynamic noise, equal on tiles and float32 except at
+  mismatch 0.1 and omega 0.1 (0.062 vs 0.036) where the pinning barrier (Delta U 0.41)
+  shows and noise still does not help.
+* **E6** (10 seeds, random ties): attention 20 / 24 / 24 / 28 / 28 / 28 pairs at
+  sigma 0 ... 0.2, scaffold 0-4: the tie fix moved nothing outside seed noise.
+* **E7**: grown 0.62 / fixed 0.84 nav at matched synapses and steps; grown continued
+  0.80 nav, 0.90 recall (fixed 0.82): catches up; composition at chance everywhere;
+  noise-free reference in results/e7_ref.
+* **E4** level writes: 3/10 at 217 % of budget; + quota 0/10.

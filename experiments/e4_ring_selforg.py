@@ -49,10 +49,11 @@ def profile(W, theta):
     return (0.5 * (bins[1:] + bins[:-1])).tolist(), prof.tolist()
 
 
-def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: str = "sweep", write_budget: float = 0.0):
+def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: str = "sweep", write_budget: float = 0.0,
+             write_mode: str = "threshold"):
     rng = np.random.default_rng(seed)
     theta = 2 * np.pi * np.arange(N) / N
-    cfg = SelfOrgConfig(write_budget=write_budget)
+    cfg = SelfOrgConfig(write_budget=write_budget, write_mode=write_mode)
     sheet = SelfOrganizingSheet(theta, ring_dist, rng, cfg)
     W0 = sheet.tile.W.copy(); n_active0 = sheet.tile.n_active
     starts = rng.uniform(-np.pi, np.pi, 40)
@@ -81,6 +82,8 @@ def run_seed(seed: int, n_dev: int, n_checkpoints: int, n_null: int, cue_kind: s
         "seed": seed, "certified_ring": cert["is_ring"], "betti1": cert["betti"][1], "betti0_extra": cert["betti"][0],
         "writes_per_device_per_s": sheet.tile.writes_per_device(seconds=n_dev * 1e-3),
         "write_budget_per_device_per_s": 6e-3,
+        "percent_of_write_budget": 100.0 * sheet.tile.writes_per_device(seconds=n_dev * 1e-3) / 6e-3,
+        "flush_rate": sheet.tile.flush_rate, "levels": sheet.tile.levels, "write_mode": write_mode,
         "top_H1_lifetimes": cert["top_lifetimes"][1], "H1_threshold": cert["threshold"][1],
         "control_certified_ring": cert_ctrl["is_ring"], "control_betti1": cert_ctrl["betti"][1], "control_betti0_extra": cert_ctrl["betti"][0],
         "control_top_H1": cert_ctrl["top_lifetimes"][1], "control_H1_threshold": cert_ctrl["threshold"][1],
@@ -106,6 +109,8 @@ def main():
     ap.add_argument("--write-budget", type=float, default=0.0, help="endurance cap, write events per device per second (6e-3 = the technical document's budget)")
     ap.add_argument("--procs", type=int, default=1)
     ap.add_argument("--cue", type=str, default="sweep", choices=["sweep", "walk"])
+    ap.add_argument("--write-mode", type=str, default="threshold", choices=["threshold", "level"],
+                    help="level = accumulate-and-flush at one conductance level (the write budget mechanism)")
     ap.add_argument("--checkpoints", type=int, default=5)
     ap.add_argument("--null", type=int, default=20)
     args = ap.parse_args()
@@ -114,11 +119,11 @@ def main():
     if args.procs > 1:
         import multiprocessing as mp
         with mp.Pool(args.procs) as pool:
-            runs = pool.map(_job, [(seed, args.steps, args.checkpoints, args.null, args.cue, args.write_budget) for seed in range(seeds)])
+            runs = pool.map(_job, [(seed, args.steps, args.checkpoints, args.null, args.cue, args.write_budget, args.write_mode) for seed in range(seeds)])
     else:
         for seed in range(seeds):
             with Timer(f"seed {seed}"):
-                runs.append(run_seed(seed, args.steps, args.checkpoints, args.null, args.cue, args.write_budget))
+                runs.append(run_seed(seed, args.steps, args.checkpoints, args.null, args.cue, args.write_budget, args.write_mode))
     for r in runs:
         seed = r["seed"]
         print(f"  seed {seed}: certified={r['certified_ring']} betti1={r['betti1']} extra betti0={r['betti0_extra']} writes/dev/s={r['writes_per_device_per_s']:.3g} top H1={np.round(r['top_H1_lifetimes'][:3], 3)} thr={r['H1_threshold']:.3f}"
@@ -127,15 +132,18 @@ def main():
               f" | synapses {r['n_active_initial']}->{r['n_active_final']}")
     n_cert = sum(r["certified_ring"] for r in runs); n_ctrl = sum(r["control_certified_ring"] for r in runs)
     occ = [r["ring_occupancy_bins_of_8"] for r in runs]
-    out = {"seeds": seeds, "dev_steps": args.steps, "cue": args.cue, "write_budget": args.write_budget,
+    wpd = float(np.mean([r['writes_per_device_per_s'] for r in runs]))
+    out = {"seeds": seeds, "dev_steps": args.steps, "cue": args.cue, "write_budget": args.write_budget, "write_mode": args.write_mode,
            "development_time_s": args.steps * 1e-3, "runs": runs,
+           "writes_per_device_per_s": wpd, "percent_of_write_budget": 100.0 * wpd / 6e-3, "flush_rate": float(np.mean([r["flush_rate"] for r in runs])),
            "verdict": {"certified_fraction": n_cert / seeds, "control_certified_fraction": n_ctrl / seeds,
                        "mean_occupancy_bins_of_8": float(np.mean(occ)),
                        "statement": f"{n_cert}/{seeds} trained rings certified beta1 = 1 against the circular-shift null "
                                     f"({n_ctrl}/{seeds} untrained controls certified); released bumps occupy "
                                     f"{np.mean(occ):.1f}/8 bins of the ring on average (8 = a fully explored ring); "
-                                    f"development {args.steps * 1e-3:.0f} s at {np.mean([r['writes_per_device_per_s'] for r in runs]):.3g} writes/device/s"
-                                    + (f" (capped at {args.write_budget:g})" if args.write_budget else " (uncapped)") + "."}}
+                                    f"development {args.steps * 1e-3:.0f} s at {wpd:.3g} writes/device/s = {100 * wpd / 6e-3:.0f}% of the 6e-3 budget"
+                                    + (f" (quota {args.write_budget:g})" if args.write_budget else " (no quota)")
+                                    + (f", accumulate-and-flush at one level (L = {runs[0]['levels']}, flush rate {np.mean([r['flush_rate'] for r in runs]):.2g})" if args.write_mode == "level" else ", threshold writes") + "."}}
     print("E4 verdict:", out["verdict"]["statement"])
     save_results("e4", out, args.out)
     if not args.no_fig:

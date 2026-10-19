@@ -20,8 +20,12 @@ module's activity and the task id, and *compositional transfer*: a new task
 phi_mu - th, composing RECALL and NAV) is evaluated zero-shot and after a
 short fine-tune, for the grown graph and for two fixed layered baselines:
 one with the same synapse budget trained for the same number of trials
-("fixed"), and one trained for as many trials as match the grown graph's
-total multiply-accumulates ("fixed_compute").
+("fixed", i.e. matched synapses AND matched training steps), and one trained
+for as many trials as match the grown graph's total multiply-accumulates
+("fixed_compute").  A fourth arm ("grown_continued") freezes the grown
+structure after the growth phase and trains it for the fixed graph's trial
+count again, so the final grown architecture has had as many training steps
+as the fixed one; if it is still behind, that is logged as a negative.
 """
 from __future__ import annotations
 
@@ -74,12 +78,15 @@ class Tasks:
         return {"abs_err": float(err), "correct": err < np.pi / 8}
 
 
+DEVICE = DeviceParams()   # BPU tiles (sigma_d2d 0.03, c2c 0.03, read 0.02); --noise-free sets all three to 0 (reference)
+
+
 def make_graph(kind, rng, cfg):
     if kind == "grown":
-        return ModuleGraph(cfg, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, DeviceParams())
+        return ModuleGraph(cfg, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, DEVICE)
     R = layered_routing(K, [0, 1], [2, 3, 4, 5], [6, 7])
     cfg_f = GraphConfig(**{**cfg.__dict__, "B_density": cfg.edge_budget * cfg.B_density / R.sum()})
-    return ModuleGraph(cfg_f, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, DeviceParams(), R_fixed=R)
+    return ModuleGraph(cfg_f, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, DEVICE, R_fixed=R)
 
 
 def train(graph, tasks, task_ids, n_trials, structure, log_every=100):
@@ -114,17 +121,26 @@ def run_seed(seed, n_base, n_ft, cfg_kw):
     tasks = Tasks(np.random.default_rng([seed, 77]))
     res = {}
     grown_macs = None
-    for kind in ("grown", "fixed", "fixed_compute"):
+    for kind in ("grown", "grown_continued", "fixed", "fixed_compute"):
         tasks.rng = np.random.default_rng([seed, 77, 1])
         cfg = GraphConfig(n_per_module=N_MOD, n_modules=K, out_dim=OUT, **cfg_kw)
-        g = make_graph("grown" if kind == "grown" else "fixed", np.random.default_rng([seed, 8]), cfg)
+        g = make_graph("grown" if kind.startswith("grown") else "fixed", np.random.default_rng([seed, 8]), cfg)
         nb, nf = n_base, n_ft
         if kind == "fixed_compute":
             # matched compute: the fixed graph gets as many trials as match the grown graph's MACs
             ratio = grown_macs / (g.macs_per_trial() * (n_base + n_ft))
             nb, nf = max(100, int(n_base * ratio)), max(50, int(n_ft * ratio))
         with Timer(f"  {kind}: base training ({nb} trials)"):
-            base_loss = train(g, tasks, [0, 1], nb, structure=(kind == "grown"))
+            base_loss = train(g, tasks, [0, 1], nb, structure=kind.startswith("grown"))
+        extra_trials = 0
+        if kind == "grown_continued":
+            # matched training steps for the *final* architecture: the grown graph spent its first
+            # n_base trials growing, so freeze the structure and train it for as many trials again as
+            # the fixed graph received (n_base), then evaluate exactly as the other arms
+            extra_trials = n_base
+            g.fixed = True
+            with Timer(f"  {kind}: continued training, structure frozen ({extra_trials} trials)"):
+                base_loss = train(g, tasks, [0, 1], extra_trials, structure=False)
         ev_nav, Z_nav = evaluate(g, tasks, 0, record=True)
         ev_rec, Z_rec = evaluate(g, tasks, 1, record=True)
         Z = np.concatenate([Z_nav, Z_rec], 0); task_ids = np.array([0] * len(Z_nav) + [1] * len(Z_rec))
@@ -140,11 +156,12 @@ def run_seed(seed, n_base, n_ft, cfg_kw):
                      "edges": int(g.n_edges), "routes": [[int(a), int(b)] for a, b in zip(*np.nonzero(g.R))],
                      "n_synapses": g.n_synapses, "mi_bits": [m["mi_bits"] for m in mi], "mi_shuffle": [m["mi_shuffle"] for m in mi],
                      "composite_zero_shot": zero_shot, "composite_after_finetune": after, "composite_ft_loss": ft_loss,
-                     "trials": [nb, nf], "macs_total": int(g.macs_total), "history": g.history}
+                     "trials": [nb + extra_trials, nf], "macs_total": int(g.macs_total), "history": g.history}
         print(f"  seed {seed} {kind}: edges={g.n_edges} syn={g.n_synapses} Q={Q:.3f} nav acc={ev_nav['correct']:.2f} (err {ev_nav['abs_err']:.2f}) "
               f"recall bits={ev_rec['bit_acc']:.2f} | composite zero-shot {zero_shot['correct']:.2f} -> after ft {after['correct']:.2f} (err {after['abs_err']:.2f}) | MI max {max(res[kind]['mi_bits']):.2f} bits")
     res["transfer_gap"] = res["grown"]["composite_after_finetune"]["correct"] - res["fixed"]["composite_after_finetune"]["correct"]
     res["transfer_gap_matched_compute"] = res["grown"]["composite_after_finetune"]["correct"] - res["fixed_compute"]["composite_after_finetune"]["correct"]
+    res["transfer_gap_continued"] = res["grown_continued"]["composite_after_finetune"]["correct"] - res["fixed"]["composite_after_finetune"]["correct"]
     return res
 
 
@@ -157,8 +174,12 @@ def main():
     ap.add_argument("--rule", type=str, default="local", choices=["local", "np"])
     ap.add_argument("--eta-local", type=float, default=0.001)
     ap.add_argument("--procs", type=int, default=1)
+    ap.add_argument("--noise-free", action="store_true", help="reference substrate: tiles with zero d2d/c2c/read noise (pulse quantisation only)")
     args = ap.parse_args()
     seeds = 10 if args.full else args.seeds
+    global DEVICE
+    if args.noise_free:
+        DEVICE = DeviceParams(sigma_d2d=0.0, sigma_c2c=0.0, sigma_r=0.0)
     cfg_kw = {"edge_budget": args.edge_budget, "theta_e": args.theta_e, "rule": args.rule, "eta_local": args.eta_local}
     if args.procs > 1:
         import multiprocessing as mp
@@ -176,15 +197,25 @@ def main():
                             [r["grown"]["composite_after_finetune"]["correct"] for r in runs])
     mi_grown = np.array([r["grown"]["mi_bits"] for r in runs]); mi_sh = np.array([r["grown"]["mi_shuffle"] for r in runs])
     specialised = float(np.mean((mi_grown - mi_sh) > 0.1))
-    kinds = ("grown", "fixed", "fixed_compute")
+    kinds = ("grown", "grown_continued", "fixed", "fixed_compute")
+    gap_cont = [r["transfer_gap_continued"] for r in runs]
+    # grown vs fixed, base tasks, at matched synapses + matched steps (grown, fixed) and after the grown
+    # graph continues to the fixed graph's step count for its final architecture (grown_continued)
+    def _beh(k):   # behind the fixed graph on both base tasks?
+        return {"nav_gap": float(np.mean([r[k]["nav"]["correct"] - r["fixed"]["nav"]["correct"] for r in runs])),
+                "recall_gap": float(np.mean([r[k]["recall"]["bit_acc"] - r["fixed"]["recall"]["bit_acc"] for r in runs]))}
+    behind = {k: _beh(k) for k in ("grown", "grown_continued")}
+    still_behind = bool(behind["grown_continued"]["nav_gap"] < -0.05 or behind["grown_continued"]["recall_gap"] < -0.02)
     out = {"seeds": seeds, "base_trials": args.base_trials, "ft_trials": args.ft_trials, "rule": args.rule, "n_per_module": N_MOD, "runs": runs,
+           "substrate": "noise-free reference" if args.noise_free else "bpu", "device_params": DEVICE.__dict__,
            "summary": {"Q_final_grown": summarize(Q_final), "Q_over_time_mean": Q_hist.mean(0).tolist() if Q_hist.size else [],
                        "Q_rises": bool(Q_hist.size and Q_hist.mean(0)[-1] > Q_hist.mean(0)[0] + 0.05),
                        "nav_acc": {k: summarize([r[k]["nav"]["correct"] for r in runs]) for k in kinds},
                        "recall_bit_acc": {k: summarize([r[k]["recall"]["bit_acc"] for r in runs]) for k in kinds},
                        "composite_after_ft": {k: summarize([r[k]["composite_after_finetune"]["correct"] for r in runs]) for k in kinds},
                        "composite_zero_shot": {k: summarize([r[k]["composite_zero_shot"]["correct"] for r in runs]) for k in kinds},
-                       "transfer_gap": summarize(gap), "transfer_gap_matched_compute": summarize(gap_c), "transfer_sign_test_p": p_gap,
+                       "transfer_gap": summarize(gap), "transfer_gap_matched_compute": summarize(gap_c), "transfer_gap_continued": summarize(gap_cont),
+                       "base_task_gap_vs_fixed": behind, "grown_continued_still_behind": still_behind, "transfer_sign_test_p": p_gap,
                        "trials_fixed_compute": [r["fixed_compute"]["trials"] for r in runs],
                        "fraction_modules_task_informative": specialised,
                        "mi_bits_per_module_mean": mi_grown.mean(0).tolist(), "mi_shuffle_mean": mi_sh.mean(0).tolist()}}
@@ -195,8 +226,12 @@ def main():
         f"{100 * specialised:.0f}% of modules carry > 0.1 bit about the task above shuffle; "
         f"compositional transfer gap (grown - fixed) = {s['transfer_gap']['mean']:+.2f} at matched synapses (sign test p = {p_gap:.2g}), "
         f"{s['transfer_gap_matched_compute']['mean']:+.2f} at matched compute; "
-        f"base-task accuracy: nav {s['nav_acc']['grown']['mean']:.2f} / {s['nav_acc']['fixed']['mean']:.2f}, "
-        f"recall bits {s['recall_bit_acc']['grown']['mean']:.2f} / {s['recall_bit_acc']['fixed']['mean']:.2f} (grown / fixed)")}
+        f"base-task accuracy at matched synapses and matched steps: nav {s['nav_acc']['grown']['mean']:.2f} / {s['nav_acc']['fixed']['mean']:.2f}, "
+        f"recall bits {s['recall_bit_acc']['grown']['mean']:.2f} / {s['recall_bit_acc']['fixed']['mean']:.2f} (grown / fixed); "
+        f"grown continued to the fixed graph's step count for its final architecture: nav {s['nav_acc']['grown_continued']['mean']:.2f}, "
+        f"recall bits {s['recall_bit_acc']['grown_continued']['mean']:.2f}, composite gap {s['transfer_gap_continued']['mean']:+.2f}"
+        + ("; NEGATIVE: the grown graph stays behind the fixed graph on the base tasks even with the extra training" if still_behind
+           else "; the grown graph catches up with the fixed graph on the base tasks given the extra training"))}
     print("E7 verdict:", out["verdict"]["statement"])
     save_results("e7", out, args.out)
     if not args.no_fig:
@@ -227,7 +262,12 @@ def plot(res, path):
     labels = ["nav", "recall bits", "composite 0-shot", "composite after ft"]
     gv = [s["nav_acc"]["grown"]["mean"], s["recall_bit_acc"]["grown"]["mean"], s["composite_zero_shot"]["grown"]["mean"], s["composite_after_ft"]["grown"]["mean"]]
     fv = [s["nav_acc"]["fixed"]["mean"], s["recall_bit_acc"]["fixed"]["mean"], s["composite_zero_shot"]["fixed"]["mean"], s["composite_after_ft"]["fixed"]["mean"]]
-    x = np.arange(4); ax[3].bar(x - 0.2, gv, 0.4, label="grown"); ax[3].bar(x + 0.2, fv, 0.4, label="fixed layered")
+    cv = [s["nav_acc"]["grown_continued"]["mean"], s["recall_bit_acc"]["grown_continued"]["mean"], s["composite_zero_shot"]["grown_continued"]["mean"], s["composite_after_ft"]["grown_continued"]["mean"]] if "grown_continued" in s["nav_acc"] else None
+    x = np.arange(4)
+    if cv:
+        ax[3].bar(x - 0.27, gv, 0.27, label="grown"); ax[3].bar(x, cv, 0.27, label="grown, continued"); ax[3].bar(x + 0.27, fv, 0.27, label="fixed layered")
+    else:
+        ax[3].bar(x - 0.2, gv, 0.4, label="grown"); ax[3].bar(x + 0.2, fv, 0.4, label="fixed layered")
     ax[3].set_xticks(x); ax[3].set_xticklabels(labels, fontsize=7, rotation=15); ax[3].set_ylim(0, 1); ax[3].legend(fontsize=8)
     ax[3].set_title(f"transfer gap {s['transfer_gap']['mean']:+.2f}", fontsize=9)
     fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)

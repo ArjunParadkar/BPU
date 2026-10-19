@@ -70,3 +70,20 @@ def test_counter_and_attention():
     assert out.shape == q.shape and c.cache_writes == 2 * 2 * 8 * 16
     clean = tile_attention(q, q, q, 0.0, 0.0)
     assert (out - clean).abs().mean() < 0.1
+
+
+def test_level_write_mode_flushes_whole_levels_only():
+    g = torch.Generator().manual_seed(2)
+    t = TileLinear(16, 16, bias=False, sigma=0.0, scale=0.5, alpha=0.02, generator=g, write_mode="level", levels=25)
+    t.load(torch.zeros(16, 16), verify=False)
+    lvl = 0.5 / 25                                   # 0.02 in weight units
+    for _ in range(3):
+        r = t.apply_delta(torch.full((16, 16), 0.006))
+    assert r.abs().max() == 0 and t.n_writes == 0 and torch.allclose(t.pending, torch.full((16, 16), 0.018))
+    t.apply_delta(torch.full((16, 16), 0.006))       # 0.024 >= one level: flush 1 level (p = 0.8) or 2 (p = 0.2)
+    assert t.n_writes == 256 and abs(t.flush_rate - 0.25) < 1e-9
+    n_lv = torch.round((0.024 - t.pending) / lvl)
+    assert set(n_lv.unique().tolist()) <= {1.0, 2.0}
+    assert (t.W > 0).all()
+    # the default level count follows sigma_eff: round(1 / 0.04) = 25
+    assert TileLinear(4, 4, sigma=0.04).levels == 25

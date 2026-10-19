@@ -1,13 +1,118 @@
 {
  "constants": {
   "E_MAC_J": 4.000000000000001e-15,
-  "E_ADC_J": 2.56e-10,
+  "E_ADC_J": {
+   "8": 2.56e-10,
+   "4": 1.6e-11
+  },
+  "E_SPIKE_J": 1e-11,
+  "E_LIF_UPDATE_J": 5e-12,
   "E_WRITE_J": 1e-10,
   "E_ROUTE_J": 1e-11,
+  "E_CACHE_WRITE_J": 1e-11,
   "t_read_series_s": 1e-06,
-  "E_FP32_MAC_J": 3.7e-12,
-  "E_DRAM_FETCH_J": 6.4e-10
+  "lif_energy_accounting": "per spike (router 10 pJ + LIF update 5 pJ); the per-time-step alternative is 2^b updates per output per token"
  },
+ "protocol": {
+  "steps": 1500,
+  "ft_steps": 300,
+  "sigma": 0.04,
+  "batch": 24,
+  "block": 128,
+  "device": "cuda",
+  "smoke": false
+ },
+ "ideal_val_loss": 1.6570655137300492,
+ "noise_aware_val_loss": 1.6411136746406556,
+ "readout_accuracy": {
+  "tile_8": {
+   "val_loss": 1.6469755977392198,
+   "gap_pct_vs_ideal": -0.6089026599869984,
+   "gap_pct_vs_noise_aware_unquantised": 0.3571917770929467,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 99.9
+  },
+  "tile_4": {
+   "val_loss": 2.168879806995392,
+   "gap_pct_vs_ideal": 30.886786854507054,
+   "gap_pct_vs_noise_aware_unquantised": 32.159023503981096,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 99.9
+  },
+  "layer_8": {
+   "val_loss": 1.6445303082466125,
+   "gap_pct_vs_ideal": -0.7564701201957846,
+   "gap_pct_vs_noise_aware_unquantised": 0.20818994191276197,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 99.9
+  },
+  "layer_4": {
+   "val_loss": 2.3466190099716187,
+   "gap_pct_vs_ideal": 41.612929031960036,
+   "gap_pct_vs_noise_aware_unquantised": 42.9894251832033,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 99.9
+  },
+  "lif_8": {
+   "val_loss": 1.6435916036367417,
+   "gap_pct_vs_ideal": -0.8131187319792677,
+   "gap_pct_vs_noise_aware_unquantised": 0.15099069822988032,
+   "spikes_per_output_per_token": 55.30783263523156,
+   "calib_pct": 99.9
+  },
+  "lif_4": {
+   "val_loss": 2.540790152549744,
+   "gap_pct_vs_ideal": 53.3307000536408,
+   "gap_pct_vs_noise_aware_unquantised": 54.82109446843071,
+   "spikes_per_output_per_token": 2.377656441878982,
+   "calib_pct": 99.9
+  }
+ },
+ "readout_accuracy_max_range": {
+  "tile_8": {
+   "val_loss": 1.64581278860569,
+   "gap_pct_vs_ideal": -0.6790754518226305,
+   "gap_pct_vs_noise_aware_unquantised": 0.28633689656283323,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 100.0
+  },
+  "tile_4": {
+   "val_loss": 2.5202724516391752,
+   "gap_pct_vs_ideal": 52.09250513976662,
+   "gap_pct_vs_noise_aware_unquantised": 53.57086413840428,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 100.0
+  },
+  "layer_8": {
+   "val_loss": 1.645340970158577,
+   "gap_pct_vs_ideal": -0.7075485835849826,
+   "gap_pct_vs_noise_aware_unquantised": 0.2575870022438975,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 100.0
+  },
+  "layer_4": {
+   "val_loss": 2.674703764915466,
+   "gap_pct_vs_ideal": 61.412071083098965,
+   "gap_pct_vs_noise_aware_unquantised": 62.98101747894638,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 100.0
+  },
+  "lif_8": {
+   "val_loss": 1.6450537085533141,
+   "gap_pct_vs_ideal": -0.7248841447250021,
+   "gap_pct_vs_noise_aware_unquantised": 0.24008293718722484,
+   "spikes_per_output_per_token": 38.207431958949115,
+   "calib_pct": 100.0
+  },
+  "lif_4": {
+   "val_loss": 2.9136024951934814,
+   "gap_pct_vs_ideal": 75.82904665217318,
+   "gap_pct_vs_noise_aware_unquantised": 77.53812793202486,
+   "spikes_per_output_per_token": 1.3566328191740515,
+   "calib_pct": 100.0
+  }
+ },
+ "calib_pct": 99.9,
  "measured_ops": {
   "tokens": 3072,
   "eval_batch": {
@@ -35,113 +140,281 @@
   "n_devices": 5333376,
   "n_tiles": 2610
  },
- "cpu_timing": {
-  "forward_batch_s": 1.0954817295074464,
-  "train_step_s": 3.3545392990112304,
-  "tokens_per_batch": 3072,
-  "threads": 8,
-  "cpu": 20
+ "table_3x2": {
+  "tile_8": {
+   "mode": "tile",
+   "bits": 8,
+   "nJ_per_token": 22258.119184000003,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 22222.848
+   },
+   "train_step_nJ_per_token": 22280.749231915925,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 22222.848
+   },
+   "gap_pct_vs_ideal": -0.6089026599869984,
+   "spikes_per_output_per_token": null
+  },
+  "tile_4": {
+   "mode": "tile",
+   "bits": 4,
+   "nJ_per_token": 1424.199184,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 1388.928
+   },
+   "train_step_nJ_per_token": 1446.8292319159273,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 1388.928
+   },
+   "gap_pct_vs_ideal": 30.886786854507054,
+   "spikes_per_output_per_token": null
+  },
+  "layer_8": {
+   "mode": "layer",
+   "bits": 8,
+   "nJ_per_token": 3595.463184,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 3560.192
+   },
+   "train_step_nJ_per_token": 3618.0932319159274,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 3560.192
+   },
+   "gap_pct_vs_ideal": -0.7564701201957846,
+   "spikes_per_output_per_token": null
+  },
+  "layer_4": {
+   "mode": "layer",
+   "bits": 4,
+   "nJ_per_token": 257.783184,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 222.512
+   },
+   "train_step_nJ_per_token": 280.4132319159273,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 222.512
+   },
+   "gap_pct_vs_ideal": 41.612929031960036,
+   "spikes_per_output_per_token": null
+  },
+  "lif_8": {
+   "mode": "lif",
+   "bits": 8,
+   "nJ_per_token": 11572.761610872478,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 11537.490426872479
+   },
+   "train_step_nJ_per_token": 11595.391658788407,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 11537.490426872479
+   },
+   "gap_pct_vs_ideal": -0.8131187319792677,
+   "spikes_per_output_per_token": 55.30783263523156
+  },
+  "lif_4": {
+   "mode": "lif",
+   "bits": 4,
+   "nJ_per_token": 531.262206058165,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 495.9910220581651
+   },
+   "train_step_nJ_per_token": 553.8922539740923,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 495.9910220581651
+   },
+   "gap_pct_vs_ideal": 53.3307000536408,
+   "spikes_per_output_per_token": 2.377656441878982
+  }
  },
- "per_token_10M": {
-  "bpu_eval_J": 2.2258119184000003e-05,
-  "bpu_eval_parts_J": {
-   "mac_J": 1.1261184000000003e-08,
-   "adc_J": 2.2222848e-05,
-   "route_J": 9.7e-10,
-   "write_J": 0.0,
-   "cache_write_J": 2.3040000000000003e-08
+ "digital_control": {
+  "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+  "idle_power_W": 21.684230769230773,
+  "fp32": {
+   "tokens_per_s": 312738.3551151815,
+   "power_W": 56.21875968992248,
+   "J_per_token": 0.0001797629192914861,
+   "seconds": 20.6412034034729,
+   "batch": 256,
+   "tokens_per_batch": 32768,
+   "n_power_samples": 129,
+   "nJ_per_token_incl_idle": 179762.9192914861,
+   "nJ_per_token_above_idle": 110426.26641677081
   },
-  "bpu_train_step_J": 2.2280749231915926e-05,
-  "bpu_train_parts_J": {
-   "mac_J": 3.378355200000001e-08,
-   "adc_J": 2.2222848e-05,
-   "route_J": 9.7e-10,
-   "write_J": 1.0767991592725931e-10,
-   "cache_write_J": 2.3040000000000003e-08
+  "int8": {
+   "tokens_per_s": 250106.69241501362,
+   "power_W": 64.04647482014389,
+   "J_per_token": 0.00025607661355126236,
+   "seconds": 20.438509464263916,
+   "batch": 256,
+   "tokens_per_batch": 32768,
+   "n_power_samples": 139,
+   "val_loss": 1.6578125745058059,
+   "gap_pct_vs_ideal": 0.04508335787369866,
+   "nJ_per_token_incl_idle": 256076.61355126236,
+   "nJ_per_token_above_idle": 169376.69137065505
   },
-  "bpu_eval_J_analog_accumulate": 3.595463184e-06,
-  "bpu_eval_parts_J_analog_accumulate": {
-   "mac_J": 1.1261184000000003e-08,
-   "adc_J": 3.560192e-06,
-   "route_J": 9.7e-10,
-   "write_J": 0.0,
-   "cache_write_J": 2.3040000000000003e-08
+  "cpu_int8_torch_ao": {
+   "tokens_per_s": 53298.318307538684,
+   "energy": "not measurable here (RAPL counters are root-only)"
   },
-  "bpu_train_step_J_analog_accumulate": 3.6180932319159275e-06,
-  "digital_eval_J_no_reuse": 1.0972155200000002e-05,
-  "digital_eval_J_10x_reuse": 1.04721512e-05,
-  "digital_train_J_no_reuse": 3.29164656e-05,
-  "digital_train_J_10x_reuse": 3.14164536e-05,
-  "bpu_latency_s_per_token": 3.7e-05,
-  "reads_in_series": 37,
-  "cpu_forward_s_per_token": 0.0003566021254907052,
-  "cpu_train_s_per_token": 0.0010919724280635515
+  "h100_int8_published": {
+   "source": "NVIDIA H100 SXM datasheet: 1979 TOPS dense INT8, 700 W (peak, published, not measured)",
+   "pJ_per_op_at_peak": 0.35371399696816574,
+   "nJ_per_token_at_peak_for_this_model": 1991.6192016169782
+  }
  },
  "scaling": [
   {
-   "model": "10M (E8, measured ops)",
-   "params": 10000000.0,
-   "macs_per_token": 10557275.541795665,
-   "bpu_J_per_token": 8.338087989296087e-05,
-   "bpu_J_per_token_analog_accumulate": 1.3396479768161854e-05,
-   "digital_J_per_token_no_reuse": 0.006439061919504644,
-   "digital_J_per_token_10x_reuse": 0.0006790619195046439,
-   "ratio_no_reuse": 77.22468181878995,
-   "ratio_10x_reuse": 8.14409634890374
+   "model": "2.7M (E8, measured)",
+   "layers": 6,
+   "d_model": 192,
+   "params_approx": 2654208,
+   "macs_per_token": 2815295.9999999995,
+   "tile_8_nJ_per_token": 22258.119184,
+   "tile_4_nJ_per_token": 1424.1991839999998,
+   "layer_8_nJ_per_token": 3595.4631839999997,
+   "layer_4_nJ_per_token": 257.783184,
+   "lif_8_nJ_per_token": 11572.761610872478,
+   "lif_4_nJ_per_token": 531.2622060581649,
+   "gpu_int8_measured_scaled_nJ_per_token": 256076.6135512623,
+   "h100_int8_peak_nJ_per_token": 1991.6192016169782
   },
   {
    "model": "124M (GPT-2 small)",
-   "params": 124000000.0,
-   "macs_per_token": 130910216.71826625,
-   "bpu_J_per_token": 0.0010339229106727146,
-   "bpu_J_per_token_analog_accumulate": 0.00016611634912520697,
-   "digital_J_per_token_no_reuse": 0.07984436780185758,
-   "digital_J_per_token_10x_reuse": 0.008420367801857585,
-   "ratio_no_reuse": 77.22468181878996,
-   "ratio_10x_reuse": 8.144096348903743
+   "layers": 12,
+   "d_model": 768,
+   "params_approx": 84934656,
+   "macs_per_token": 90089471.99999999,
+   "tile_8_nJ_per_token": 711677.7538879999,
+   "tile_4_nJ_per_token": 44992.313888,
+   "layer_8_nJ_per_token": 29028.153887999997,
+   "layer_4_nJ_per_token": 2326.7138879999998,
+   "lif_8_nJ_per_token": 92846.54130297982,
+   "lif_4_nJ_per_token": 4514.546064465319,
+   "gpu_int8_measured_scaled_nJ_per_token": 8194451.633640394,
+   "h100_int8_peak_nJ_per_token": 63731.8144517433
   },
   {
    "model": "1.3B",
-   "params": 1300000000.0,
-   "macs_per_token": 1372445820.4334364,
-   "bpu_J_per_token": 0.010839514386084912,
-   "bpu_J_per_token_analog_accumulate": 0.0017415423698610407,
-   "digital_J_per_token_no_reuse": 0.8370780495356037,
-   "digital_J_per_token_10x_reuse": 0.08827804953560371,
-   "ratio_no_reuse": 77.22468181878996,
-   "ratio_10x_reuse": 8.14409634890374
+   "layers": 24,
+   "d_model": 2048,
+   "params_approx": 1207959552,
+   "macs_per_token": 1281272490.6666665,
+   "tile_8_nJ_per_token": 10119977.055296,
+   "tile_4_nJ_per_token": 638228.5752960001,
+   "layer_8_nJ_per_token": 158013.53529599996,
+   "layer_4_nJ_per_token": 15605.855296,
+   "lif_8_nJ_per_token": 498378.2681758925,
+   "lif_4_nJ_per_token": 27274.293570481703,
+   "gpu_int8_measured_scaled_nJ_per_token": 116543312.12288561,
+   "h100_int8_peak_nJ_per_token": 906408.0277581267
   },
   {
    "model": "7B",
-   "params": 7000000000.0,
-   "macs_per_token": 7390092879.256966,
-   "bpu_J_per_token": 0.0583666159250726,
-   "bpu_J_per_token_analog_accumulate": 0.009377535837713297,
-   "digital_J_per_token_no_reuse": 4.50734334365325,
-   "digital_J_per_token_10x_reuse": 0.4753433436532507,
-   "ratio_no_reuse": 77.22468181878996,
-   "ratio_10x_reuse": 8.14409634890374
+   "layers": 32,
+   "d_model": 4096,
+   "params_approx": 6442450944,
+   "macs_per_token": 6833453283.555555,
+   "tile_8_nJ_per_token": 53970574.00157867,
+   "tile_4_nJ_per_token": 3401248.774912,
+   "layer_8_nJ_per_token": 435031.16068977775,
+   "layer_4_nJ_per_token": 55277.34735644445,
+   "lif_8_nJ_per_token": 1342670.4483694911,
+   "lif_4_nJ_per_token": 86393.18275506233,
+   "gpu_int8_measured_scaled_nJ_per_token": 621564331.3220567,
+   "h100_int8_peak_nJ_per_token": 4834176.148043344
   },
   {
    "model": "70B",
-   "params": 70000000000.0,
-   "macs_per_token": 73900928792.56966,
-   "bpu_J_per_token": 0.5836661592507258,
-   "bpu_J_per_token_analog_accumulate": 0.09377535837713297,
-   "digital_J_per_token_no_reuse": 45.073433436532504,
-   "digital_J_per_token_10x_reuse": 4.753433436532507,
-   "ratio_no_reuse": 77.22468181878997,
-   "ratio_10x_reuse": 8.144096348903744
+   "layers": 80,
+   "d_model": 8192,
+   "params_approx": 64424509440,
+   "macs_per_token": 68334532835.55556,
+   "tile_8_nJ_per_token": 539692594.0157868,
+   "tile_4_nJ_per_token": 33999341.749120004,
+   "layer_8_nJ_per_token": 2311811.935786667,
+   "layer_4_nJ_per_token": 413042.86912000005,
+   "lif_8_nJ_per_token": 6850008.374185233,
+   "lif_4_nJ_per_token": 568622.0461130894,
+   "gpu_int8_measured_scaled_nJ_per_token": 6215643313.220567,
+   "h100_int8_peak_nJ_per_token": 48341761.48043344
+  },
+  {
+   "model": "1T (dense, 140 x 24576)",
+   "layers": 140,
+   "d_model": 24576,
+   "params_approx": 1014686023680,
+   "macs_per_token": 1076268892159.9999,
+   "tile_8_nJ_per_token": 8500020549.081974,
+   "tile_4_nJ_per_token": 535351825.8819734,
+   "layer_8_nJ_per_token": 15007017.775306664,
+   "layer_4_nJ_per_token": 5038480.175306668,
+   "lif_8_nJ_per_token": 38832549.07689913,
+   "lif_4_nJ_per_token": 5855270.854520387,
+   "gpu_int8_measured_scaled_nJ_per_token": 97896382183.2239,
+   "h100_int8_peak_nJ_per_token": 761382743.3168266
   }
  ],
+ "latency": {
+  "bpu_s_per_token": 3.7e-05,
+  "reads_in_series": 37
+ },
  "verdict": {
-  "statement": "PROJECTION (device model constants, not hardware). Inference at 2.7M params: digital 10972 nJ/token with no weight reuse, 10472 nJ/token with 10x reuse. BPU with one A/D conversion per 32-row tile partial sum: 22258 nJ/token (100% conversion) = 0.49x / 0.47x of digital, i.e. WORSE; BPU with analog accumulation across tiles (one conversion per layer output): 3595 nJ/token (99% conversion) = 3.1x / 2.9x better than digital. MAC energy alone is 11.26 nJ/token. Projected latency 37 us/token vs 357 us/token measured on this CPU. Training step: BPU 3618 nJ/token with analog accumulation (writes 0.0%) vs digital 32916 nJ/token. The converter budget decides the claim: with 256 pJ per 8-bit conversion and 32x32 tiles, converting every tile output erases the advantage."
+  "statement": "PROJECTION on the BPU side (device-model constants), MEASURED on the digital side. Same 2.7M-parameter nanoGPT. GPU INT8 (NVIDIA GeForce RTX 5070 Laptop GPU): 256077 nJ/token incl. idle power, 169377 above idle, val loss gap +0.05%; FP32 179763 nJ/token. H100 INT8 at published peak: 1991.6 nJ/token (not measured). BPU inference nJ/token (val-loss gap vs ideal): tile 8-bit 22258 (-0.6%); tile 4-bit 1424 (+30.9%); layer 8-bit 3595 (-0.8%); layer 4-bit 258 (+41.6%); lif 8-bit 11573 (-0.8%); lif 4-bit 531 (+53.3%). Cheapest mode layer 4-bit at 258 nJ/token = 993.4x below the measured GPU INT8 figure; MACs alone 11.3 nJ/token; LIF spike rate 55.3 (8-bit window) / 2.38 (4-bit) spikes per output per token; converter ranges at the 99.9th percentile of the calibration batch (with full-range converters 4-bit costs tile +52%, layer +61%, lif +76%)."
  },
  "meta": {
   "experiment": "e8b",
-  "git": "dfc1707",
+  "git": "88646a9",
   "python": "3.14.7",
   "numpy": "2.4.4",
-  "finished": "2026-10-17 15:00:33"
+  "finished": "2026-10-18 22:59:53"
  }
 }

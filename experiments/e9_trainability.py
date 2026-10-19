@@ -1,31 +1,39 @@
-"""E9: trainability under drift, where an FPGA-style accelerator is frozen.
+"""E9: trainability under drift -- the same algorithm on float32 and on BPU tiles.
 
 The E8 architecture (nanoGPT, 6 layers, d = 192) is trained once on tiny
-Shakespeare as an ideal float model, then LOADed into noisy tiles
-(sigma_eff = 0.04) and exposed to a non-stationary character stream:
-Shakespeare for ``--seg`` steps, then a different corpus (this repository's
-own Python source, concatenated), then Shakespeare again.  Three
-deployments see the identical stream:
+Shakespeare as an ideal float model, then exposed to a non-stationary
+character stream: Shakespeare for ``--seg`` steps, then this repository's own
+Python source, then Shakespeare again.  Six deployments see the identical
+stream (same batches, same seed):
 
-(i)   FROZEN    weights loaded once, no updates (a fixed accelerator / FPGA
-      bitstream);
-(ii)  BPU-LOCAL the on-chip three-factor rule: eligibility e_ij = <pre_i post_j>
-      over the batch (Hebbian trace), broadcast modulator
-      m = -(loss - running mean loss), surprise-gated sparse pulses
-      (|eta m e| >= theta_w), homeostatic scaling of each output unit's
-      column toward the population-mean activity; no gradient through the
-      tiles;
-(iii) BPU-FA    feedback alignment: the backward pass through every tile
-      uses a fixed random feedback matrix instead of W^T, updates are
-      pulsed through the tiles (the stronger local alternative).
+  frozen       BPU tiles (sigma_eff 0.04), weights LOADed once, no updates
+               (a fixed accelerator / FPGA bitstream);
+  sgd_float32  the float32 REFERENCE: backprop + AdamW on the ideal model;
+  sgd_bpu      the SUBSTRATE CEILING: the same backprop + AdamW, with float
+               accumulators (Adam moments, the per-synapse accumulate-and-
+               flush accumulator) and BPU devices as the weights -- every read
+               is a noisy tile read, every write a whole conductance level
+               (L = 25 levels at sigma_eff 0.04), stochastic rounding;
+  fa_bpu       feedback alignment: fixed random feedback matrices instead of
+               W^T between layers, pulsed through the tiles;
+  dfa_bpu      direct feedback alignment (fully local): every tile receives
+               the global output error through its own fixed random matrix,
+               nothing propagates between layers (the output head uses its own
+               error);
+  local_bpu    layer-local three-factor rule: every tile has its own digital
+               readout to the next-token target and minimises its own
+               cross-entropy; the local error at the tile output is the
+               (vector) modulator, the presynaptic activity the eligibility,
+               nothing propagates between layers.
 
-Reported: loss along the stream for the three deployments, recovery time
-after each switch (steps until the 100-step mean loss closes 90 % of the
-gap between its value at the switch and its best value in the segment),
-writes per device per second against the 6e-3 endurance budget (chip time
-per step is a stated assumption, ``--step-seconds``), and the success test
-"(ii) or (iii) tracks the shift within 300 steps while (i) does not, with
-writes within budget".
+Criterion (substrate claim): sgd_bpu within 5 % of sgd_float32 on the
+post-shift loss (mean loss over the last 200 steps of the Python segment, at
+the same step count) AND writes per device per second within the 6e-3
+endurance budget (chip time per step is the stated assumption
+``--step-seconds``).  Secondary: how close fa / dfa / local come to the
+oracle, recovery time after each switch (steps until the 100-step mean loss
+closes 90 % of the gap to its segment minimum), writes per device per second
+and the percentage of the budget, flush rate.  3 seeds.
 """
 from __future__ import annotations
 
@@ -34,10 +42,16 @@ import time
 
 import numpy as np
 import torch
+import torch.nn.functional as F
+from torch import nn
 
 from common import base_parser, save_results, figure_path, Timer, ROOT
-from bpusim.torchtile import TileLinear, TileOptimizer, tile_modules
-from e8_nanogpt_tiles import GPT, get_batch, train, evaluate, copy_weights, DATA
+from bpusim.torchtile import TileLinear, TileOptimizer, tile_modules, DFAContext
+from bpusim.noise import summarize
+from e8_nanogpt_tiles import GPT, get_batch, train, evaluate, copy_weights, DATA, model_device
+
+ARMS = ["frozen", "sgd_float32", "sgd_bpu", "fa_bpu", "dfa_bpu", "local_bpu"]
+BUDGET = 6e-3
 
 
 def load_corpora():
@@ -51,47 +65,58 @@ def load_corpora():
     return enc(shakes), enc(code), len(chars)
 
 
-class LocalThreeFactor:
-    """On-chip local learning for TileLinear layers: Hebbian eligibility x scalar modulator x surprise gate."""
+class LocalLayerLosses:
+    """Layer-local three-factor learning for every TileLinear except the head: a digital readout R_l
+    (out_features -> vocab) per tile, local loss CE(R_l y_l, next token).  The main forward runs
+    without gradients; each tile is then re-read on the captured input and its local loss is
+    back-propagated into that tile's weight and readout only."""
 
-    def __init__(self, model, eta=1e-3, theta_w=0.0, tau_L=50, tau_H=200.0, r_star_mode="population"):
-        self.tiles = tile_modules(model)
-        self.eta, self.theta_w, self.tau_L, self.tau_H = eta, theta_w, tau_L, tau_H
-        self.L_bar = None; self.L_dev = None
+    def __init__(self, model: GPT, vocab: int, lr: float, lr_readout: float):
+        self.model = model
+        self.tiles = [t for t in tile_modules(model) if t is not model.head]
+        dev = model_device(model)
+        self.readouts = nn.ModuleDict({str(i): nn.Linear(t.out_features, vocab, bias=False).to(dev) for i, t in enumerate(self.tiles)})
+        for r in self.readouts.values():
+            nn.init.normal_(r.weight, std=0.02)
         self.cache = {}
-        self.r_bar = {id(t): None for t in self.tiles}
         for t in self.tiles:
             t.register_forward_hook(self._hook)
+        params = [p for t in self.tiles for p in (t.W, t.b) if p is not None] + [model.head.W]
+        self.opt = TileOptimizer(model.modules(), torch.optim.AdamW(params, lr=lr, betas=(0.9, 0.95), weight_decay=0.0))
+        self.opt_r = torch.optim.AdamW(self.readouts.parameters(), lr=lr_readout)
 
     def _hook(self, module, inp, out):
-        x = inp[0].detach().reshape(-1, inp[0].shape[-1]); y = out.detach().reshape(-1, out.shape[-1])
-        self.cache[id(module)] = (x, y)
+        self.cache[id(module)] = inp[0].detach()
+
+    def step(self, x, y):
+        with torch.no_grad():
+            logits, loss = self.model(x, y)
+        self.opt.zero_grad(); self.opt_r.zero_grad()
+        tgt = y.reshape(-1)
+        for i, t in enumerate(self.tiles):
+            xin = self.cache[id(t)]
+            yl = t(xin)                                         # fresh noisy read, gradient to t.W / t.b only
+            ll = F.cross_entropy(self.readouts[str(i)](yl).reshape(-1, self.readouts[str(i)].out_features), tgt)
+            ll.backward()
+        # the head's own error is local to it
+        h_in = self.model.ln(self._last_hidden(x))
+        lh = F.cross_entropy(self.model.head(h_in).reshape(-1, self.model.head.out_features), tgt)
+        lh.backward()
+        torch.nn.utils.clip_grad_norm_([p for g in self.opt.opt.param_groups for p in g["params"]], 1.0)
+        self.opt.step(); self.opt_r.step()
+        return loss
 
     @torch.no_grad()
-    def step(self, loss: float):
-        if self.L_bar is None:
-            self.L_bar, self.L_dev = loss, abs(loss) + 1e-3
-        m = float(np.clip(-(loss - self.L_bar) / (self.L_dev + 1e-6), -3, 3))
-        self.L_bar += (loss - self.L_bar) / self.tau_L
-        self.L_dev += (abs(loss - self.L_bar) - self.L_dev) / self.tau_L
-        writes = 0
-        for t in self.tiles:
-            x, y = self.cache[id(t)]
-            e = x.T @ y / x.shape[0]                       # eligibility <pre_i post_j>
-            dW = self.eta * m * e
-            # homeostatic scaling of each output column toward the population-mean activity
-            r = y.abs().mean(0)
-            rb = self.r_bar[id(t)]
-            self.r_bar[id(t)] = r.clone() if rb is None else rb + (r - rb) / self.tau_H
-            r_star = self.r_bar[id(t)].mean()
-            dW = dW + (1.0 / self.tau_H) * t.W * ((r_star - self.r_bar[id(t)]) / (r_star + 1e-9))[None, :]
-            t.apply_delta(dW, theta_w=self.theta_w)
-            writes += t.n_writes
-        return m
+    def _last_hidden(self, idx):
+        m = self.model
+        B, T = idx.shape
+        h = m.tok(idx) + m.pos(torch.arange(T, device=idx.device))
+        for b in m.blocks:
+            h = b(h)
+        return h
 
 
 def recovery_time(curve, switch_idx, window=100, frac=0.9):
-    """Steps after switch_idx until the moving average closes `frac` of the gap to its segment minimum."""
     seg = np.asarray(curve[switch_idx:], float)
     if len(seg) < window + 2:
         return None
@@ -104,101 +129,134 @@ def recovery_time(curve, switch_idx, window=100, frac=0.9):
     return int(hit[0]) if hit.size else None
 
 
-def run_stream(model, segments, block, batch, gen, mode, opt=None, local=None, log_every=200):
+def make_model(arm, vocab, block, sigma, seed, device):
+    kw = dict(write_mode="level")
+    if arm == "sgd_float32":
+        return GPT(vocab, 192, 6, 6, block, None, None, seed=seed).to(device), None
+    if arm == "sgd_bpu_pulse":   # diagnostic: the same oracle with the legacy nearest-pulse writes (no level gate)
+        return GPT(vocab, 192, 6, 6, block, sigma, None, seed=seed, tile_kw=dict(write_mode="pulse")).to(device), None
+    if arm == "dfa_bpu":
+        holder = DFAContext()
+        return GPT(vocab, 192, 6, 6, block, sigma, None, seed=seed, tile_kw=dict(kw, dfa=holder, dfa_dim=vocab), head_kw=dict(dfa=None, dfa_dim=0)).to(device), holder
+    return GPT(vocab, 192, 6, 6, block, sigma, None, fa=(arm == "fa_bpu"), seed=seed, tile_kw=kw).to(device), None
+
+
+def run_stream(model, arm, segments, block, batch, gen, lr, holder=None, local=None, log_every=200):
+    dev = model_device(model)
     losses, writes = [], []
+    opt = None
+    if arm in ("sgd_float32", "sgd_bpu", "sgd_bpu_pulse", "fa_bpu", "dfa_bpu"):
+        opt = TileOptimizer(model.modules(), torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.0))
     step = 0; t0 = time.time()
     for seg_i, data in enumerate(segments):
-        for _ in range(len(data)):
-            pass
-        n_steps = data["steps"]; ids = data["ids"]
-        for _ in range(n_steps):
-            x, y = get_batch(ids, block, batch, gen)
-            if mode == "frozen":
+        for _ in range(data["steps"]):
+            x, y = get_batch(data["ids"], block, batch, gen, dev)
+            if arm == "frozen":
                 with torch.no_grad():
                     _, loss = model(x, y)
-            elif mode == "local":
-                with torch.no_grad():
-                    _, loss = model(x, y)
-                local.step(loss.item())
-            else:  # feedback alignment
-                _, loss = model(x, y)
-                opt.zero_grad(); loss.backward()
+            elif arm == "local_bpu":
+                loss = local.step(x, y)
+            else:
+                logits, loss = model(x, y)
+                opt.zero_grad()
+                if holder is not None:   # DFA: broadcast the output error (d CE / d logits, mean over tokens)
+                    with torch.no_grad():
+                        e = torch.softmax(logits.reshape(-1, logits.shape[-1]), -1)
+                        e[torch.arange(e.shape[0], device=dev), y.reshape(-1)] -= 1.0
+                        holder.err = e / e.shape[0]
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 opt.step()
-            losses.append(loss.item())
+            losses.append(float(loss))
             writes.append(sum(t.n_writes for t in tile_modules(model)))
             step += 1
             if step % log_every == 0:
-                print(f"    {mode} step {step} seg {seg_i} loss {np.mean(losses[-log_every:]):.3f} ({time.time() - t0:.0f}s)", flush=True)
+                print(f"    {arm} step {step} seg {seg_i} loss {np.mean(losses[-log_every:]):.3f} ({time.time() - t0:.0f}s)", flush=True)
     return losses, writes
 
 
 def main():
-    ap = base_parser("E9 trainability under drift", default_seeds=1)
-    ap.add_argument("--seg", type=int, default=2000, help="steps per stream segment")
+    ap = base_parser("E9 trainability under drift (substrate framing)", default_seeds=3)
+    ap.add_argument("--seg", type=int, default=1000, help="steps per stream segment")
     ap.add_argument("--pretrain-steps", type=int, default=1000)
     ap.add_argument("--sigma", type=float, default=0.04)
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--block", type=int, default=128)
-    ap.add_argument("--lr-fa", type=float, default=3e-4)
-    ap.add_argument("--eta-local", type=float, default=1e-3)
-    ap.add_argument("--theta-w", type=float, default=0.0)
+    ap.add_argument("--lr", type=float, default=3e-4, help="AdamW learning rate on the stream (all gradient arms)")
+    ap.add_argument("--lr-readout", type=float, default=1e-3, help="local arm: learning rate of the digital per-layer readouts")
     ap.add_argument("--step-seconds", type=float, default=0.01, help="assumed chip time per training step for the write-rate conversion")
-    ap.add_argument("--threads", type=int, default=8)
+    ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--threads", type=int, default=4)
+    ap.add_argument("--arms", type=str, default=",".join(ARMS))
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
+    arms = args.arms.split(",")
+    seeds = args.seeds
     if args.smoke:
-        args.seg, args.pretrain_steps = 30, 30
+        args.seg, args.pretrain_steps, seeds = 30, 30, 1
     shakes, code, vocab = load_corpora()
     n = int(0.9 * len(shakes)); shakes_tr = shakes[:n]
     segments = [{"name": "shakespeare", "ids": shakes_tr, "steps": args.seg}, {"name": "python_source", "ids": code, "steps": args.seg},
                 {"name": "shakespeare", "ids": shakes_tr, "steps": args.seg}]
-    results = {}
-    seed = 0
-    torch.manual_seed(seed); gen = torch.Generator().manual_seed(seed)
-    ideal = GPT(vocab, 192, 6, 6, args.block, None, None, seed=seed)
-    with Timer("pretrain ideal on Shakespeare"):
-        train(ideal, shakes_tr, args.pretrain_steps, args.block, 24, 1e-3, gen, tiled=False, label="pretrain")
-    base_loss = {"shakespeare": evaluate(ideal, shakes[n:], args.block, args.batch, 20, torch.Generator().manual_seed(5)),
-                 "python_source": evaluate(ideal, code, args.block, args.batch, 20, torch.Generator().manual_seed(5))}
-    print(f"ideal val loss: {base_loss}")
-    curves = {}
-    for mode in ("frozen", "local", "fa"):
-        model = GPT(vocab, 192, 6, 6, args.block, args.sigma, None, fa=(mode == "fa"), seed=seed)
-        model.load_state_dict(ideal.state_dict(), strict=False); copy_weights(ideal, model, verify=True)
-        opt = local = None
-        if mode == "fa":
-            opt = TileOptimizer(model.modules(), torch.optim.AdamW(model.parameters(), lr=args.lr_fa, betas=(0.9, 0.95), weight_decay=0.0), theta_w=args.theta_w)
-        elif mode == "local":
-            local = LocalThreeFactor(model, eta=args.eta_local, theta_w=args.theta_w)
-        gen_s = torch.Generator().manual_seed(100)
-        with Timer(f"stream: {mode}"):
-            losses, writes = run_stream(model, segments, args.block, args.batch, gen_s, mode, opt, local)
-        n_dev = sum(t.n_devices for t in tile_modules(model))
-        wpd = writes[-1] / n_dev; total_s = len(losses) * args.step_seconds
-        rec = [recovery_time(losses, k * args.seg) for k in (1, 2)]
-        seg_means = [float(np.mean(losses[k * args.seg:(k + 1) * args.seg][-200:])) for k in range(3)]
-        curves[mode] = {"loss": losses[::max(1, len(losses) // 600)], "loss_full_len": len(losses), "writes_cum": writes[::max(1, len(writes) // 600)],
-                        "writes_per_device_total": wpd, "writes_per_device_per_s": wpd / total_s if total_s else None,
-                        "recovery_steps_after_switch": rec, "segment_end_loss": seg_means}
-        print(f"  {mode}: segment-end losses {np.round(seg_means, 3)}, recovery {rec}, writes/device/s {wpd / total_s:.3g}")
-    frozen_ok = curves["frozen"]["recovery_steps_after_switch"]
-    tracks = {m: all(r is not None and r <= 300 for r in curves[m]["recovery_steps_after_switch"]) and
-              curves[m]["segment_end_loss"][1] < curves["frozen"]["segment_end_loss"][1] - 0.05 for m in ("local", "fa")}
-    within_budget = {m: (curves[m]["writes_per_device_per_s"] or 0) <= 6e-3 for m in ("local", "fa")}
-    success = any(tracks[m] and within_budget[m] for m in tracks)
-    out = {"seg": args.seg, "sigma": args.sigma, "pretrain_steps": args.pretrain_steps, "batch": args.batch, "step_seconds": args.step_seconds,
-           "ideal_val_loss": base_loss, "segments": [s["name"] for s in segments], "curves": curves, "tracks_within_300": tracks,
-           "writes_within_budget": within_budget, "smoke": args.smoke,
-           "verdict": {"success": success, "statement": ("SMOKE RUN. " if args.smoke else "") +
-                       f"frozen: python-segment loss {curves['frozen']['segment_end_loss'][1]:.3f} (no recovery by construction); "
-                       f"local three-factor: {curves['local']['segment_end_loss'][1]:.3f}, recovery {curves['local']['recovery_steps_after_switch']}, "
-                       f"{curves['local']['writes_per_device_per_s']:.3g} writes/dev/s; "
-                       f"feedback alignment: {curves['fa']['segment_end_loss'][1]:.3f}, recovery {curves['fa']['recovery_steps_after_switch']}, "
-                       f"{curves['fa']['writes_per_device_per_s']:.3g} writes/dev/s; budget 6e-3 at {args.step_seconds} s/step; "
-                       + ("SUCCESS: a local rule tracks the shift within 300 steps inside the write budget" if success else
-                          "criterion not met: " + ", ".join(f"{m} tracks={tracks[m]} budget={within_budget[m]}" for m in tracks))}}
+    runs = []
+    for seed in range(seeds):
+        torch.manual_seed(seed); gen = torch.Generator().manual_seed(seed)
+        ideal = GPT(vocab, 192, 6, 6, args.block, None, None, seed=seed).to(args.device)
+        with Timer(f"seed {seed}: pretrain ideal on Shakespeare"):
+            train(ideal, shakes_tr, args.pretrain_steps, args.block, 24, 1e-3, gen, tiled=False, label="pretrain")
+        base_loss = {"shakespeare": evaluate(ideal, shakes[n:], args.block, args.batch, 20, torch.Generator().manual_seed(5)),
+                     "python_source": evaluate(ideal, code, args.block, args.batch, 20, torch.Generator().manual_seed(5))}
+        print(f"  ideal val loss: {base_loss}", flush=True)
+        curves = {}
+        for arm in arms:
+            model, holder = make_model(arm, vocab, args.block, args.sigma, seed, args.device)
+            model.load_state_dict(ideal.state_dict(), strict=False); copy_weights(ideal, model, verify=True)
+            local = LocalLayerLosses(model, vocab, args.lr, args.lr_readout) if arm == "local_bpu" else None
+            gen_s = torch.Generator().manual_seed(100 + seed)      # identical stream for every arm of a seed
+            with Timer(f"  stream: {arm}"):
+                losses, writes = run_stream(model, arm, segments, args.block, args.batch, gen_s, args.lr, holder, local)
+            tiles = tile_modules(model)
+            n_dev = sum(t.n_devices for t in tiles)
+            wpd = writes[-1] / n_dev; total_s = len(losses) * args.step_seconds
+            rec = [recovery_time(losses, k * args.seg) for k in (1, 2)]
+            seg_end = [float(np.mean(losses[k * args.seg:(k + 1) * args.seg][-200:])) for k in range(3)]
+            seg_mean = [float(np.mean(losses[k * args.seg:(k + 1) * args.seg])) for k in range(3)]
+            fr = float(np.mean([t.flush_rate for t in tiles])) if arm != "sgd_float32" else 0.0
+            curves[arm] = {"loss": losses[::max(1, len(losses) // 600)], "loss_full_len": len(losses), "writes_cum": writes[::max(1, len(writes) // 600)],
+                           "writes_per_device_total": wpd, "writes_per_device_per_s": wpd / total_s, "percent_of_budget": 100.0 * wpd / total_s / BUDGET,
+                           "flush_rate": fr, "levels": tiles[0].levels if arm != "sgd_float32" else None,
+                           "recovery_steps_after_switch": rec, "segment_end_loss": seg_end, "segment_mean_loss": seg_mean}
+            print(f"  {arm}: segment-end losses {np.round(seg_end, 3)}, recovery {rec}, writes/dev/s {wpd / total_s:.3g} ({100 * wpd / total_s / BUDGET:.0f}% of budget), flush rate {fr:.2g}", flush=True)
+            del model
+        runs.append({"seed": seed, "ideal_val_loss": base_loss, "curves": curves})
+    # ---- summary over seeds
+    summ = {}
+    for arm in arms:
+        summ[arm] = {k: summarize([r["curves"][arm][k] for r in runs]) for k in ("writes_per_device_per_s", "percent_of_budget", "flush_rate")}
+        for k in range(3):
+            summ[arm][f"segment_end_loss_{k}"] = summarize([r["curves"][arm]["segment_end_loss"][k] for r in runs])
+        summ[arm]["recovery_steps_after_switch"] = [[r["curves"][arm]["recovery_steps_after_switch"][i] for r in runs] for i in (0, 1)]
+    if "sgd_float32" not in summ or "sgd_bpu" not in summ:   # diagnostic subset run: save the curves and stop
+        out = {"seg": args.seg, "sigma": args.sigma, "seeds": seeds, "arms": arms, "step_seconds": args.step_seconds, "runs": runs, "summary": summ, "diagnostic": True,
+               "verdict": {"statement": "diagnostic arms only: " + "; ".join(f"{a} post-shift {summ[a]['segment_end_loss_1']['mean']:.3f}, {summ[a]['percent_of_budget']['mean']:.0f}% of budget" for a in arms)}}
+        print("E9 (diagnostic):", out["verdict"]["statement"]); save_results("e9", out, args.out); return
+    ref = summ["sgd_float32"]["segment_end_loss_1"]["mean"]
+    gaps = {arm: 100.0 * (summ[arm]["segment_end_loss_1"]["mean"] / ref - 1) for arm in arms}
+    gap_oracle = {arm: 100.0 * (summ[arm]["segment_end_loss_1"]["mean"] / summ["sgd_bpu"]["segment_end_loss_1"]["mean"] - 1) for arm in arms if arm != "sgd_float32"}
+    within5 = abs(gaps.get("sgd_bpu", float("inf"))) <= 5.0
+    budget_ok = summ["sgd_bpu"]["writes_per_device_per_s"]["mean"] <= BUDGET if "sgd_bpu" in summ else False
+    success = bool(within5 and budget_ok)
+    out = {"seg": args.seg, "sigma": args.sigma, "pretrain_steps": args.pretrain_steps, "batch": args.batch, "step_seconds": args.step_seconds, "lr": args.lr,
+           "seeds": seeds, "device": args.device, "arms": arms, "segments": [s["name"] for s in segments], "runs": runs, "summary": summ,
+           "post_shift_gap_pct_vs_float32": gaps, "post_shift_gap_pct_vs_bpu_oracle": gap_oracle, "budget_writes_per_device_per_s": BUDGET, "smoke": args.smoke,
+           "verdict": {"success": success, "sgd_bpu_within_5pct": bool(within5), "sgd_bpu_within_budget": bool(budget_ok),
+                       "statement": ("SMOKE RUN. " if args.smoke else "") +
+                       f"post-shift loss (Python segment, last 200 steps, {seeds} seeds): float32 SGD {ref:.3f}; BPU SGD-oracle {summ['sgd_bpu']['segment_end_loss_1']['mean']:.3f} ({gaps['sgd_bpu']:+.1f}%), "
+                       f"writes {summ['sgd_bpu']['writes_per_device_per_s']['mean']:.3g}/dev/s = {summ['sgd_bpu']['percent_of_budget']['mean']:.0f}% of the 6e-3 budget at {args.step_seconds} s/step; "
+                       + "; ".join(f"{a} {summ[a]['segment_end_loss_1']['mean']:.3f} ({gaps[a]:+.1f}% vs float32, {gap_oracle[a]:+.1f}% vs oracle, {summ[a]['percent_of_budget']['mean']:.0f}% of budget)" for a in arms if a not in ("sgd_float32", "sgd_bpu"))
+                       + (". SUCCESS: the substrate ceiling is within 5% of float32 inside the write budget" if success else
+                          f". Criterion not met: within 5% = {within5}, within budget = {budget_ok}")}}
     print("E9 verdict:", out["verdict"]["statement"])
     save_results("e9", out, args.out)
     if not args.no_fig:
@@ -209,21 +267,30 @@ def plot(res, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(1, 2, figsize=(11, 4))
-    seg = res["seg"]
-    for mode, lab in (("frozen", "frozen (FPGA-style)"), ("local", "BPU local three-factor"), ("fa", "BPU feedback alignment")):
-        c = res["curves"][mode]; L = np.array(c["loss"]); x = np.linspace(0, c["loss_full_len"], len(L))
+    fig, ax = plt.subplots(1, 3, figsize=(15, 4))
+    seg = res["seg"]; arms = res["arms"]
+    labels = {"frozen": "frozen (BPU, no updates)", "sgd_float32": "SGD float32 (reference)", "sgd_bpu": "SGD on BPU tiles (substrate ceiling)",
+              "fa_bpu": "feedback alignment (BPU)", "dfa_bpu": "direct FA, fully local (BPU)", "local_bpu": "layer-local three-factor (BPU)"}
+    for arm in arms:
+        L = np.mean([r["curves"][arm]["loss"] for r in res["runs"]], 0); x = np.linspace(0, res["runs"][0]["curves"][arm]["loss_full_len"], len(L))
         k = max(1, len(L) // 60); sm = np.convolve(L, np.ones(k) / k, mode="valid")
-        ax[0].plot(x[:len(sm)], sm, label=lab)
+        ax[0].plot(x[:len(sm)], sm, label=labels.get(arm, arm), ls="--" if arm == "sgd_float32" else "-", color="k" if arm == "sgd_float32" else None)
     for k in (1, 2):
         ax[0].axvline(k * seg, color="k", ls=":", lw=0.8)
-    ax[0].set_xlabel("stream step"); ax[0].set_ylabel("loss (nats/char)"); ax[0].legend(fontsize=8)
-    ax[0].set_title("E9: Shakespeare -> Python source -> Shakespeare", fontsize=10)
-    for mode in ("local", "fa"):
-        c = res["curves"][mode]; w = np.array(c["writes_cum"], float); x = np.linspace(0, c["loss_full_len"], len(w))
-        ax[1].plot(x, w / max(w[-1], 1), label=f"{mode}: {c['writes_per_device_per_s']:.2g} writes/dev/s")
-    ax[1].set_xlabel("stream step"); ax[1].set_ylabel("cumulative writes (normalised)"); ax[1].legend(fontsize=8)
-    ax[1].set_title(f"write budget 6e-3 /dev/s at {res['step_seconds']} s/step", fontsize=9)
+    ax[0].set_xlabel("stream step"); ax[0].set_ylabel("loss (nats/char)"); ax[0].legend(fontsize=7)
+    ax[0].set_title(f"E9: Shakespeare -> Python -> Shakespeare ({res['seeds']} seeds)", fontsize=9)
+    s = res["summary"]
+    x = np.arange(len(arms))
+    m = [s[a]["segment_end_loss_1"]["mean"] for a in arms]; e = [s[a]["segment_end_loss_1"]["sem"] for a in arms]
+    ax[1].bar(x, m, yerr=e, capsize=3, color=["gray" if a == "frozen" else "k" if a == "sgd_float32" else "C0" if a == "sgd_bpu" else "C1" for a in arms])
+    ref = s["sgd_float32"]["segment_end_loss_1"]["mean"]; ax[1].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08, label="float32 +-5 %")
+    ax[1].set_xticks(x); ax[1].set_xticklabels(arms, rotation=20, fontsize=7); ax[1].set_ylabel("post-shift loss (Python, last 200 steps)"); ax[1].legend(fontsize=7)
+    ax[1].set_title("post-shift loss per arm", fontsize=9)
+    w = [max(s[a]["writes_per_device_per_s"]["mean"], 1e-6) for a in arms]
+    ax[2].bar(x, w, color="C1"); ax[2].axhline(res["budget_writes_per_device_per_s"], color="r", ls="--", label="endurance budget 6e-3")
+    ax[2].set_yscale("log"); ax[2].set_xticks(x); ax[2].set_xticklabels(arms, rotation=20, fontsize=7); ax[2].set_ylabel(f"writes / device / s at {res['step_seconds']} s/step"); ax[2].legend(fontsize=7)
+    ax[2].set_title("write rate vs budget", fontsize=9)
+    fig.suptitle(res["verdict"]["statement"][:150], fontsize=7)
     fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
     print(f"[e9] figure {path}")
 

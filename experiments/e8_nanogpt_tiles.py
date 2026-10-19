@@ -52,24 +52,31 @@ def load_text(path=DATA):
     return ids[:n], ids[n:], len(chars)
 
 
-def get_batch(data, block, batch, gen):
+def get_batch(data, block, batch, gen, device=None):
     ix = torch.randint(0, len(data) - block - 1, (batch,), generator=gen)
     x = torch.stack([data[i:i + block] for i in ix]); y = torch.stack([data[i + 1:i + block + 1] for i in ix])
+    if device is not None:
+        x, y = x.to(device), y.to(device)
     return x, y
+
+
+def model_device(model):
+    return next(model.parameters()).device
 
 
 # ----------------------------------------------------------------- model
 class Block(nn.Module):
-    def __init__(self, d, n_head, sigma, counter, fa=False, scale=0.5, gen=None):
+    def __init__(self, d, n_head, sigma, counter, fa=False, scale=0.5, gen=None, tile_kw=None):
         super().__init__()
         self.n_head = n_head
         self.ln1 = nn.LayerNorm(d); self.ln2 = nn.LayerNorm(d)
-        kw = dict(sigma=sigma, counter=counter, feedback_alignment=fa, scale=scale, generator=gen)
+        kw = dict(sigma=sigma, counter=counter, feedback_alignment=fa, scale=scale, generator=gen, **(tile_kw or {}))
         self.qkv = TileLinear(d, 3 * d, **kw)
         self.proj = TileLinear(d, d, **kw)
         self.fc = TileLinear(d, 4 * d, **kw)
         self.fc2 = TileLinear(4 * d, d, **kw)
         self.sigma = sigma; self.counter = counter
+        self.readout = None          # ReadoutSpec for the attention reads (E8b)
 
     def attn(self, x):
         B, T, C = x.shape
@@ -79,10 +86,12 @@ class Block(nn.Module):
         k = k.view(B, T, self.n_head, hd).transpose(1, 2)
         v = v.view(B, T, self.n_head, hd).transpose(1, 2)
         if self.sigma is None:
-            y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+            # explicit softmax attention rather than the fused SDPA kernels: the fused efficient-attention
+            # backward was found to be wrong on this laptop's RTX 5070 (DECISIONS.md), and T = 128 is small
+            y = tile_attention(q, k, v, sigma_w=0.0, sigma_r=0.0, counter=None, causal=True)
         else:
             s = self.sigma / math.sqrt(3)
-            y = tile_attention(q, k, v, sigma_w=s, sigma_r=s, counter=self.counter, causal=True)
+            y = tile_attention(q, k, v, sigma_w=s, sigma_r=s, counter=self.counter, causal=True, readout=self.readout, site=f"attn{id(self)}")
         return self.proj(y.transpose(1, 2).reshape(B, T, C))
 
     def forward(self, x):
@@ -92,19 +101,23 @@ class Block(nn.Module):
 
 
 class GPT(nn.Module):
-    def __init__(self, vocab, d=192, n_layer=6, n_head=6, block=128, sigma=None, counter=None, fa=False, scale=0.5, seed=0):
+    def __init__(self, vocab, d=192, n_layer=6, n_head=6, block=128, sigma=None, counter=None, fa=False, scale=0.5, seed=0,
+                 tile_kw=None, head_kw=None):
+        """tile_kw: extra TileLinear arguments for the block layers (write_mode, dfa, ...); head_kw: for the
+        output head (which keeps true backprop under DFA because its error is its own output error)."""
         super().__init__()
         gen = torch.Generator().manual_seed(seed)
         self.block = block
         self.tok = nn.Embedding(vocab, d); self.pos = nn.Embedding(block, d)
-        self.blocks = nn.ModuleList([Block(d, n_head, sigma, counter, fa, scale, gen) for _ in range(n_layer)])
+        self.blocks = nn.ModuleList([Block(d, n_head, sigma, counter, fa, scale, gen, tile_kw) for _ in range(n_layer)])
         self.ln = nn.LayerNorm(d)
-        self.head = TileLinear(d, vocab, bias=False, sigma=sigma, counter=counter, feedback_alignment=fa, scale=scale, generator=gen)
+        hk = dict(tile_kw or {}); hk.update(head_kw or {})
+        self.head = TileLinear(d, vocab, bias=False, sigma=sigma, counter=counter, feedback_alignment=fa, scale=scale, generator=gen, **hk)
         nn.init.normal_(self.tok.weight, std=0.02); nn.init.normal_(self.pos.weight, std=0.02)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
-        x = self.tok(idx) + self.pos(torch.arange(T))
+        x = self.tok(idx) + self.pos(torch.arange(T, device=idx.device))
         for b in self.blocks:
             x = b(x)
         logits = self.head(self.ln(x))
@@ -113,6 +126,14 @@ class GPT(nn.Module):
 
     def n_params(self):
         return sum(p.numel() for p in self.parameters())
+
+
+def set_readout(model: GPT, spec):
+    """Attach a ReadoutSpec (or None) to every tile and attention block of a tiled model."""
+    for m in tile_modules(model):
+        m.readout = spec
+    for b in model.blocks:
+        b.readout = spec
 
 
 def copy_weights(src: GPT, dst: GPT, verify=True):
@@ -133,8 +154,9 @@ def copy_weights(src: GPT, dst: GPT, verify=True):
 @torch.no_grad()
 def evaluate(model, data, block, batch, n_batches, gen):
     model.eval(); tot = 0.0
+    dev = model_device(model)
     for _ in range(n_batches):
-        x, y = get_batch(data, block, batch, gen)
+        x, y = get_batch(data, block, batch, gen, dev)
         _, loss = model(x, y); tot += loss.item()
     model.train()
     return tot / n_batches
@@ -144,10 +166,11 @@ def train(model, data, steps, block, batch, lr, gen, tiled: bool, log_every=200,
     opt = torch.optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=0.0)
     topt = TileOptimizer(model.modules(), opt) if tiled else None
     t0 = time.time(); losses = []
+    dev = model_device(model)
     for step in range(steps):
         for g_ in opt.param_groups:
             g_["lr"] = lr * min(1.0, (step + 1) / warmup) * (0.5 * (1 + math.cos(math.pi * step / steps)) * 0.9 + 0.1)
-        x, y = get_batch(data, block, batch, gen)
+        x, y = get_batch(data, block, batch, gen, dev)
         _, loss = model(x, y)
         opt.zero_grad(set_to_none=True); loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -162,7 +185,7 @@ def count_ops(model_factory, data, block, batch, gen):
     """Op counts for one eval batch and one training step (forward + backward + pulsed update)."""
     counter = OpCounter()
     model = model_factory(counter)
-    x, y = get_batch(data, block, batch, gen)
+    x, y = get_batch(data, block, batch, gen, model_device(model))
     counter.reset()
     with torch.no_grad():
         model(x, y)

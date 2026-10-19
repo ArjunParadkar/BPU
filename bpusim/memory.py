@@ -28,6 +28,19 @@ def _softmax(z):
     return e / e.sum()
 
 
+_TIE_RNG = np.random.default_rng(20261018)
+
+
+def signz(x, rng: np.random.Generator | None = None) -> np.ndarray:
+    """sign(x) with exact ties (x == 0) broken at random to +-1 from a fixed-seed generator
+    (the earlier version mapped every tie to +1, a bias toward the all-ones pattern)."""
+    s = np.sign(np.asarray(x, float))
+    z = s == 0
+    if z.any():
+        s = s.copy(); s[z] = (rng or _TIE_RNG).choice([-1.0, 1.0], int(z.sum()))
+    return s
+
+
 class ScaledTile:
     """A tile that stores W / scale so that an arbitrary real matrix fits in |W| <= 1."""
 
@@ -108,21 +121,20 @@ class ScaffoldMemory:
     def cleanup(self, p, n_iter: int = 3):
         """Attractor cleanup on the index tile: p <- sign(W_pp p), iterated."""
         for _ in range(n_iter):
-            p = np.sign(self.W_pp.read(p))
-            p[p == 0] = 1.0
+            p = signz(self.W_pp.read(p))
         return p
 
     def recall(self, cue: np.ndarray, n_cleanup: int = 3, binary: bool = True) -> dict:
         p_hat = self.W_sp.read(cue)
-        p_raw = np.sign(p_hat) if binary else p_hat
+        p_raw = signz(p_hat) if binary else p_hat
         p_star = self.cleanup(p_raw, n_cleanup) if n_cleanup > 0 else p_raw
         s_hat = self.W_ps.read(p_star)
-        s_star = np.sign(s_hat) if binary else s_hat
+        s_star = signz(s_hat) if binary else s_hat
         return {"index_raw": p_raw, "index": p_star, "content_raw": s_hat, "content": s_star}
 
     def direct_recall(self, cue: np.ndarray) -> np.ndarray:
         """Single heteroassociative read index -> content (no scaffold loop), for comparison."""
-        return np.sign(self.W_ps.read(cue))
+        return signz(self.W_ps.read(cue))
 
 
 class HopfieldAttention:

@@ -9,7 +9,8 @@ runs on a laptop CPU; E1 and E2 use PyTorch and accept `--device cuda`.
 ```
 bpusim/                     library (NumPy; see module docstrings)
   device.py      L0  memristor: w in [0,1], saturating pulses, d2d/c2c/read noise, retention, dead mask, write-verify
-  tile.py        L2  differential-pair crossbar with mask A; read(x), update(dW) -> pulses, program()
+  tile.py        L2  differential-pair crossbar with mask A; read(x), update(dW) -> pulses, accumulate(dW) write budget, program()
+  torchtile.py   L2  PyTorch tiles for E8-E10 (CPU or CUDA): level/pulse writes, FA, DFA, read-out emulation (ADC / LIF)
   neurons.py         LIF and rate neurons with additive noise
   plasticity.py  L1  STDP (window + online traces), eligibility trace, three-factor + surprise gate, homeostasis, Oja
   growth.py      L3  C_ij = <m x_i xi_j>, grow/prune within a budget, spawn
@@ -20,8 +21,8 @@ bpusim/                     library (NumPy; see module docstrings)
   metrics.py         SV, TC, FPL (WhiteBox), Newman modularity Q, mutual information
   noise.py           noise configurations and sweep helpers
 experiments/   e1_gpt2_noise.py ... e7_modularity.py, common.py
-tests/         pytest (54 tests)
-scripts/       run_all.sh (E3-E7 end to end), make_figures.py (one PNG per experiment)
+tests/         pytest (67 tests; one pre-existing E7 route test fails, see MONDAY.md)
+scripts/       run_substrate.sh, run_weekend.sh, run_all.sh, make_figures.py, make_results_page.py
 results/<e>/results.json, figures/<e>.png
 DECISIONS.md   every modelling choice and the measurement that forced it
 ```
@@ -35,9 +36,52 @@ pip install -e .                      # or run with PYTHONPATH=.
 pytest -q
 ```
 
+## Substrate programme (2026-10-18): same algorithm, float32 vs noisy tiles
+
+The BPU is a **substrate**.  Every row below compares the SAME algorithm on a
+float32 reference and on noisy BPU tiles; success means the tiles match the
+reference within the stated tolerance.  Our own local rules (feedback
+alignment, direct feedback alignment, layer-local three-factor, growth) are
+additional arms, never the headline.  Page: `results/index.html`
+(`python scripts/make_results_page.py`), recipe `scripts/run_substrate.sh`,
+cluster queue `MONDAY.md`, every choice in `DECISIONS.md` (last section).
+Three seeds unless stated; the laptop's RTX 5070 ran E9/E10/E8b, the CPU the rest.
+
+| Substrate claim | Exp | float32 / reference | BPU tiles (σ_eff 0.04 unless stated) | tolerance | status |
+|---|---|---|---|---|---|
+| Trainable where an FPGA is frozen | E9 | SGD post-shift loss **1.184** nats/char | SGD on tiles (ceiling, level-gated writes) **1.483** (+25 %) at **178 %** of the write budget; FA 2.70, DFA 2.89, layer-local 2.70 (+82–95 % vs ceiling, 6–20× budget); frozen 5.98 | within 5 %, writes ≤ 6e-3/dev/s | **not met** |
+| Holds continually adapting models | E10 | EWC 0.947, replay 0.942, naive 0.844, FPL 0.840, joint 0.956 | EWC **0.943** (−0.004), replay **0.935** (−0.007), naive 0.793, FPL 0.828, joint 0.957 | EWC and replay within 3 points | **met** |
+| Cheaper per token than a GPU | E8b | GPU INT8 **measured**: 256 µJ/token incl. idle, 169 above idle (RTX 5070 laptop, model far from saturating it); H100 INT8 published peak 2.0 µJ | 8-bit per-layer ADC **3.6 µJ** (−0.8 % loss), per-tile 22 µJ, LIF 11.6 µJ; 4-bit cells 0.26–1.4 µJ but +31–53 % loss | projection vs measurement | 47–71× below the laptop GPU, 1.8× above H100 peak at 8 bits |
+| Attractor noise optimum (moving cue) | E3 | tracking error 0.036 / 0.182 / 0.372 rad at ω = 0.1 / 0.5 / 1 rad/s | mismatch 0.02: 0.038 / 0.181 / 0.371; 0.05: 0.040 / 0.185 / 0.376; 0.10: **0.062** / 0.181 / 0.373; ΔU 0.11 / 0.22 / 0.41 | U-test over σ ∈ {0 … 0.08} | **0/9 U-shaped**; error flat in σ; tiles ≈ reference except mismatch 0.1 at ω = 0.1 |
+| Memory + attention under noise | E6 | σ = 0: attention 20 pairs @ 90 %, scaffold 0 | σ = 0.02–0.2: attention 24 / 24 / 28 / 28 / 28, scaffold ≤ 4 (10 seeds, sign ties random) | capacity holds | attention holds (noise does not limit it) |
+| Modular self-assembly | E7 | noise-free tiles: see `results/e7_ref` | nav grown 0.62 / fixed 0.84 at matched synapses+steps; grown **continued** to the fixed step count 0.80 (recall 0.90 vs 0.82); composition at chance for every arm | grown vs fixed, matched synapses AND steps | grown catches up on base tasks; composition null |
+
+**Write budget.**  `Tile.accumulate` / `TileLinear(write_mode="level")`: a
+digital per-synapse accumulator, a device is pulsed only when it holds one
+conductance level (1/L, L = round(1/σ_eff) = 21–25), stochastic rounding of
+the remainder, writes counted only on pulses.  E4 ring self-organisation with
+level writes: **3/10 certify at 0.013 writes/device/s = 217 % of the 6e-3
+budget** (threshold writes: 5/10 at 1850 %); with the quota on top 0/10.  E9
+SGD on tiles: 178 % of budget, and the level gate is what costs the 25 %
+(the same SGD with nearest-pulse writes ends at 1.226, +1 % vs float32, at
+8665 % of budget: device noise is free, the write budget is not).  E10 arms
+run at 7–24× the budget at 10 ms per step.
+
+**Read with care.**  E8b's digital control is a 2.7M-parameter model on a
+laptop GPU that it does not saturate (56–64 W of board power), so the 47–71×
+is an upper bound on the advantage; against an H100 at published peak the
+8-bit BPU projection is 1.8× *worse* and only the 4-bit cells win, which cost
+31–53 % in loss without quantisation-aware training.  E10's FPL gate hurts
+(gate off: 0.90 / 0.87 vs 0.84 / 0.83 float32 / BPU) and the FPL arms lose
+13–16 points after a 1000 s rest; τ_ret = 1e3 s costs every arm 2–17 points
+after that rest, ≥ 1e4 s nothing.  E3's error is the cue lag; dynamic noise
+never helps.  A replay-buffer bug (mismatched labels) was found and fixed on
+the way (`results/e10/results_replay_bug.json`).
+
 ## Run
 
 ```bash
+scripts/run_substrate.sh      # 2026-10-18 programme: E4 (level writes), E6, E3 tracking, E7 (+ reference), E9, E10, E8b (GPU)
 scripts/run_all.sh            # E3-E7, 3 seeds, regenerates figures
 scripts/run_all.sh --full     # 10 seeds
 python experiments/e2_grow_vs_rigl.py --seeds 3            # MNIST (downloads 11 MB), --device cuda optional

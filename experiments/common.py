@@ -48,8 +48,16 @@ def git_hash() -> str:
         return "unknown"
 
 
+def _out_dir(name: str, out: str | None) -> pathlib.Path:
+    """``--out`` paths are taken relative to the repository root, not the shell's directory."""
+    if not out:
+        return RESULTS / name
+    d = pathlib.Path(out)
+    return d if d.is_absolute() else ROOT / d
+
+
 def save_results(name: str, results: dict, out: str | None = None) -> pathlib.Path:
-    d = pathlib.Path(out) if out else RESULTS / name
+    d = _out_dir(name, out)
     d.mkdir(parents=True, exist_ok=True)
     results = dict(results)
     results.setdefault("meta", {})
@@ -63,7 +71,7 @@ def save_results(name: str, results: dict, out: str | None = None) -> pathlib.Pa
 
 
 def load_results(name: str, out: str | None = None) -> dict:
-    d = pathlib.Path(out) if out else RESULTS / name
+    d = _out_dir(name, out)
     with open(d / "results.json") as f:
         return json.load(f)
 
