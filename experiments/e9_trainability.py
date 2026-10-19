@@ -191,6 +191,7 @@ def main():
     ap.add_argument("--arms", type=str, default=",".join(ARMS))
     ap.add_argument("--theta-flush", type=str, default="1.0", help="flush thresholds in conductance levels, comma list; each BPU gradient arm is run at every value")
     ap.add_argument("--merge", type=str, default=None, help="results.json whose runs are reused for arms/thetas not rerun here (e.g. the theta = 1.0 run)")
+    ap.add_argument("--resummarize", action="store_true", help="no runs: rebuild summary / verdict / figure from the runs in results.json")
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
@@ -205,6 +206,11 @@ def main():
     thetas = [float(x) for x in args.theta_flush.split(",")]
     merged = json.load(open(args.merge))["runs"] if args.merge else None
     runs = []
+    if args.resummarize:
+        prev = load_results("e9", args.out); runs = prev["runs"]; seeds = prev["seeds"]; thetas = prev.get("thetas", thetas)
+        for k in ("seg", "sigma", "pretrain_steps", "batch", "step_seconds", "lr"):
+            setattr(args, k, prev.get(k, getattr(args, k)))
+        return summarize_and_save(runs, seeds, thetas, arms, segments, args)
     for seed in range(seeds):
         torch.manual_seed(seed); gen = torch.Generator().manual_seed(seed)
         ideal = GPT(vocab, 192, 6, 6, args.block, None, None, seed=seed).to(args.device)
@@ -240,6 +246,10 @@ def main():
             print(f"  {name}: segment-end losses {np.round(seg_end, 3)}, recovery {rec}, total writes/dev {wpd:.3g} ({100 * wpd / 1e6:.2g}% endurance), {wpd / total_s:.3g}/dev/s, flush rate {fr:.2g}", flush=True)
             del model
         runs.append({"seed": seed, "ideal_val_loss": base_loss, "curves": curves})
+    summarize_and_save(runs, seeds, thetas, arms, segments, args)
+
+
+def summarize_and_save(runs, seeds, thetas, arms, segments, args):
     # ---- summary over seeds (one entry per arm@theta)
     names = [k for k in runs[0]["curves"] if all(k in r["curves"] for r in runs)]
     summ = {}
@@ -271,6 +281,7 @@ def main():
         pr = load_results("e9_pulse")["summary"]["sgd_bpu_pulse"]
         pulse = {"post_shift_loss": pr["segment_end_loss_1"]["mean"], "writes_per_device_total": pr["writes_per_device_total"]["mean"] if "writes_per_device_total" in pr else pr["writes_per_device_per_s"]["mean"] * args.seg * 3 * args.step_seconds,
                  "gap_pct": 100.0 * (pr["segment_end_loss_1"]["mean"] / ref - 1)}
+        pulse["passes"] = bool(abs(pulse["gap_pct"]) <= 5.0 and pulse["writes_per_device_total"] < 1e4)
     except Exception:
         pass
     out = {"pulse_diagnostic": pulse, "seg": args.seg, "sigma": args.sigma, "pretrain_steps": args.pretrain_steps, "batch": args.batch, "step_seconds": args.step_seconds, "lr": args.lr,
@@ -282,8 +293,10 @@ def main():
                        f"post-shift loss (Python segment, last 200 steps, {seeds} seeds): float32 SGD {ref:.3f}; "
                        + "; ".join(f"{p['name']} {p['post_shift_loss']:.3f} ({p['gap_pct']:+.1f}%, {p['writes_per_device_total']:.3g} writes/device = {100 * p['writes_per_device_total'] / 1e6:.2g}% endurance)" for p in pareto)
                        + (". SUCCESS: " + ", ".join(p["name"] for p in passing) + " within 5% of float32 with < 1e4 total writes/device" if success else
-                          ". Criterion not met: no arm is within 5% of float32 with < 1e4 total writes per device"
-                          + (f" (closest: {min(pareto, key=lambda p: abs(p['gap_pct']))['name']} at {min(pareto, key=lambda p: abs(p['gap_pct']))['gap_pct']:+.1f}%)" if pareto else ""))}}
+                          ". Criterion not met by any level-gated arm: none is within 5% of float32 with < 1e4 total writes per device"
+                          + (f" (closest: {min(pareto, key=lambda p: abs(p['gap_pct']))['name']} at {min(pareto, key=lambda p: abs(p['gap_pct']))['gap_pct']:+.1f}%)" if pareto else ""))
+                       + (f". Nearest-pulse diagnostic (no level gate): {pulse['post_shift_loss']:.3f} ({pulse['gap_pct']:+.1f}%) at {pulse['writes_per_device_total']:.3g} writes/device = {100 * pulse['writes_per_device_total'] / 1e6:.2g}% endurance"
+                          + (": it MEETS both numbers of the criterion, so under the endurance budget the level gate is a cost without a benefit" if pulse.get("passes") else "") if pulse else "")}}
     print("E9 verdict:", out["verdict"]["statement"])
     save_results("e9", out, args.out)
     if not args.no_fig:

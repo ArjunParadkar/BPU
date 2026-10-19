@@ -788,3 +788,16 @@ results that were superseded are kept under `results/e9_v1`, `results/e10_v1`,
   gap) = 0.85 (Mann–Whitney 0.89): **no noise-assisted growth**; if anything the tiles' grown
   graph lags more.  The 3-seed "grown catches up when continued" (0.80 vs 0.84) does not
   survive 10 seeds (0.48 vs 0.81): the verdict logs the NEGATIVE on both substrates.
+* **E9 Pareto outcome** (3 seeds, post-shift loss vs total writes per device; float32 1.184):
+  SGD on tiles θ = 1: 1.483 (+25 %) at 0.32 writes/device; θ = 0.5: 1.426 (+21 %) at 3.5;
+  θ = 0.25: 1.954 (+65 %) at 281 — the quarter-level threshold pulses whole levels on
+  quarter-full accumulators and the stochastic overshoot wrecks the fine-tuning, as it wrecked
+  E4.  FA / DFA / layer-local sit at +112 to +166 % at every θ.  **No level-gated arm meets
+  the criterion** (within 5 % with < 1e4 writes/device).  The nearest-pulse diagnostic (no
+  gate, every Adam step rounded to whole pulses) ends at 1.226 (+3.6 %) with 15.6 writes per
+  device = 0.0016 % of the endurance, i.e. it meets both numbers.  Reading: under an
+  endurance budget the accumulate-and-flush gate is a cost without a benefit — the device
+  noise is free and the whole trainability gap is the gate; the gate only mattered under the
+  old per-second lifelong rate.  The remaining real limit is the driver bandwidth
+  (writes per tile per second), which the pulse-write run exceeds during the first steps
+  after a switch; that number is in the JSON (`budget.writes_per_tile_per_s`) for every arm.
