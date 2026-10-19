@@ -11,8 +11,20 @@ pairs with the same semantics as :class:`bpusim.tile.Tile`:
 * soft-bound updates: a requested change is converted to a whole number of
   pulses of size ``alpha exp(-beta w)`` (potentiation) or
   ``alpha exp(-beta (1 - w))`` (depression) on the matching device of the
-  pair, sub-pulse residuals are kept in a pending accumulator (the surprise
-  gate), so writes are sparse and quantised;
+  pair.  Default write rule ``"nearest_pulse"`` (2026-10-19): a 16-bit
+  per-synapse accumulator is flushed every step as the nearest whole pulses
+  and the NOMINAL effect of those pulses is subtracted (no read-back), so the
+  sub-pulse remainder carries over.  ``"level"`` (accumulate-and-flush at
+  theta_flush conductance levels, stochastic rounding) and ``"pulse"`` (the
+  legacy rule that subtracted the realised change) are kept as options;
+  ``"float"`` keeps float32 weights with ideal updates and injects the same
+  read noise / dropout on every read: the reference arm of E11-E14;
+* primitives: ``set_noise(sigma_r)`` is the per-tile read-noise dial (the
+  MODULATE primitive, range 0.005-0.2, logged) and ``set_dropout(p)`` drops
+  every synapse independently with probability p on every read;
+* read-out: by default every device tile converts its outputs through a
+  layer-accumulate 8-bit converter (``ReadoutSpec.default()``, FoM 10 fJ,
+  range tracked automatically); E8b overrides it per cell;
 * optional feedback alignment: the backward pass carries the input
   gradient through a fixed random matrix instead of ``W^T``; optional direct
   feedback alignment (:class:`DFAContext`): every layer receives the global
@@ -44,15 +56,16 @@ class OpCounter:
     writes: int = 0           # synapses that received >= 1 pulse (write events)
     events: int = 0           # routed vectors between tiles / layers
     cache_writes: int = 0     # volatile attention-cache device writes
+    modulates: int = 0        # MODULATE primitive events (read-noise dial changes)
     enabled: bool = True
     log: dict = field(default_factory=dict)
 
     def reset(self):
-        self.macs = self.reads = self.conversions = self.conversions_out = self.pulses = self.writes = self.events = self.cache_writes = 0
+        self.macs = self.reads = self.conversions = self.conversions_out = self.pulses = self.writes = self.events = self.cache_writes = self.modulates = 0
 
     def snapshot(self):
         return {"macs": self.macs, "reads": self.reads, "conversions": self.conversions, "conversions_out": self.conversions_out, "pulses": self.pulses,
-                "writes": self.writes, "events": self.events, "cache_writes": self.cache_writes}
+                "writes": self.writes, "events": self.events, "cache_writes": self.cache_writes, "modulates": self.modulates}
 
 
 class _FALinear(torch.autograd.Function):
@@ -89,21 +102,54 @@ class ReadoutSpec:
     read site); afterwards values outside the range clip, as a real converter would.
     """
 
-    def __init__(self, mode: str, bits: int, calib_pct: float = 100.0):
+    DEFAULT = ("layer", 8, 10.0)    # architecture default (2026-10-19): layer-accumulate, 8-bit, FoM_W 10 fJ
+
+    def __init__(self, mode: str, bits: int, calib_pct: float = 100.0, auto: bool = False, fom_fJ: float = 10.0):
         """calib_pct: the converter range is this percentile of |value| on the calibration batch
-        (100 = the maximum; 99.9 clips the rare outliers, the usual choice for a low-bit converter)."""
+        (100 = the maximum; 99.9 clips the rare outliers, the usual choice for a low-bit converter).
+        auto: no calibration pass; the range of each read site follows the largest |value| seen so far
+        (an automatic-gain converter, the default for training runs).  fom_fJ: Walden figure of merit,
+        E_ADC = fom x 2^bits (recorded for the energy model)."""
         assert mode in ("tile", "layer", "lif")
         self.mode, self.bits, self.calib_pct = mode, int(bits), float(calib_pct)
+        self.auto, self.fom_fJ = bool(auto), float(fom_fJ)
         self.calibrating = False
         self.ranges: dict = {}
         self.spikes = 0
         self.spike_sites = 0        # output values that went through the LIF readout
         self.clipped = 0            # values that hit the converter rail
 
+    @classmethod
+    def default(cls):
+        m, b, f = cls.DEFAULT
+        return cls(m, b, auto=True, fom_fJ=f)
+
+    @property
+    def E_ADC_J(self) -> float:
+        return self.fom_fJ * 1e-15 * 2 ** self.bits
+
     def reset_counts(self):
         self.spikes = 0; self.spike_sites = 0; self.clipped = 0
 
     def convert(self, v: torch.Tensor, site: str) -> torch.Tensor:
+        """Quantise ``v`` through this read-out; the gradient passes straight through (the converter is in
+        the forward path of training runs since the layer-accumulate 8-bit read-out became the default)."""
+        q = self._convert(v.detach(), site)
+        return v + (q - v.detach()) if v.requires_grad else q
+
+    def _convert(self, v: torch.Tensor, site: str) -> torch.Tensor:
+        if self.auto:
+            m = v.detach().abs().max()
+            r = self.ranges.get(site)
+            self.ranges[site] = m if r is None else torch.maximum(r, m)
+            R = torch.clamp(self.ranges[site], min=1e-9)
+            if self.mode == "lif":
+                n_max = 2 ** self.bits - 1; step = R / n_max
+                n = torch.clamp(torch.floor(v.abs() / step), max=n_max)
+                self.spikes += int(n.sum()); self.spike_sites += n.numel()
+                return torch.sign(v) * n * step
+            q_max = 2 ** (self.bits - 1) - 1; step = R / (q_max + 1)
+            return torch.clamp(torch.round(v / step), -q_max - 1, q_max) * step
         if self.calibrating:
             a = v.detach().abs().flatten()
             if self.calib_pct >= 100.0:
@@ -174,27 +220,36 @@ class TileLinear(nn.Module):
                  split=(1.0, 1.0, 1.0), alpha: float = 0.02, beta: float = 3.0, scale: float = 0.5,
                  density: float = 1.0, feedback_alignment: bool = False, counter: OpCounter | None = None,
                  tile: int = 32, generator: torch.Generator | None = None, init_std: float = 0.02,
-                 write_mode: str = "pulse", levels: int | None = None, dfa: DFAContext | None = None, dfa_dim: int = 0,
-                 theta_flush: float = 1.0):
+                 write_mode: str = "nearest_pulse", levels: int | None = None, dfa: DFAContext | None = None, dfa_dim: int = 0,
+                 theta_flush: float = 1.0, readout="default"):
         """sigma: total effective device noise (None = ideal float layer).  ``split`` gives the relative
         weights of (d2d, c2c, read) so that sigma_eff = sigma; default equal split.
 
-        write_mode: "pulse" (legacy, E8): a requested change is rounded to the nearest whole pulse and
-        the sub-pulse residual stays pending; "level" (the write budget of E9/E10): accumulate-and-flush,
-        a synapse is written only when its accumulator holds at least one conductance level
-        (1 / L in state units, L = round(1 / sigma_eff) distinguishable levels unless ``levels`` is
-        given), the flushed amount is a whole number of levels with the remainder rounded
-        stochastically, and the flushed (not the realised) amount is subtracted."""
+        write_mode: "nearest_pulse" (default since 2026-10-19): the 16-bit accumulator is flushed every
+        step as the nearest whole pulses and the nominal effect is subtracted; "pulse" (legacy, E8): the
+        same rounding but the realised (noisy) change is subtracted and the accumulator is float; "level"
+        (the 2026-10-18 write budget): accumulate-and-flush, a synapse is written only when its
+        accumulator holds theta_flush conductance levels (1 / L in state units, L = round(1 / sigma_eff)
+        unless ``levels`` is given), stochastic rounding, flushed amount subtracted; "float": float32
+        weights with ideal updates and the layer's read noise / dropout injected on every read (the
+        reference arm of the variability experiments).
+        readout: "default" = ReadoutSpec.default() (layer-accumulate 8-bit, auto range) on device tiles,
+        None = no read-out emulation, or a ReadoutSpec."""
         super().__init__()
         self.in_features, self.out_features = in_features, out_features
         self.ideal = sigma is None
+        assert write_mode in ("nearest_pulse", "pulse", "level", "float"), write_mode
+        self.float_weights = write_mode == "float"
         self.alpha, self.beta, self.scale = alpha, beta, scale
         self.tile = tile
         self.counter = counter
         self.fa = feedback_alignment
         self.write_mode = write_mode
         self.theta_flush = float(theta_flush)       # level mode: flush when |acc| >= theta_flush levels
-        self.readout: ReadoutSpec | None = None     # set by E8b to emulate the read-out mode
+        self.acc_step = scale * 2.0 ** -15          # nearest_pulse mode: 16-bit signed accumulator, full scale = scale
+        self.dropout = 0.0                          # per-read synapse failure probability (set_dropout)
+        self.primitive_log: list = []
+        self.readout: ReadoutSpec | None = (ReadoutSpec.default() if readout == "default" else readout) if not (self.ideal or self.float_weights) else None
         self.site = f"tile{id(self)}"
         self.levels = int(levels) if levels else (256 if (sigma is None or sigma <= 0) else int(max(2, min(256, round(1.0 / float(sigma))))))
         self.n_acc_calls = 0
@@ -211,7 +266,10 @@ class TileLinear(nn.Module):
         self.dfa = dfa
         if dfa is not None:
             self.register_buffer("B_dfa", torch.randn(dfa_dim, out_features, generator=g) / math.sqrt(dfa_dim))
-        if not self.ideal:
+        if self.float_weights:
+            s = torch.tensor(split, dtype=torch.float32); s = s / s.norm() * float(sigma or 0.0)
+            self.sigma_d2d, self.sigma_c2c, self.sigma_r = 0.0, 0.0, float(s[2])
+        elif not self.ideal:
             s = torch.tensor(split, dtype=torch.float32); s = s / s.norm() * float(sigma)
             self.sigma_d2d, self.sigma_c2c, self.sigma_r = (float(v) for v in s)
             self.register_buffer("gp", torch.clamp(torch.randn(in_features, out_features, generator=g) * self.sigma_d2d + 1.0, 0.05))
@@ -238,7 +296,7 @@ class TileLinear(nn.Module):
     def load(self, W_target: torch.Tensor, verify: bool = True, tol: float = 0.01):
         """Program the pair state to W_target (write-verify emulated as programming to within tol
         with one pulse-resolution error draw); sets self.W to the realised weight."""
-        if self.ideal:
+        if self.ideal or self.float_weights:
             self.W.copy_(W_target * self.A); return
         t = torch.clamp(W_target / self.scale, -1.0, 1.0)
         wp = torch.clamp(t, 0, 1); wm = torch.clamp(-t, 0, 1)
@@ -254,12 +312,43 @@ class TileLinear(nn.Module):
 
     # ---------------------------------------------------------------- forward
     def read_weight(self) -> torch.Tensor:
-        if self.ideal or self.sigma_r == 0:
+        if self.ideal:
             return self.W * self.A
-        # independent read noise on each device of the pair: (w+ e1 - w- e2) has variance w+^2 + w-^2,
-        # so one Gaussian draw scaled by sqrt(w+^2 + w-^2) is the same distribution at half the cost
-        noise = self.scale * self.A * self.sigma_r * torch.sqrt(self.wp ** 2 + self.wm ** 2) * torch.randn_like(self.wp)
-        return self.W * self.A + noise.detach()
+        W = self.W * self.A
+        if self.sigma_r > 0:
+            if self.float_weights:
+                # the reference arm: the same multiplicative Gaussian read noise on float32 weights
+                W = W + (self.sigma_r * W.abs() * torch.randn_like(W)).detach()
+            else:
+                # independent read noise on each device of the pair: (w+ e1 - w- e2) has variance w+^2 + w-^2,
+                # so one Gaussian draw scaled by sqrt(w+^2 + w-^2) is the same distribution at half the cost
+                W = W + (self.scale * self.A * self.sigma_r * torch.sqrt(self.wp ** 2 + self.wm ** 2) * torch.randn_like(self.wp)).detach()
+        if self.dropout > 0:
+            W = W * (torch.rand_like(W) >= self.dropout)
+        return W
+
+    # ------------------------------------------------------------ primitives
+    MODULATE_RANGE = (0.005, 0.2)
+
+    def set_noise(self, sigma_r: float) -> float:
+        """MODULATE primitive: set this layer's read-noise level (relative, per read); range 0.005-0.2,
+        0 = dial off; values outside the range are clipped and the clip is logged."""
+        assert not self.ideal, "an ideal layer has no read noise to modulate"
+        lo, hi = self.MODULATE_RANGE
+        v = float(sigma_r); clipped = v != 0.0 and (v < lo or v > hi)
+        if v != 0.0:
+            v = float(min(max(v, lo), hi))
+        self.sigma_r = v
+        self.primitive_log.append({"primitive": "MODULATE", "call": self.n_acc_calls, "sigma_r": v, "clipped": clipped})
+        if self.counter is not None and self.counter.enabled:
+            self.counter.modulates += 1
+        return v
+
+    def set_dropout(self, p: float) -> None:
+        """DROPOUT primitive: every read drops each synapse independently with probability p."""
+        assert 0.0 <= p < 1.0, p
+        self.dropout = float(p)
+        self.primitive_log.append({"primitive": "DROPOUT", "call": self.n_acc_calls, "p": self.dropout})
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         W_read = self.read_weight()
@@ -297,9 +386,12 @@ class TileLinear(nn.Module):
 
         Returns the realised change.  Sub-pulse residuals stay in ``pending``.
         """
-        if self.ideal:
+        if self.ideal or self.float_weights:
+            self.n_acc_calls += 1
             self.W.add_(dW * self.A); return dW * self.A
         self.pending.add_(dW * self.A)
+        if self.write_mode == "nearest_pulse":    # 16-bit signed accumulator, full scale = scale
+            torch.clamp(torch.round(self.pending / self.acc_step) * self.acc_step, -self.scale + self.acc_step, self.scale - self.acc_step, out=self.pending)
         self.n_acc_calls += 1
         if self.write_mode == "level":
             lvl = self.scale / self.levels                     # one conductance level in weight units
@@ -330,9 +422,16 @@ class TileLinear(nn.Module):
         real_m = n_m * step_m * self.gm * noise_m
         wp_new = torch.clamp(self.wp + real_p, 0, 1); wm_new = torch.clamp(self.wm + real_m, 0, 1)
         realised_state = (wp_new - self.wp) - (wm_new - self.wm)
+        if self.write_mode == "nearest_pulse":
+            # the digital side knows only the nominal effect of the pulses it sent (no read-back)
+            nominal = self.scale * self.A * ((torch.clamp(self.wp + n_p * step_p, 0, 1) - self.wp) - (torch.clamp(self.wm + n_m * step_m, 0, 1) - self.wm))
         self.wp.copy_(wp_new); self.wm.copy_(wm_new)
         realised = self.scale * self.A * realised_state
-        self.pending.sub_(flushed if flushed is not None else realised)
+        if self.write_mode == "nearest_pulse":
+            self.pending.sub_(nominal)
+            torch.clamp(torch.round(self.pending / self.acc_step) * self.acc_step, -self.scale + self.acc_step, self.scale - self.acc_step, out=self.pending)
+        else:
+            self.pending.sub_(flushed if flushed is not None else realised)
         self.W.copy_(self.scale * self.A * (self.wp - self.wm))
         pulses = int(n_p.abs().sum() + n_m.abs().sum()); writes = int(((n_p != 0) | (n_m != 0)).sum())
         self.n_pulses += pulses; self.n_writes += writes
@@ -341,7 +440,7 @@ class TileLinear(nn.Module):
         return realised
 
     def writes_per_device(self, seconds: float | None = None) -> float:
-        if self.ideal:
+        if self.ideal or self.float_weights:
             return 0.0
         w = self.n_writes / self.n_devices
         return w / seconds if seconds else w
@@ -349,7 +448,7 @@ class TileLinear(nn.Module):
     @torch.no_grad()
     def retain(self, dt: float, tau_ret: float):
         """Retention: every device relaxes toward G_min (w = 0) with time constant tau_ret over dt seconds."""
-        if self.ideal or not math.isfinite(tau_ret) or tau_ret <= 0:
+        if self.ideal or self.float_weights or not math.isfinite(tau_ret) or tau_ret <= 0:
             return
         f = math.exp(-dt / tau_ret)
         self.wp.mul_(f); self.wm.mul_(f)
@@ -358,7 +457,7 @@ class TileLinear(nn.Module):
     @property
     def flush_rate(self) -> float:
         """Fraction of write opportunities (apply_delta calls x synapses) that pulsed a device."""
-        if self.ideal or self.n_acc_calls == 0:
+        if self.ideal or self.float_weights or self.n_acc_calls == 0:
             return 0.0
         return self.n_writes / (self.n_acc_calls * self.in_features * self.out_features)
 
@@ -369,13 +468,14 @@ def write_budget_report(tiles, seconds: float | None = None) -> dict:
     """Aggregate write-budget report over TileLinear layers: endurance (total writes per device vs 1e6),
     write-driver bandwidth (write events per physical tile per second vs 1e4), and the old lifelong
     rate (writes per device per second vs 6e-3)."""
-    tiles = [t for t in tiles if isinstance(t, TileLinear) and not t.ideal]
+    tiles = [t for t in tiles if isinstance(t, TileLinear) and not t.ideal and not t.float_weights]
     if not tiles:
         return {"writes_per_device_total": 0.0, "percent_of_endurance": 0.0, "flush_rate": 0.0}
     n_w = sum(t.n_writes for t in tiles); n_dev = sum(t.n_devices for t in tiles); n_tiles = sum(t.n_tiles for t in tiles)
     wpd = n_w / n_dev
     rep = {"writes_per_device_total": wpd, "percent_of_endurance": 100.0 * wpd / TileLinear.ENDURANCE,
            "flush_rate": float(sum(t.flush_rate for t in tiles) / len(tiles)), "levels": tiles[0].levels, "theta_flush": tiles[0].theta_flush,
+           "write_mode": tiles[0].write_mode, "n_modulate": int(sum(sum(1 for e in t.primitive_log if e["primitive"] == "MODULATE") for t in tiles)),
            "max_writes_per_device_any_tile": max(t.n_writes / t.n_devices for t in tiles)}
     if seconds:
         per_tile_s = n_w / n_tiles / seconds
@@ -401,8 +501,8 @@ class TileOptimizer:
         before = [t.W.detach().clone() for t in self.tiles]
         self.opt.step()
         for t, W0 in zip(self.tiles, before):
-            if t.ideal:
-                t.W.mul_(t.A); continue
+            if t.ideal or t.float_weights:
+                t.W.mul_(t.A); t.n_acc_calls += 1; continue
             dW = t.W - W0
             t.W.copy_(W0)
             t.apply_delta(dW, self.theta_w)

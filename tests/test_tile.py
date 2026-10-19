@@ -76,7 +76,7 @@ def test_accumulate_and_flush_writes_only_whole_levels(rng):
     the flushed amount is a whole number of levels with the remainder rounded stochastically
     (unbiased), and writes are counted only on pulses."""
     p = DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0)
-    t = Tile(8, 8, rng, p, levels=20)              # one level = 0.05 in weight units
+    t = Tile(8, 8, rng, p, levels=20, write_rule="level")   # one level = 0.05 in weight units
     assert abs(t.level - 0.05) < 1e-12
     for _ in range(4):
         t.accumulate(np.full((8, 8), 0.01))        # 0.04 pending: below one level
@@ -85,7 +85,7 @@ def test_accumulate_and_flush_writes_only_whole_levels(rng):
     assert t.n_writes == 64 and abs(t.flush_rate - 1 / 5) < 1e-12
     assert np.allclose(t.acc, 0.0, atol=1e-12) and np.abs(t.W - 0.05).max() < 0.02
     # a request of 2.5 levels flushes 2 or 3 levels, 3 with probability one half, mean 2.5
-    t2 = Tile(40, 40, np.random.default_rng(1), p, levels=20)
+    t2 = Tile(40, 40, np.random.default_rng(1), p, levels=20, write_rule="level")
     t2.accumulate(np.full((40, 40), 0.125))
     flushed = 0.125 - t2.acc
     n_lv = np.rint(flushed / 0.05)
@@ -102,3 +102,36 @@ def test_accumulate_respects_write_quota(rng):
     # a budget of 1 write/device/s over dt = 0.1 s allows 0.1 * 200 devices = 20 synapse writes per call
     t.accumulate(rng.uniform(0.1, 0.5, (10, 10)), write_budget=1.0, dt=0.1)
     assert t.n_writes == 20
+
+
+def test_nearest_pulse_default_keeps_remainder_and_logs_primitives():
+    """Default write rule: the 16-bit accumulator is flushed every step as the nearest whole pulses and
+    the nominal effect is subtracted, so three sub-pulse requests add up to one pulse; set_noise clips
+    to the dial range and logs a MODULATE event; set_dropout zeroes a fraction of every read."""
+    rng = np.random.default_rng(3)
+    t = Tile(16, 16, rng, DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0))
+    assert t.write_rule == "nearest_pulse"
+    dW = np.full((16, 16), 0.01)            # alpha_p = 0.05 at w = 0: 0.01 is a fifth of a pulse
+    for k in range(2):
+        t.accumulate(dW)
+    assert t.n_writes == 0 and np.allclose(t.acc, 0.02, atol=1e-4)
+    t.accumulate(dW); t.accumulate(dW)       # 0.04 -> rounds to one pulse (0.05), remainder -0.01 carried
+    assert t.n_writes == 256 and np.abs(t.W - 0.05).max() < 1e-6 and np.allclose(t.acc, -0.01, atol=1e-4)
+    # accumulator resolution is 2^-15 of a weight unit
+    t.acc[:] = 0.0; t.accumulate(np.full((16, 16), 1e-6))
+    assert np.all(t.acc == 0.0)
+    # MODULATE primitive
+    v = t.set_noise(0.5)
+    assert v == 0.2 and t.primitive_log[-1]["clipped"] and t.gp.p.sigma_r == 0.2
+    assert t.set_noise(0.04) == 0.04 and t.n_modulate == 2
+    # DROPOUT primitive
+    t.set_noise(0.0); t.set_dropout(0.5)
+    W = t.W_read()
+    frac = float((W == 0).mean())
+    assert 0.4 < frac < 0.6 and t.primitive_log[-1]["primitive"] == "DROPOUT"
+
+
+def test_nearest_pulse_write_budget_quota(rng):
+    t = Tile(8, 8, rng, DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0))
+    t.accumulate(np.full((8, 8), 0.3), write_budget=1.0, dt=0.01)     # credit 1.0 * 128 * 0.01 = 1.28 -> 1 write
+    assert t.n_writes == 1

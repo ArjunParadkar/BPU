@@ -2,7 +2,7 @@ import math
 import numpy as np
 import torch
 
-from bpusim.torchtile import TileLinear, TileOptimizer, OpCounter, tile_attention
+from bpusim.torchtile import TileLinear, TileOptimizer, OpCounter, tile_attention, ReadoutSpec
 
 
 def test_ideal_matches_linear():
@@ -30,7 +30,7 @@ def test_pulsed_update_quantised_and_residual_kept():
     t.load(torch.zeros(16, 16), verify=False)
     dW = torch.full((16, 16), 0.002)        # 0.004 in state units: below half a pulse (0.01)
     r = t.apply_delta(dW)
-    assert r.abs().max() == 0 and torch.allclose(t.pending, dW)
+    assert r.abs().max() == 0 and torch.allclose(t.pending, dW, atol=1e-4)   # 16-bit accumulator grid
     for _ in range(3):
         r = t.apply_delta(dW)               # accumulated 0.008 -> 0.4 pulse -> 0; 0.012 -> 0.6 pulse -> 1 pulse
     assert t.n_pulses > 0 and t.W.max() > 0
@@ -87,3 +87,46 @@ def test_level_write_mode_flushes_whole_levels_only():
     assert (t.W > 0).all()
     # the default level count follows sigma_eff: round(1 / 0.04) = 25
     assert TileLinear(4, 4, sigma=0.04).levels == 25
+
+
+def test_nearest_pulse_default_and_primitives():
+    g = torch.Generator().manual_seed(3)
+    t = TileLinear(16, 16, bias=False, sigma=0.0, scale=0.5, alpha=0.02, generator=g, readout=None)
+    assert t.write_mode == "nearest_pulse" and t.readout is None
+    t.load(torch.zeros(16, 16), verify=False)
+    dW = torch.full((16, 16), 0.002)                     # 0.004 in state units: a fifth of a pulse (0.02)
+    for _ in range(2):
+        t.apply_delta(dW)
+    assert t.n_pulses == 0 and torch.allclose(t.pending, torch.full((16, 16), 0.004), atol=1e-4)
+    t.apply_delta(dW); t.apply_delta(dW)                  # 0.008 -> 0.4 pulse -> 0; 0.010 -> 0.5 -> rounds to 1 pulse
+    assert t.n_pulses == 256 and torch.allclose(t.W, torch.full((16, 16), 0.01), atol=1e-6)
+    assert torch.allclose(t.pending, torch.full((16, 16), -0.002), atol=1e-4)   # nominal subtracted, remainder kept
+    # accumulator resolution: 0.5 / 2^15
+    t.pending.zero_(); t.apply_delta(torch.full((16, 16), 1e-6))
+    assert float(t.pending.abs().max()) == 0.0
+    assert t.set_noise(1.0) == 0.2 and t.primitive_log[-1]["clipped"]
+    t.set_noise(0.0); t.set_dropout(0.5)
+    W = t.read_weight(); frac = float((W == 0).float().mean())
+    assert 0.35 < frac < 0.65
+
+
+def test_float_write_mode_is_the_reference_arm():
+    g = torch.Generator().manual_seed(4)
+    t = TileLinear(32, 32, bias=False, sigma=0.05, split=(0, 0, 1), write_mode="float", generator=g)
+    W = torch.rand(32, 32) - 0.5; t.load(W)
+    assert torch.allclose(t.W, W) and t.readout is None and t.writes_per_device() == 0.0
+    reads = torch.stack([t.read_weight() for _ in range(200)])
+    assert abs(float((reads.std(0) / W.abs()).mean()) - 0.05) < 0.01
+    t.apply_delta(torch.full((32, 32), 0.001))
+    assert torch.allclose(t.W, W + 0.001)
+
+
+def test_default_readout_is_layer_8bit_auto():
+    g = torch.Generator().manual_seed(5)
+    t = TileLinear(64, 16, bias=False, sigma=0.0, generator=g)
+    assert t.readout is not None and t.readout.mode == "layer" and t.readout.bits == 8 and t.readout.auto
+    assert abs(t.readout.E_ADC_J - 10e-15 * 256) < 1e-20
+    x = torch.randn(8, 64)
+    y = t(x); y_ideal = x @ t.W
+    assert (y - y_ideal).abs().max() <= float(y_ideal.abs().max()) / 128 + 1e-6   # within one 8-bit step
+    assert t.site in t.readout.ranges

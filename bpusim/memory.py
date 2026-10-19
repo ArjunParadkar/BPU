@@ -19,7 +19,7 @@ from __future__ import annotations
 import numpy as np
 
 from .device import DeviceParams
-from .tile import Tile
+from .tile import Tile, FloatTile
 
 
 def _softmax(z):
@@ -44,8 +44,10 @@ def signz(x, rng: np.random.Generator | None = None) -> np.ndarray:
 class ScaledTile:
     """A tile that stores W / scale so that an arbitrary real matrix fits in |W| <= 1."""
 
-    def __init__(self, n_in, n_out, rng, params=None):
-        self.tile = Tile(n_in, n_out, rng, params)
+    def __init__(self, n_in, n_out, rng, params=None, float_ref: bool = False):
+        """float_ref: the float32 reference substrate (FloatTile) with the device read noise of ``params``
+        injected on every read."""
+        self.tile = FloatTile(n_in, n_out, rng, sigma_r=(params or DeviceParams()).sigma_r) if float_ref else Tile(n_in, n_out, rng, params)
         self.scale = 1.0
 
     def program(self, W, tol=0.01):
@@ -138,12 +140,12 @@ class ScaffoldMemory:
 
 
 class HopfieldAttention:
-    def __init__(self, X: np.ndarray, beta: float, rng: np.random.Generator, params: DeviceParams | None = None):
-        """X: (d, P) stored patterns as columns."""
+    def __init__(self, X: np.ndarray, beta: float, rng: np.random.Generator, params: DeviceParams | None = None, float_ref: bool = False):
+        """X: (d, P) stored patterns as columns.  float_ref: float32 reference substrate (same read noise injected)."""
         self.X = np.asarray(X, float)
         self.d, self.P = self.X.shape
         self.beta = beta
-        self.store = ScaledTile(self.d, self.P, rng, params)
+        self.store = ScaledTile(self.d, self.P, rng, params, float_ref=float_ref)
         self.store.program(self.X)
 
     def retrieve(self, xi: np.ndarray, n_iter: int = 1) -> dict:

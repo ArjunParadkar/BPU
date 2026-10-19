@@ -130,8 +130,13 @@ def recovery_time(curve, switch_idx, window=100, frac=0.9):
     return int(hit[0]) if hit.size else None
 
 
-def make_model(arm, vocab, block, sigma, seed, device, theta_flush=1.0):
-    kw = dict(write_mode="level", theta_flush=theta_flush)
+LOCALITY = {"sgd_bpu": 0, "fa_bpu": 1, "dfa_bpu": 2, "local_bpu": 3}   # 0 = global backprop ... 3 = layer-local
+LOCALITY_LABEL = {0: "backprop (global gradient)", 1: "feedback alignment (global error, random feedback)",
+                  2: "direct FA (broadcast error, no inter-layer gradient)", 3: "layer-local three-factor"}
+
+
+def make_model(arm, vocab, block, sigma, seed, device, theta_flush=1.0, write_mode="nearest_pulse"):
+    kw = dict(write_mode=write_mode, theta_flush=theta_flush)
     if arm == "sgd_float32":
         return GPT(vocab, 192, 6, 6, block, None, None, seed=seed).to(device), None
     if arm == "sgd_bpu_pulse":   # diagnostic: the same oracle with the legacy nearest-pulse writes (no level gate)
@@ -189,7 +194,9 @@ def main():
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--arms", type=str, default=",".join(ARMS))
-    ap.add_argument("--theta-flush", type=str, default="1.0", help="flush thresholds in conductance levels, comma list; each BPU gradient arm is run at every value")
+    ap.add_argument("--theta-flush", type=str, default="1.0", help="level mode: flush thresholds in conductance levels, comma list; each BPU gradient arm is run at every value")
+    ap.add_argument("--write-mode", type=str, default="nearest_pulse", choices=["nearest_pulse", "level", "pulse"],
+                    help="write rule of the BPU arms (nearest_pulse is the architecture default since 2026-10-19)")
     ap.add_argument("--merge", type=str, default=None, help="results.json whose runs are reused for arms/thetas not rerun here (e.g. the theta = 1.0 run)")
     ap.add_argument("--resummarize", action="store_true", help="no runs: rebuild summary / verdict / figure from the runs in results.json")
     ap.add_argument("--smoke", action="store_true")
@@ -208,7 +215,7 @@ def main():
     runs = []
     if args.resummarize:
         prev = load_results("e9", args.out); runs = prev["runs"]; seeds = prev["seeds"]; thetas = prev.get("thetas", thetas)
-        for k in ("seg", "sigma", "pretrain_steps", "batch", "step_seconds", "lr"):
+        for k in ("seg", "sigma", "pretrain_steps", "batch", "step_seconds", "lr", "write_mode"):
             setattr(args, k, prev.get(k, getattr(args, k)))
         return summarize_and_save(runs, seeds, thetas, arms, segments, args)
     for seed in range(seeds):
@@ -220,12 +227,14 @@ def main():
                      "python_source": evaluate(ideal, code, args.block, args.batch, 20, torch.Generator().manual_seed(5))}
         print(f"  ideal val loss: {base_loss}", flush=True)
         curves = dict(merged[seed]["curves"]) if merged else {}
+        if args.write_mode != "level":
+            thetas = [1.0]          # theta_flush only exists in level mode
         jobs = [(a, 1.0) for a in arms if a in ("frozen", "sgd_float32")] + [(a, th) for th in thetas for a in arms if a not in ("frozen", "sgd_float32")]
         for arm, theta in jobs:
             name = arm if (theta == 1.0 or arm in ("frozen", "sgd_float32")) else f"{arm}@{theta:g}"
             if name in curves and merged:
                 print(f"  {name}: reused from {args.merge}", flush=True); continue
-            model, holder = make_model(arm, vocab, args.block, args.sigma, seed, args.device, theta)
+            model, holder = make_model(arm, vocab, args.block, args.sigma, seed, args.device, theta, args.write_mode)
             model.load_state_dict(ideal.state_dict(), strict=False); copy_weights(ideal, model, verify=True)
             local = LocalLayerLosses(model, vocab, args.lr, args.lr_readout) if arm == "local_bpu" else None
             gen_s = torch.Generator().manual_seed(100 + seed)      # identical stream for every arm of a seed
@@ -284,7 +293,12 @@ def summarize_and_save(runs, seeds, thetas, arms, segments, args):
         pulse["passes"] = bool(abs(pulse["gap_pct"]) <= 5.0 and pulse["writes_per_device_total"] < 1e4)
     except Exception:
         pass
+    # loss vs locality: one row per BPU gradient arm (theta = 1 / nearest-pulse), ordered from global backprop to layer-local
+    locality = [{"arm": a, "locality": LOCALITY[a], "label": LOCALITY_LABEL[LOCALITY[a]], "post_shift_loss": summ[a]["segment_end_loss_1"]["mean"], "sem": summ[a]["segment_end_loss_1"]["sem"],
+                 "gap_pct_vs_float32": gaps[a], "gap_pct_vs_bpu_oracle": gap_oracle.get(a), "writes_per_device_total": summ[a]["writes_per_device_total"]["mean"]}
+                for a in ("sgd_bpu", "fa_bpu", "dfa_bpu", "local_bpu") if a in summ]
     out = {"pulse_diagnostic": pulse, "seg": args.seg, "sigma": args.sigma, "pretrain_steps": args.pretrain_steps, "batch": args.batch, "step_seconds": args.step_seconds, "lr": args.lr,
+           "write_mode": getattr(args, "write_mode", "level"), "locality": locality,
            "seeds": seeds, "device": args.device, "arms": arms, "segments": [s["name"] for s in segments], "runs": runs, "summary": summ,
            "post_shift_gap_pct_vs_float32": gaps, "post_shift_gap_pct_vs_bpu_oracle": gap_oracle, "budget_writes_per_device_per_s": BUDGET, "smoke": args.smoke,
            "thetas": thetas, "pareto": pareto, "endurance_limit_writes_per_device": 1e4,
@@ -293,10 +307,11 @@ def summarize_and_save(runs, seeds, thetas, arms, segments, args):
                        f"post-shift loss (Python segment, last 200 steps, {seeds} seeds): float32 SGD {ref:.3f}; "
                        + "; ".join(f"{p['name']} {p['post_shift_loss']:.3f} ({p['gap_pct']:+.1f}%, {p['writes_per_device_total']:.3g} writes/device = {100 * p['writes_per_device_total'] / 1e6:.2g}% endurance)" for p in pareto)
                        + (". SUCCESS: " + ", ".join(p["name"] for p in passing) + " within 5% of float32 with < 1e4 total writes/device" if success else
-                          ". Criterion not met by any level-gated arm: none is within 5% of float32 with < 1e4 total writes per device"
+                          f". Criterion not met by any {'level-gated' if getattr(args, 'write_mode', 'level') == 'level' else getattr(args, 'write_mode', 'level')} arm: none is within 5% of float32 with < 1e4 total writes per device"
                           + (f" (closest: {min(pareto, key=lambda p: abs(p['gap_pct']))['name']} at {min(pareto, key=lambda p: abs(p['gap_pct']))['gap_pct']:+.1f}%)" if pareto else ""))
                        + (f". Nearest-pulse diagnostic (no level gate): {pulse['post_shift_loss']:.3f} ({pulse['gap_pct']:+.1f}%) at {pulse['writes_per_device_total']:.3g} writes/device = {100 * pulse['writes_per_device_total'] / 1e6:.2g}% endurance"
-                          + (": it MEETS both numbers of the criterion, so under the endurance budget the level gate is a cost without a benefit" if pulse.get("passes") else "") if pulse else "")}}
+                          + (": it MEETS both numbers of the criterion, so under the endurance budget the level gate is a cost without a benefit" if pulse.get("passes") else "") if (pulse and getattr(args, "write_mode", "level") == "level") else "")
+                       + (". Loss vs locality (write rule " + getattr(args, "write_mode", "level") + "): " + "; ".join(f"{l['arm']} [{l['locality']}] {l['post_shift_loss']:.3f} ({l['gap_pct_vs_float32']:+.1f}%)" for l in locality) if locality else "")}}
     print("E9 verdict:", out["verdict"]["statement"])
     save_results("e9", out, args.out)
     if not args.no_fig:
@@ -326,6 +341,16 @@ def plot(res, path):
     ref = s["sgd_float32"]["segment_end_loss_1"]["mean"]; ax[1].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08, label="float32 +-5 %")
     ax[1].set_xticks(x); ax[1].set_xticklabels(arms, rotation=20, fontsize=7); ax[1].set_ylabel("post-shift loss (Python, last 200 steps)"); ax[1].legend(fontsize=7)
     ax[1].set_title("post-shift loss per arm", fontsize=9)
+    if res.get("write_mode", "level") != "level" and res.get("locality"):
+        L = res["locality"]
+        ax[2].errorbar([l["locality"] for l in L], [l["post_shift_loss"] for l in L], [l["sem"] for l in L], marker="o", capsize=3, color="C0", label="BPU tiles")
+        ax[2].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08); ax[2].axhline(ref, color="k", ls="--", lw=0.8, label="float32 backprop ± 5 %")
+        ax[2].set_xticks([l["locality"] for l in L]); ax[2].set_xticklabels([l["arm"].replace("_bpu", "") for l in L])
+        ax[2].set_xlabel("locality: 0 backprop → 3 layer-local"); ax[2].set_ylabel("post-shift loss"); ax[2].legend(fontsize=7)
+        ax[2].set_title(f"loss vs locality ({res['write_mode']} writes)", fontsize=9)
+        fig.suptitle(res["verdict"]["statement"][:150], fontsize=7)
+        fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
+        print(f"[e9] figure {path}"); return
     # Pareto: post-shift loss vs total writes per device, one marker per arm, one point per theta
     cols = {"sgd_bpu": "C0", "fa_bpu": "C1", "dfa_bpu": "C2", "local_bpu": "C3", "sgd_bpu_pulse": "C4"}
     for p in res.get("pareto", []):

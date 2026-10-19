@@ -16,7 +16,11 @@ MODULES = {"e1": ("e1_gpt2_noise", "e1_gpt2_noise"), "e2": ("e2_grow_vs_rigl", "
            "e3_tracking": ("e3_tracking", "e3_tracking"), "e4_level": ("e4_ring_selforg", "e4_level"),
            "e4_level_capped": ("e4_ring_selforg", "e4_level_capped"), "e7_ref": ("e7_modularity", "e7_ref"),
            "e3_cue": ("e3_tracking", "e3_cue"), "e4_level_t1": ("e4_ring_selforg", "e4_level_t1"), "e4_level_t05": ("e4_ring_selforg", "e4_level_t05"),
-           "e4_level_t025": ("e4_ring_selforg", "e4_level_t025"), "e9_pulse": ("e9_trainability", "e9_pulse")}
+           "e4_level_t025": ("e4_ring_selforg", "e4_level_t025"), "e9_pulse": ("e9_trainability", "e9_pulse"),
+           # round three (2026-10-19): variability programme + nearest-pulse reruns
+           "e9_pareto": ("e9_trainability", "e9_pareto"), "e4_np": ("e4_ring_selforg", "e4_np"), "e5_selforg_np": ("e5_grid_selforg", "e5_selforg_np"),
+           "e6_k32": ("e6_memory", "e6_k32"), "e3_final": ("e3_tracking", "e3_final"), "e11": ("e11_regularization", "e11_regularization"),
+           "e12": ("e12_exploration", "e12_exploration"), "e13": ("e13_stochastic_resonance", "e13_stochastic_resonance"), "e14": ("e14_sampling", "e14_sampling")}
 
 if __name__ == "__main__":
     wanted = sys.argv[1:] or list(MODULES)

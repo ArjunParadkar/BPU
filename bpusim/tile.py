@@ -9,10 +9,17 @@ of devices ``(G+, G-)`` and a boolean mask ``A``::
 ``W_read`` is built from one fresh noisy read of both device arrays.
 ``update(dW)`` converts a desired weight change into signed pulse counts on
 the appropriate device of each pair and applies them with write noise.
-``accumulate(dW)`` is the write-budget path: changes are summed in a digital
-accumulator and a device is pulsed only when a whole conductance level is
-pending (stochastic rounding of the remainder), so writes are counted only on
-pulses; ``flush_rate`` and ``writes_per_device`` report the result.
+``accumulate(dW)`` is the learning-rule write path.  Default write rule
+``"nearest_pulse"`` (2026-10-19): requested changes are summed in a 16-bit
+digital accumulator that is flushed EVERY step as the nearest whole number of
+pulses; the nominal (noise-free) effect of those pulses is subtracted, the
+sub-pulse remainder stays.  The earlier ``"level"`` rule (pulse only when
+theta_flush conductance levels are pending, stochastic rounding) is kept as an
+option; under an endurance budget it was a cost without a benefit (E9, E4).
+Two more primitives (2026-10-19): ``set_noise(sigma_r)`` is the per-tile
+read-noise dial (the MODULATE primitive, range 0.005-0.2) and
+``set_dropout(p)`` makes every read drop each synapse with probability p.
+Both are logged in ``primitive_log``.
 """
 from __future__ import annotations
 
@@ -35,9 +42,14 @@ class Tile:
         Initial state of both devices of each pair (W starts at 0).
     """
 
+    WRITE_RULES = ("nearest_pulse", "level")
+    ACC_BITS = 16                       # digital accumulator resolution (signed, full scale = one weight unit)
+    MODULATE_RANGE = (0.005, 0.2)       # read-noise dial range (set_noise)
+
     def __init__(self, n_in: int, n_out: int, rng: np.random.Generator,
                  params: DeviceParams | None = None, mask=None, w_init: float = 0.0, tile_size: int = 32,
-                 levels: int | None = None, acc_rng: np.random.Generator | None = None):
+                 levels: int | None = None, acc_rng: np.random.Generator | None = None,
+                 write_rule: str = "nearest_pulse"):
         """A matrix larger than ``tile_size`` x ``tile_size`` is routed as several physical tiles
         (``n_tiles``); the device model is identical, the difference on hardware is the extra
         A/D conversions and routed events at tile boundaries, which ``conversions_per_read``
@@ -63,6 +75,14 @@ class Tile:
         self.n_acc_calls = 0          # accumulate() calls
         self.n_acc_writes = 0         # synapse write events produced by accumulate()
         self.acc_rng = acc_rng or rng  # stochastic rounding draws
+        assert write_rule in self.WRITE_RULES, write_rule
+        self.write_rule = write_rule
+        self.acc_step = 2.0 ** -(self.ACC_BITS - 1)   # 16-bit signed accumulator: 1 weight unit = 2^15 counts
+        # per-tile primitives (2026-10-19): read-noise dial and per-read synapse dropout, both logged
+        self.dropout = 0.0
+        self.n_reads = 0
+        self.primitive_log: list[dict] = []
+        self.n_modulate = 0
 
     # ----------------------------------------------------------------- views
     @property
@@ -88,8 +108,32 @@ class Tile:
         return self.n_active / self.A.size
 
     def W_read(self) -> np.ndarray:
-        """Weight matrix built from one fresh noisy read of both arrays."""
-        return self.A * (self.gp.read() - self.gm.read()) / self.G_scale
+        """Weight matrix built from one fresh noisy read of both arrays (plus the per-read dropout mask)."""
+        self.n_reads += 1
+        W = self.A * (self.gp.read() - self.gm.read()) / self.G_scale
+        if self.dropout > 0:
+            W = W * (self.rng.random(self.shape) >= self.dropout)
+        return W
+
+    # ------------------------------------------------------------ primitives
+    def set_noise(self, sigma_r: float) -> float:
+        """MODULATE primitive: set this tile's read-noise level (relative, per read).  The dial range is
+        ``MODULATE_RANGE``; values outside it are clipped and the clip is logged.  Returns the value set."""
+        lo, hi = self.MODULATE_RANGE
+        v = float(sigma_r); clipped = v < lo or v > hi
+        if v != 0.0:                       # 0 (dial off) is allowed for the reference arms
+            v = float(min(max(v, lo), hi))
+        self.p = self.p.replace(sigma_r=v)
+        self.gp.p = self.p; self.gm.p = self.p
+        self.n_modulate += 1
+        self.primitive_log.append({"primitive": "MODULATE", "read_index": self.n_reads, "sigma_r": v, "clipped": clipped})
+        return v
+
+    def set_dropout(self, p: float) -> None:
+        """DROPOUT primitive: from now on every read drops each synapse independently with probability p."""
+        assert 0.0 <= p < 1.0, p
+        self.dropout = float(p)
+        self.primitive_log.append({"primitive": "DROPOUT", "read_index": self.n_reads, "p": self.dropout})
 
     # ----------------------------------------------------------------- reads
     def read(self, x: np.ndarray) -> np.ndarray:
@@ -101,19 +145,23 @@ class Tile:
         return np.asarray(y) @ self.W_read().T
 
     # --------------------------------------------------------------- writes
-    def update(self, dW: np.ndarray, max_pulses: int | None = None) -> np.ndarray:
+    def update(self, dW: np.ndarray, max_pulses: int | None = None, return_nominal: bool = False, apply_gain: bool = True):
         """Apply a weight change through pulse counts on the differential pair.
 
         Positive dW potentiates G+ (and if G+ is saturated, depresses G-);
         negative dW does the mirror image.  Only masked-on synapses are
         written.  Returns the *realised* weight change (W_after - W_before),
-        so a caller accumulating sub-pulse changes can keep the residual.
+        so a caller accumulating sub-pulse changes can keep the residual;
+        with ``return_nominal`` also the *nominal* change (the noise-free,
+        gain-free effect of the pulse counts, which is all the digital side
+        knows without a read-back).
         ``self.n_writes`` counts synapses that received at least one pulse.
         """
-        dW = np.asarray(dW, float) * self.A * self.plasticity_gain
+        dW = np.asarray(dW, float) * self.A * (self.plasticity_gain if apply_gain else 1.0)
         W_before = self.W
         if not np.any(dW):
-            return np.zeros(self.shape)
+            z = np.zeros(self.shape)
+            return (z, z.copy()) if return_nominal else z
         wp, wm = self.gp.w, self.gm.w
         # desired change in state units (W = wp - wm for G_scale = G_range)
         pos = np.clip(dW, 0, None)
@@ -134,19 +182,72 @@ class Tile:
         if max_pulses is not None:
             n_p = np.clip(n_p, -max_pulses, max_pulses)
             n_m = np.clip(n_m, -max_pulses, max_pulses)
+        nominal = None
+        if return_nominal:
+            nominal = self.A * ((self.gp.nominal_state_after(n_p) - wp) - (self.gm.nominal_state_after(n_m) - wm))
         self.gp.pulse(n_p)
         self.gm.pulse(n_m)
         self.n_writes += int(((n_p != 0) | (n_m != 0)).sum())
-        return self.W - W_before
+        realised = self.W - W_before
+        return (realised, nominal) if return_nominal else realised
 
     @property
     def level(self) -> float:
         """One conductance level in weight units (= state units for a differential pair): 1 / L."""
         return 1.0 / self.levels
 
+    def _quantize_acc(self) -> None:
+        """Hold the accumulator at 16-bit signed fixed point (full scale = one weight unit)."""
+        np.clip(np.rint(self.acc / self.acc_step) * self.acc_step, -1.0 + self.acc_step, 1.0 - self.acc_step, out=self.acc)
+
     def accumulate(self, dW: np.ndarray, write_budget: float | None = None, dt: float | None = None,
-                   theta_flush: float = 1.0) -> np.ndarray:
-        """Accumulate-and-flush write (the write-budget mechanism).
+                   theta_flush: float | None = None, rule: str | None = None) -> np.ndarray:
+        """Learning-rule write through the digital accumulator; ``rule`` defaults to ``self.write_rule``.
+
+        **nearest_pulse** (default): ``acc += dW`` (16-bit), then the whole accumulator is requested
+        every step and realised as the nearest whole number of pulses per device; the nominal effect
+        of those pulses is subtracted (the digital side has no read-back), so the sub-pulse remainder
+        and the quantisation error carry over.  No threshold, no stochastic rounding.
+
+        **level** (the 2026-10-18 write budget, kept as an option): accumulate-and-flush at
+        ``theta_flush`` conductance levels (default 1.0) with stochastic rounding, as below.
+
+        ``write_budget`` (write events per device per second, with ``dt`` the call interval)
+        optionally caps the number of flushes per call to the largest accumulators (E4's quota).
+        Returns the realised weight change.
+        """
+        rule = rule or self.write_rule
+        if rule == "nearest_pulse":
+            return self._accumulate_nearest_pulse(dW, write_budget, dt)
+        return self._accumulate_level(dW, write_budget, dt, 1.0 if theta_flush is None else theta_flush)
+
+    def _accumulate_nearest_pulse(self, dW, write_budget, dt):
+        dW = np.asarray(dW, float) * self.A * self.plasticity_gain
+        self.acc += dW
+        self._quantize_acc()
+        self.n_acc_calls += 1
+        req = self.acc.copy()
+        if write_budget and dt:
+            # quota: only the n_allow largest pending changes may be written this call
+            self.write_credit = getattr(self, "write_credit", 0.0) + write_budget * 2 * self.A.size * dt
+            n_allow = int(self.write_credit)
+            cand = np.abs(req) > 0
+            if n_allow < cand.sum():
+                order = np.argsort(-np.abs(req).ravel())[:n_allow]
+                sel = np.zeros(self.A.size, bool); sel[order] = True
+                req = np.where(sel.reshape(self.shape), req, 0.0)
+        before = self.n_writes
+        realised, nominal = self.update(req, return_nominal=True, apply_gain=False)
+        self.acc -= nominal
+        self._quantize_acc()
+        self.n_acc_writes += self.n_writes - before
+        if write_budget and dt:
+            self.write_credit -= int((nominal != 0).sum())
+        return realised
+
+    def _accumulate_level(self, dW: np.ndarray, write_budget: float | None = None, dt: float | None = None,
+                          theta_flush: float = 1.0) -> np.ndarray:
+        """Accumulate-and-flush write (the 2026-10-18 write-budget mechanism).
 
         ``acc[i, j] += dW[i, j]`` in a digital accumulator; a synapse is considered for a write
         only when ``|acc| >= theta_flush`` conductance levels (one level = 1 / L; theta_flush in
@@ -179,7 +280,7 @@ class Tile:
         n_lv = n_int + (self.acc_rng.random(self.shape) < frac)
         flushed = np.where(gate & (n_lv > 0), np.sign(self.acc) * n_lv * lvl, 0.0)
         before = self.n_writes
-        realised = self.update(flushed)
+        realised = self.update(flushed, apply_gain=False)
         self.acc -= flushed
         self.n_acc_writes += self.n_writes - before
         if write_budget and dt:
@@ -225,7 +326,8 @@ class Tile:
         lifelong rate (writes per device per second against 6e-3)."""
         wpd = self.writes_per_device()
         rep = {"writes_per_device_total": wpd, "percent_of_endurance": 100.0 * wpd / self.ENDURANCE,
-               "flush_rate": self.flush_rate, "levels": self.levels}
+               "flush_rate": self.flush_rate, "levels": self.levels, "write_rule": self.write_rule,
+               "n_modulate": self.n_modulate, "dropout": self.dropout, "n_reads": self.n_reads}
         if seconds:
             per_tile_s = self.n_writes / self.n_tiles / seconds
             rep.update({"writes_per_tile_per_s": per_tile_s, "percent_of_tile_bandwidth": 100.0 * per_tile_s / self.TILE_BANDWIDTH,
@@ -257,3 +359,75 @@ class Tile:
 
     def __repr__(self):
         return f"Tile({self.n_in}x{self.n_out}, active={self.n_active}, |W|max={np.abs(self.W).max():.3f})"
+
+
+class FloatTile:
+    """The float32 REFERENCE substrate with the Tile interface (2026-10-19).
+
+    Weights are float32 with ideal (unquantised, noise-free) updates; every read injects the same
+    multiplicative Gaussian read noise ``sigma_r`` and the same per-read dropout as a Tile would, so
+    the variability experiments (E12-E14) run the identical algorithm on both substrates and the only
+    difference is the device physics (d2d / c2c, pulse quantisation, write-verify).  No writes are
+    counted (there are no devices)."""
+
+    MODULATE_RANGE = Tile.MODULATE_RANGE
+
+    def __init__(self, n_in: int, n_out: int, rng: np.random.Generator, sigma_r: float = 0.0, w_init: float = 0.0):
+        self.n_in, self.n_out = int(n_in), int(n_out)
+        self.rng = rng
+        self.W = np.full((self.n_in, self.n_out), float(w_init))
+        self.A = np.ones(self.W.shape, bool)
+        self.sigma_r = float(sigma_r)
+        self.dropout = 0.0
+        self.n_reads = 0; self.n_writes = 0; self.n_modulate = 0
+        self.primitive_log: list[dict] = []
+        self.write_rule = "float"
+
+    @property
+    def shape(self):
+        return self.W.shape
+
+    def W_read(self) -> np.ndarray:
+        self.n_reads += 1
+        W = self.W
+        if self.sigma_r > 0:
+            W = W * (1.0 + self.sigma_r * self.rng.standard_normal(self.shape))
+        if self.dropout > 0:
+            W = W * (self.rng.random(self.shape) >= self.dropout)
+        return W
+
+    def read(self, x):
+        return np.asarray(x) @ self.W_read()
+
+    def read_T(self, y):
+        return np.asarray(y) @ self.W_read().T
+
+    def update(self, dW, **kw):
+        before = self.W.copy()
+        self.W = np.clip(self.W + np.asarray(dW, float) * self.A, -1.0, 1.0)
+        return self.W - before
+
+    accumulate = update
+
+    def program(self, W_target, **kw) -> int:
+        self.W = np.clip(np.asarray(W_target, float), -1.0, 1.0).copy(); return 0
+
+    def set_noise(self, sigma_r: float) -> float:
+        lo, hi = self.MODULATE_RANGE
+        v = float(sigma_r); clipped = v != 0.0 and (v < lo or v > hi)
+        if v != 0.0:
+            v = float(min(max(v, lo), hi))
+        self.sigma_r = v; self.n_modulate += 1
+        self.primitive_log.append({"primitive": "MODULATE", "read_index": self.n_reads, "sigma_r": v, "clipped": clipped})
+        return v
+
+    def set_dropout(self, p: float) -> None:
+        assert 0.0 <= p < 1.0, p
+        self.dropout = float(p)
+        self.primitive_log.append({"primitive": "DROPOUT", "read_index": self.n_reads, "p": self.dropout})
+
+    def writes_per_device(self, seconds=None) -> float:
+        return 0.0
+
+    def write_budget_report(self, seconds=None) -> dict:
+        return {"writes_per_device_total": 0.0, "percent_of_endurance": 0.0, "write_rule": "float", "n_modulate": self.n_modulate}

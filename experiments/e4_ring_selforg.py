@@ -110,8 +110,9 @@ def main():
     ap.add_argument("--write-budget", type=float, default=0.0, help="endurance cap, write events per device per second (6e-3 = the technical document's budget)")
     ap.add_argument("--procs", type=int, default=1)
     ap.add_argument("--cue", type=str, default="sweep", choices=["sweep", "walk"])
-    ap.add_argument("--write-mode", type=str, default="threshold", choices=["threshold", "level"],
-                    help="level = accumulate-and-flush at one conductance level (the write budget mechanism)")
+    ap.add_argument("--write-mode", type=str, default="nearest_pulse", choices=["nearest_pulse", "threshold", "level"],
+                    help="nearest_pulse (default since 2026-10-19): 16-bit accumulator flushed every step as whole pulses; "
+                         "threshold: the original E4 rule; level: accumulate-and-flush at theta_flush conductance levels")
     ap.add_argument("--theta-flush", type=float, default=1.0, help="level mode: flush threshold in conductance levels (0.25, 0.5, 1.0)")
     ap.add_argument("--checkpoints", type=int, default=5)
     ap.add_argument("--null", type=int, default=20)
@@ -149,7 +150,8 @@ def main():
                                     f"{np.mean(occ):.1f}/8 bins of the ring on average (8 = a fully explored ring); "
                                     f"development {args.steps * 1e-3:.0f} s at {wpd:.3g} writes/device/s = {100 * wpd / 6e-3:.0f}% of the 6e-3 budget"
                                     + (f" (quota {args.write_budget:g})" if args.write_budget else " (no quota)")
-                                    + (f", accumulate-and-flush at theta_flush = {args.theta_flush:g} levels (L = {runs[0]['levels']}, flush rate {np.mean([r['flush_rate'] for r in runs]):.2g})" if args.write_mode == "level" else ", threshold writes")
+                                    + (f", accumulate-and-flush at theta_flush = {args.theta_flush:g} levels (L = {runs[0]['levels']}, flush rate {np.mean([r['flush_rate'] for r in runs]):.2g})" if args.write_mode == "level"
+                                       else f", nearest-pulse writes (16-bit accumulator flushed every step, flush rate {np.mean([r['flush_rate'] for r in runs]):.2g})" if args.write_mode == "nearest_pulse" else ", threshold writes")
                                     + f"; total {np.mean([r['budget']['writes_per_device_total'] for r in runs]):.3g} writes/device = {np.mean([r['budget']['percent_of_endurance'] for r in runs]):.2g}% of the 1e6 endurance, {np.mean([r['budget']['writes_per_tile_per_s'] for r in runs]):.3g} writes/tile/s = {np.mean([r['budget']['percent_of_tile_bandwidth'] for r in runs]):.2g}% of the 1e4 driver bandwidth."}}
     print("E4 verdict:", out["verdict"]["statement"])
     save_results("e4", out, args.out)

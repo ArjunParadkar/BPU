@@ -4,9 +4,11 @@ Substrate framing: the BPU is a substrate, so every row compares the SAME
 algorithm on (a) a float32 reference and (b) noisy BPU tiles; success = BPU
 matches the reference within the stated tolerance.  Local learning rules
 (FA, DFA, three-factor, growth) are additional arms, never the headline.
-The "Substrate claims" scoreboard has six rows (E9, E10, E8b, E3, E6, E7);
-the write-budget mechanism (E4, E9) is reported in its own box; the remaining
-experiments follow.  Every number is read from a results.json; nothing is
+Since 2026-10-19 a "Variability, used the way the brain uses it" scoreboard
+(E11 regularisation, E12 exploration, E13 stochastic resonance, E14 sampling:
+mechanism, brain analogue, hypothesis, result, status) comes first; then the
+"Substrate claims" scoreboard (E10, E9, E8b, E3-final, E6, E7); the write-budget
+box (E4, E9); the remaining experiments follow.  Every number is read from a results.json; nothing is
 typed in.  Usage: python scripts/make_results_page.py [--out results/index.html]
 """
 from __future__ import annotations
@@ -68,10 +70,74 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(RES / "index.html"))
     args = ap.parse_args()
-    names = ("e1", "e2", "e2_cifar", "e3", "e3_256", "e3_tracking", "e3_cue", "e4", "e4_capped", "e4_level_t1", "e4_level_t05", "e4_level_t025", "e4_level_capped", "e5", "e5_48", "e5_selforg32",
-             "e6", "e7", "e7_ref", "e7_3seeds", "e7_ref_3seeds", "e8", "e8b", "e9", "e9_pulse", "e10", "e9_v1", "e10_v1", "e8b_v1")
+    names = ("e1", "e2", "e2_cifar", "e3", "e3_256", "e3_tracking", "e3_cue", "e3_final", "e4", "e4_capped", "e4_np", "e4_level_t1", "e4_level_t05", "e4_level_t025", "e4_level_capped", "e5", "e5_48", "e5_selforg32", "e5_selforg_np",
+             "e6", "e6_k32", "e7", "e7_ref", "e7_3seeds", "e7_ref_3seeds", "e8", "e8b", "e9", "e9_pareto", "e9_pulse", "e10", "e9_v1", "e10_v1", "e8b_v1", "e11", "e12", "e13", "e14")
     R = {k: load(k) for k in names}
     e9, e10, e8b, e3t, e3c, e6 = R["e9"], R["e10"], R["e8b"], R["e3_tracking"], R["e3_cue"], R["e6"]
+    e3f, e9p, e4n, e5n, e11, e12, e13, e14 = R["e3_final"], R["e9_pareto"], R["e4_np"], R["e5_selforg_np"], R["e11"], R["e12"], R["e13"], R["e14"]
+    if e9 and e9.get("partial"):
+        e9 = None
+
+    # ------------------------------------------------------------------ variability scoreboard (E11-E14): mechanism, brain analogue, hypothesis, result, status
+    vrows = []
+    def vrow(mech, exp, analogue, hyp, result, status):
+        vrows.append([esc(mech), f"<span class='id'>{esc(exp)}</span>", esc(analogue), esc(hyp), esc(result), status])
+    # E11
+    if e11 and e11.get("hypotheses", {}).get("tiles", {}).get("complete"):
+        H = e11["hypotheses"]; S = e11["summary"]; t = H["tiles"]; f = H.get("float32", {})
+        a = t["sigma_star_val_clean"]; g = t["shift_gap_gap_clean"]
+        res = (f"tiles: σ* = {a['star']:g} (CI {a['ci95'][0]:g}..{a['ci95'][1]:g}; per-seed {a['per_seed_argmin']}), val loss " + ", ".join(f"σ {sg:g}: {fmt(S['tiles'][f'sigma={sg:g}']['val_clean']['mean'])}" for sg in e11["sigmas"]) +
+               f"; shift gap {g['gap_at_zero']:.3f} → {g['gap_at_max']:.3f} (slope {g['slope_per_unit_sigma']:+.2f}, CI {g['ci95'][0]:+.2f}..{g['ci95'][1]:+.2f}, {g['seeds_negative']}/{e11['seeds']} seeds narrowing)" +
+               (f"; dropout p* = {t['p_star_val_clean']['star']:g}" if "p_star_val_clean" in t else "") +
+               (f" | float32: σ* = {f['sigma_star_val_clean']['star']:g} (CI {f['sigma_star_val_clean']['ci95'][0]:g}..{f['sigma_star_val_clean']['ci95'][1]:g}), gap slope {f['shift_gap_gap_clean']['slope_per_unit_sigma']:+.2f}" if f.get("complete") else ""))
+        ok1, ok2 = e11["verdict"]["sigma_star_positive_with_ci"], e11["verdict"]["shift_gap_narrows_with_ci"]
+        st = chip("ok" if ok1 else "nul", "σ* > 0" if ok1 else "σ* = 0 / CI includes 0") + " " + chip("ok" if ok2 else "nul", "gap narrows" if ok2 else "gap not narrowing")
+        vrow("Regularisation: read noise / synapse dropout during training", "E11", "synaptic unreliability (release probability 0.1–0.9) as a built-in regulariser; dropout",
+             "val loss optimum at σ_r > 0; shift gap (Python after Shakespeare) narrows with σ_r", res, st)
+    else:
+        vrow("Regularisation: read noise / synapse dropout during training", "E11", "synaptic unreliability as a regulariser", "val loss optimum at σ_r > 0; shift gap narrows", "running" if e11 else "pending", chip("pend", "running"))
+    # E12
+    if e12 and "hypotheses" in e12:
+        S = e12["summary"]; H = e12["hypotheses"]
+        parts = []
+        for tk in e12["tasks"]:
+            h1 = H.get(f"{tk}|tiles|gated_vs_best_fixed"); h2 = H.get(f"{tk}|tiles|speed_exponent")
+            line = f"{tk} (tiles): " + ", ".join(f"{a} {S[tk]['tiles'][a]['median_trials']:.0f} ({S[tk]['tiles'][a]['reached_frac']:.0%})" for a in e12["arms"])
+            if h1:
+                line += f"; gated vs {h1['best_fixed']}: {h1['seeds_gated_faster']}/{e12['seeds']} seeds faster, p = {h1['sign_test_p']:.2g}"
+            if h2 and h2.get("exponent") is not None:
+                line += f"; speed ∝ σ^{h2['exponent']:.2f}" + (f" (CI {h2['ci95'][0]:.2f}..{h2['ci95'][1]:.2f})" if h2.get("ci95") else "")
+            parts.append(line)
+        n_win = e12["verdict"]["n_tasks_gated_wins_tiles"]
+        exps = [H[k] for k in H if k.endswith("speed_exponent") and "|tiles|" in k and H[k].get("exponent") is not None]
+        st = chip("ok" if n_win == len(e12["tasks"]) else "nul", f"gated wins {n_win}/{len(e12['tasks'])} tasks") + " " + (chip("ok" if all(x.get("consistent_with_2") for x in exps) else "nul", "σ² law" if all(x.get("consistent_with_2") for x in exps) else "not σ²") if exps else "")
+        vrow("Exploration: the noise dial as the probe of node-perturbation RL", "E12", "reward-gated song variability (songbird LMAN / dopamine); locus coeruleus gain control of variability",
+             "reward-gated schedule beats fixed σ; learning speed ∝ σ² at small σ", " || ".join(parts), st)
+    else:
+        vrow("Exploration: the noise dial as the probe of node-perturbation RL", "E12", "reward-gated variability (songbird LMAN)", "gated beats fixed; speed ∝ σ²", "running" if e12 else "pending", chip("pend", "running"))
+    # E13
+    if e13 and "verdict" in e13:
+        v = e13["verdict"]; V = e13["verdicts"]; head = [k for k in V if k.endswith("_tiles")][0]; hv = V[head]; ref = V.get(head.replace("_tiles", "_float32"))
+        res = (f"headline (0.8× threshold, τ_m 20 ms): SNR {hv['snr_at_zero']:.1f} dB at σ 0 → {hv['snr_at_star']:.1f} at σ* {hv['sigma_star']} (CI {hv['ci95'][0]}..{hv['ci95'][1]}) → {hv['snr_at_max']:.1f} at 0.2" +
+               (f"; float32 {ref['snr_at_zero']:.1f} → {ref['snr_at_star']:.1f} → {ref['snr_at_max']:.1f}" if ref else "") +
+               f"; beyond the dial (diagnostic, to 1.0): σ* {hv['beyond_dial']['sigma_star']}{' U-curve' if hv['beyond_dial']['u_curve'] else ''}" +
+               f" | grid (drive × τ_m): U-curve within the dial in {len(v['cells_with_u_curve'])}/{len(V)} cells, peak in [0.02, 0.06] in {len(v['cells_with_peak_in_band'])}" +
+               ("; " + ", ".join(f"{k.replace('_tiles', '')}: σ* {V[k]['sigma_star']}{'U' if V[k]['u_curve'] else ''}/beyond {V[k]['beyond_dial']['sigma_star']}{'U' if V[k]['beyond_dial']['u_curve'] else ''}" for k in V if k.endswith("_tiles") and k != head)))
+        st = chip("ok" if v["headline_u_curve"] else "nul", "U-curve" if v["headline_u_curve"] else "no U-curve in the dial") + " " + chip("ok" if v["headline_peak_in_band"] else "nul", "peak in band" if v["headline_peak_in_band"] else "peak not in [0.02, 0.06]")
+        vrow("Stochastic resonance: subthreshold periodic drive through a tile into LIF neurons", "E13", "SR in mechanoreceptors (crayfish, Douglass et al. 1993) and human tactile / visual detection",
+             "SNR vs σ_r is an inverted U with its peak in [0.02, 0.06]", res, st)
+    else:
+        vrow("Stochastic resonance: subthreshold periodic drive through a tile into LIF neurons", "E13", "SR in sensory neurons", "inverted U, peak in [0.02, 0.06]", "running" if e13 else "pending", chip("pend", "running"))
+    # E14
+    if e14 and "verdict" in e14:
+        v = e14["verdict"]; V = e14["verdicts"]
+        res = "; ".join(f"α {a:g}: tiles KL {V[f'alpha{a:g}_tiles']['kl_at_zero']:.2f} at σ 0 → {V[f'alpha{a:g}_tiles']['kl_min']:.3f} at σ* {V[f'alpha{a:g}_tiles']['sigma_star']} (CI {V[f'alpha{a:g}_tiles']['ci95'][0]}..{V[f'alpha{a:g}_tiles']['ci95'][1]}) → {V[f'alpha{a:g}_tiles']['kl_at_dial_max']:.3f} at 0.2; float32 σ* {V[f'alpha{a:g}_float32']['sigma_star']}, KL min {V[f'alpha{a:g}_float32']['kl_min']:.3f}" for a in e14["alphas"]) +               "; beyond the dial (to 1.0): " + ", ".join(f"α {a:g} σ* {V[f'alpha{a:g}_tiles']['sigma_star_beyond_dial']}, KL {V[f'alpha{a:g}_tiles']['kl_at_max']:.2f} at 1.0{' rises' if V[f'alpha{a:g}_tiles']['rises_beyond_dial'] else ''}" for a in e14["alphas"])
+        st = chip("ok" if v["deterministic_at_zero"] else "nul", "σ = 0 deterministic") + " " + chip("ok" if v["kl_min_at_positive_sigma_all_alphas"] else "nul", "KL min at σ > 0" if v["kl_min_at_positive_sigma_all_alphas"] else "KL min not at σ > 0") + " " + chip("ok" if v["same_sigma_star"] else "part", "one σ* for every α" if v["same_sigma_star"] else "σ* depends on α")
+        vrow("Sampling: attention retrieval from a 50/50 cue", "E14", "neural sampling: spontaneous / trial-to-trial variability as posterior samples (Fiser & Berkes 2010; Orbán 2016); perceptual bistability",
+             "σ = 0 always retrieves one pattern; KL to the Boltzmann posterior is minimal at σ > 0", res, st)
+    else:
+        vrow("Sampling: attention retrieval from a 50/50 cue", "E14", "neural sampling hypothesis", "KL minimum at σ > 0", "running" if e14 else "pending", chip("pend", "running"))
+    vscore = table_html(["Mechanism", "Exp", "Brain analogue", "Hypothesis", "Result (tiles; float32 reference)", "Status"], vrows)
     e7, e7r = R["e7"] or R["e7_3seeds"], R["e7_ref"] or R["e7_ref_3seeds"]
     e4, e4c, e4l, e4lc, e8 = R["e4"], R["e4_capped"], R["e4_level_t1"], R["e4_level_capped"], R["e8"]
     e4t = {"1.0": R["e4_level_t1"], "0.5": R["e4_level_t05"], "0.25": R["e4_level_t025"]}
@@ -107,14 +173,18 @@ def main():
         best = min(pareto, key=lambda p: abs(p["gap_pct"]))
         bpu = "; ".join(f"{p['name']} {fmt(p['post_shift_loss'])} ({pct(p['gap_pct'])}, {p['writes_per_device_total']:.3g} w/dev)" for p in sorted(pareto, key=lambda p: (p["arm"], -p["theta_flush"])))
         wbudget = f"closest: {best['name']} {wb(best['writes_per_device_total'])}; limit 1e4 writes/dev"
-        pd = e9.get("pulse_diagnostic")
-        if not pd and R["e9_pulse"]:
+        pd = e9.get("pulse_diagnostic") if e9.get("write_mode", "level") == "level" else None
+        if e9.get("locality"):
+            extra_loc = "loss vs locality: " + " → ".join(f"{l['arm'].replace('_bpu', '')} {fmt(l['post_shift_loss'])} ({pct(l['gap_pct_vs_float32'])})" for l in e9["locality"])
+        if not pd and R["e9_pulse"] and e9.get("write_mode", "level") == "level":
             ps = R["e9_pulse"]["summary"]["sgd_bpu_pulse"]
             pd = {"post_shift_loss": ps["segment_end_loss_1"]["mean"], "writes_per_device_total": ps.get("writes_per_device_total", {}).get("mean", ps["writes_per_device_per_s"]["mean"] * R["e9_pulse"]["seg"] * 3 * R["e9_pulse"]["step_seconds"])}
-        extra = f"nearest-pulse diagnostic: {fmt(pd['post_shift_loss'])} ({pct(100 * (pd['post_shift_loss'] / refv - 1))}) at {pd['writes_per_device_total']:.3g} writes/dev" if pd else ""
+        extra = f"nearest-pulse diagnostic: {fmt(pd['post_shift_loss'])} ({pct(100 * (pd['post_shift_loss'] / refv - 1))}) at {pd['writes_per_device_total']:.3g} writes/dev" if pd else (extra_loc if e9.get("locality") else "")
+        if e9p and "pareto" in e9p:
+            extra += f" | round-two level-gated Pareto (results/e9_pareto): " + "; ".join(f"{p['name']} {fmt(p['post_shift_loss'])} ({pct(p['gap_pct'])})" for p in e9p["pareto"] if p["arm"] == "sgd_bpu")
         ok = e9["verdict"]["success"]
-        st = chip("ok" if ok else "nul", "criterion met" if ok else "not met") + " " + chip("part", f"θ_flush ∈ {e9.get('thetas', [1.0])}")
-        rows.append(("Trainable where an FPGA is frozen", "E9", ref, bpu, wbudget, "within 5 % of float32 at any θ with < 1e4 total writes/device", extra, st))
+        st = chip("ok" if ok else "nul", "criterion met" if ok else "not met") + " " + chip("part", f"{e9.get('write_mode', 'level')} writes, {e9['seeds']} seeds")
+        rows.append(("Trainable where an FPGA is frozen", "E9", ref, bpu, wbudget, "within 5 % of float32 with < 1e4 total writes/device; loss vs locality", extra, st))
     else:
         rows.append(("Trainable where an FPGA is frozen", "E9", "pending", "pending", "–", "within 5 %, < 1e4 writes/device", "", chip("pend", "running")))
     # 3. E8b
@@ -131,8 +201,18 @@ def main():
         rows.append(("Cheaper per token than a GPU", "E8b", ref, bpu, "inference: no writes", "nJ/token at ≤ 2 % loss", extra, st))
     else:
         rows.append(("Cheaper per token than a GPU", "E8b", "pending", "pending", "–", "nJ/token", "", chip("pend", "running")))
-    # 4. E3 cue sweep (pinned regime) with the omega sweep as the second line
-    if e3c and "pinned_regime" in e3c:
+    # 4. E3-final (mismatch 0.2 / 0.3, cue 0.02 / 0.05), then the cue sweep, then the omega sweep
+    if e3f and "pinned_regime" in e3f:
+        pr = e3f["pinned_regime"]; sw = e3f["sweeps"]
+        ref = "; ".join(f"cue {a:g} ω {o:g}: {fmt(sw[f'amp{a:g}_omega{o:g}_float32']['0.0']['track_err']['mean'])} rad" for a in e3f["cue_amps"] for o in e3f["omegas"] if f"amp{a:g}_omega{o:g}_float32" in sw)
+        bpu = "; ".join(f"{k.replace('amp', 'cue ').replace('_omega', ' ω').replace('_bpu_mismatch', ' mm ')}: {fmt(v['err_sigma0'])}" + (" PINNED" if v["fails"] else "") for k, v in pr.items())
+        n_p, n_u = e3f["verdict"]["n_pinned"], e3f["verdict"]["n_u_shaped_among_pinned"]
+        extra = f"σ = 0 pinned fraction {n_p}/{len(pr)}; U-shaped among pinned: {n_u}" + ("" if n_p else "; no pinning up to 30 % mismatch: attractor robustness is the result") + \
+                (f"; cue sweep at ω 0.5 (results/e3_cue): {e3c['verdict']['n_pinned']}/{len(e3c['pinned_regime'])} pinned" if e3c and "pinned_regime" in e3c else "") + \
+                (f"; ω sweep at cue 0.1 (results/e3_tracking): {e3t['verdict']['n_u_shaped']}/{e3t['verdict']['n_conditions']} U-shaped" if e3t and "n_u_shaped" in e3t.get("verdict", {}) else "")
+        rows.append(("Attractor noise optimum (moving cue, E3-final)", "E3", ref, bpu, "no writes (read noise only)", "σ = 0 pinned fraction; U-test only where pinned", extra,
+                     chip("nul" if n_p == 0 else "part", "no pinning up to 30 % mismatch" if n_p == 0 else f"{n_p} pinned, {n_u} U-shaped")))
+    elif e3c and "pinned_regime" in e3c:
         pr = e3c["pinned_regime"]; sw = e3c["sweeps"]
         ref = "; ".join(f"cue {a:g}: {fmt(sw[f'amp{a:g}_omega{e3c['omegas'][0]:g}_float32']['0.0']['track_err']['mean'])} rad" for a in e3c["cue_amps"] if f"amp{a:g}_omega{e3c['omegas'][0]:g}_float32" in sw)
         bpu = "; ".join(f"{k.replace('amp', 'cue ').replace('_omega', ' ω').replace('_bpu_mismatch', ' mm ')}: {fmt(v['err_sigma0'])}" + (" PINNED" if v["fails"] else "") for k, v in pr.items())
@@ -151,7 +231,7 @@ def main():
         bpu = "; ".join(f"{m}: " + "/".join(str(caps[m][str(s)]) for s in e6["sigmas"][1:]) for m in e6["methods"])
         same = all(caps["attention"][str(s)] >= caps["attention"]["0.0"] for s in e6["sigmas"] if s <= 0.04)
         rows.append(("Memory + attention under noise", "E6", ref + " pairs @90 %", bpu + f" (σ = {', '.join(str(s) for s in e6['sigmas'][1:])})", "programmed once (write-verify)", "capacity on tiles matches σ = 0 up to σ = 0.04; K = 1 unit test",
-                     f"{100 * e6.get('flip_fraction', 0):.0f} % flipped cues, {e6['seeds']} seeds, sign ties random, test_hopfield_k1 passes", chip("ok" if same else "nul", "attention holds" if same else "attention drops")))
+                     f"K grid {min(e6['counts'])}..{max(e6['counts'])}, {100 * e6.get('flip_fraction', 0):.0f} % flipped cues, {e6['seeds']} seeds, sign ties random, test_hopfield_k1 passes" + (f"; earlier grid to 32 in results/e6_k32" if R["e6_k32"] else ""), chip("ok" if same else "nul", "attention holds" if same else "attention drops")))
     # 6. E7 with the noise-assisted-growth test
     if e7 and "summary" in e7:
         s = e7["summary"]
@@ -187,6 +267,7 @@ def main():
         wps = r.get("writes_per_device_per_s", sum(x["writes_per_device_per_s"] for x in r["runs"]) / len(r["runs"]))
         wb_rows.append([esc(lab), f"{tot:.3g} ({100 * tot / 1e6:.2g} %)", f"{tile_s:.3g} ({100 * tile_s / 1e4:.2g} %)" if b else "–", f"{wps:.3g} ({100 * wps / 6e-3:.0f} %)",
                         f"{r['verdict']['certified_fraction']:.0%} certified ({r['verdict']['control_certified_fraction']:.0%} controls)", f"{r['development_time_s']:.0f} s"])
+    e4row("E4 nearest-pulse writes (default since 2026-10-19), 20 seeds", e4n)
     e4row("E4 threshold writes (weekend)", e4); e4row("E4 quota 6e-3, threshold writes (weekend)", e4c)
     for th in ("1.0", "0.5", "0.25"):
         e4row(f"E4 accumulate-and-flush θ_flush = {th}", e4t[th])
@@ -222,8 +303,11 @@ def main():
                 e5["verdict"]["statement"] += " || " + R[extra]["verdict"]["statement"]
     other.append(("Accelerator parity (nanoGPT on tiles)", "E8", (f"noise-aware tiles within {fmt(e8['verdict']['worst_noise_aware_gap_pct_at_sigma_le_0.06'], 2)} % of ideal at σ ≤ 0.06, {e8['seeds']} seeds" if e8 else "pending"),
                   chip("ok", "criterion met") if e8 and e8["verdict"]["success"] else chip("pend", "pending")))
-    other.append(("Ring self-organises within the write budget", "E4", (e4l["verdict"]["statement"] if e4l else "pending") + (" || " + e4lc["verdict"]["statement"] if e4lc else ""),
-                  chip("nul" if e4lc and e4lc["verdict"]["certified_fraction"] == 0 else "part", f"{e4lc['verdict']['certified_fraction']:.0%} certified at budget" if e4lc else "running")))
+    other.append(("Ring self-organises (nearest-pulse writes, 20 seeds)", "E4", (e4n["verdict"]["statement"] if e4n else "pending") + (" || level θ = 1: " + e4l["verdict"]["statement"] if e4l else ""),
+                  chip("ok" if e4n and e4n["verdict"]["certified_fraction"] >= 0.5 else "part", f"{e4n['verdict']['certified_fraction']:.0%} certified, {e4n['writes_per_device_total']:.3g} writes/dev" if e4n else "running")))
+    if e5n:
+        other.append(("Grid self-organisation (nearest-pulse writes, 5 seeds)", "E5", e5n["verdict"]["statement"], chip("nul" if all(d["trained_torus_fraction"] == 0 for d in e5n["sheets"].values()) else "part",
+                      "; ".join(f"{k}: {d['trained_torus_fraction']:.0%} self-organised, {d['reference_torus_fraction']:.0%} programmed" for k, d in e5n["sheets"].items()))))
     other.append(("Attractor noise optimum (static drift, weekend)", "E3", R["e3"]["verdict"]["statement"] if R["e3"] else "pending", chip("nul", f"{R['e3']['verdict']['n_u_shaped']}/{R['e3']['verdict']['n_conditions']} U-shaped") if R["e3"] else chip("pend", "pending")))
     other.append(("Grid module is a torus", "E5", e5["verdict"]["statement"] if e5 else "pending", chip("part", "programmed refs certify; self-org fails") if e5 else chip("pend", "pending")))
     other.append(("Local grow rule vs RigL", "E2", (e2["verdict"]["statement"] if e2 else "") + (" | CIFAR-10 3 %: " + e2c["verdict"]["statement"] if e2c else ""),
@@ -233,6 +317,41 @@ def main():
 
     # ------------------------------------------------------------------ sections
     secs = []
+    if e11 and e11.get("summary"):
+        S = e11["summary"]; H = e11.get("hypotheses", {})
+        facts = [(f"tiles val (clean) σ {sg:g}", fmt(S["tiles"].get(f"sigma={sg:g}", {}).get("val_clean", {}).get("mean"))) for sg in e11["sigmas"]] + \
+                [(f"tiles val (clean) dropout {pd:g}", fmt(S["tiles"].get(f"dropout={pd:g}", {}).get("val_clean", {}).get("mean"))) for pd in e11["dropouts"]]
+        notes = [f"nanoGPT 2.7M trained from scratch for {e11['steps']} steps (batch {e11['batch']} × {e11['block']}) on {100 * e11['train_frac']:.0f} % of the Shakespeare training split (small-data regime, the model overfits), {e11['seeds']} seeds; read noise is the only device noise (d2d = c2c = 0), set through the MODULATE primitive; dropout = per-read synapse failure; tiles use nearest-pulse writes and the layer-accumulate 8-bit read-out, the float32 reference injects the same noise on float weights.",
+                 "Val loss is read both as deployed (noise on) and clean (noise off); the shift gap is loss(Python source) − loss(Shakespeare val)."]
+        if H.get("tiles", {}).get("complete"):
+            t = H["tiles"]
+            notes.append(f"σ* on tiles: clean {t['sigma_star_val_clean']['star']:g} (bootstrap distribution {t['sigma_star_val_clean']['boot_distribution']}), as deployed {t['sigma_star_val_noisy']['star']:g}; shift-gap slope (clean) {t['shift_gap_gap_clean']['slope_per_unit_sigma']:+.2f} (CI {t['shift_gap_gap_clean']['ci95'][0]:+.2f}..{t['shift_gap_gap_clean']['ci95'][1]:+.2f}).")
+        if e11.get("twin_gap"):
+            notes.append("Twin gap tiles vs float32 (val, clean read): " + ", ".join(f"{k} {pct(v['val_clean_gap_pct'])}" for k, v in e11["twin_gap"].items()))
+        secs.append(section("e11", "E11 · regularisation", "Read noise and synapse dropout as regularisers, tiles vs float32", "e11_regularization.png", facts, e11["verdict"]["statement"], notes))
+    if e12 and "summary" in e12:
+        S = e12["summary"]
+        facts = [(f"{tk}/{sub} {a}", f"{S[tk][sub][a]['median_trials']:.0f} ({S[tk][sub][a]['reached_frac']:.0%})") for tk in e12["tasks"] for sub in ("tiles", "float32") for a in e12["arms"]]
+        notes = [f"2-layer policy (32 hidden units with a tonic drive) on tiles / float32, greedy on a noisy read; two renditions per context with independent read noise, update η (R_A − R_B)(e_A − e_B) with e = Σ x_pre ξ_post (ξ = deviation from the noise-free read), presynaptic normalisation; η = {e12['eta']}, {e12['trials']} pairs per run, {e12['seeds']} seeds; dial schedule changes are MODULATE events.",
+                 "Flip rate = fraction of decisions that differ from the noise-free decision (the actual exploration rate): " + "; ".join(f"{tk}/{sub} {a} {S[tk][sub][a]['flip_rate']['mean']:.3f}" for tk in e12["tasks"] for sub in ("tiles",) for a in e12["arms"]),
+                 "Why two renditions: a single-rendition rule with a running-mean or linear-critic baseline ended at or below chance on the bandit at every σ up to 1.0 (greedy selection biases the chosen arm's noise sample; see DECISIONS.md)."]
+        secs.append(section("e12", "E12 · exploration", "Noise-dial schedules for node-perturbation RL on a bandit and a grid", "e12_exploration.png", facts[:16], e12["verdict"]["statement"], notes))
+    if e13 and "verdicts" in e13:
+        V = e13["verdicts"]
+        facts = [(k, f"σ* {v['sigma_star']} ({v['snr_at_zero']:.0f}→{v['snr_at_star']:.0f}→{v['snr_at_max']:.0f} dB)" + (" U" if v["u_curve"] else "")) for k, v in V.items()]
+        notes = [f"N = {e13['N']} LIF neurons (τ_m, threshold 1, dt 1 ms), one device each on a 1 × 64 tile programmed to 0.8; drive {e13['f_drive']:g} Hz with its crest at the stated fraction of threshold; {e13['T']:g} s records, {e13['seeds']} seeds; SNR = power at the drive frequency over the mean power in the surrounding 2 Hz band (population spike train).",
+                 "The membrane low-passes per-read noise by √(dt / 2τ_m) ≈ 0.16 at τ_m = 20 ms, so the dial's range (≤ 0.2) gives ≤ 0.025 of membrane noise against a 0.2 gap: the diagnostic grid over drive × τ_m and the beyond-dial levels (0.3–1.0, not a chip setting) locate the resonance."]
+        secs.append(section("e13", "E13 · stochastic resonance", "LIF row driven by a subthreshold sinusoid through a tile", "e13_stochastic_resonance.png", facts, e13["verdict"]["statement"], notes))
+    if e14 and "verdicts" in e14:
+        V = e14["verdicts"]
+        facts = [(k, f"KL {v['kl_at_zero']:.2f}→{v['kl_min']:.3f} at σ* {v['sigma_star']}") for k, v in V.items()]
+        notes = [f"N = {e14['N']}, P = {e14['P']} stored ±1 patterns, β = {e14['beta']}, cue = α x_a + (1 − α) x_b, {e14['trials']} trials per cue × 4 cue pairs, {e14['seeds']} seeds; posterior = softmax_μ(β x_μ · cue); KL(posterior ‖ retrieval frequencies) with Laplace smoothing; the tiles carry d2d / c2c and write-verify, the float32 reference the same read noise on float weights."]
+        secs.append(section("e14", "E14 · sampling", "Attention retrieval from ambiguous cues: retrieval frequencies vs the Boltzmann posterior", "e14_sampling.png", facts, e14["verdict"]["statement"], notes))
+    if e3f and "pinned_regime" in e3f:
+        pr = e3f["pinned_regime"]
+        facts = [(k.replace("amp", "cue ").replace("_omega", " ω").replace("_bpu_mismatch", " mm "), f"σ=0: {fmt(v['err_sigma0'])} vs ref {fmt(v['ref_err_sigma0'])}" + (" PINNED" if v["fails"] else "")) for k, v in pr.items()]
+        secs.append(section("e3f", "E3-final · mismatch 0.2 / 0.3, cue 0.02 / 0.05", f"ω = {e3f['omegas']}, {e3f['seeds']} seeds; U-test only where σ = 0 is pinned", "e3_final.png", facts[:12], e3f["verdict"]["statement"],
+                            ["U-test per pinned condition: " + "; ".join(f"{k}: {e3f['verdicts'][k]['statement']}" for k, v in pr.items() if v["fails"]) if any(v["fails"] for v in pr.values()) else "No condition is pinned at σ = 0 (every tile error within 1.5× the float32 reference): no pinning up to 30 % mismatch; attractor robustness is the result."], src="e3_final"))
     if e10 and "twins" in e10:
         S = e10["summary"]; tw = e10["twins"]; HL = e10.get("headline_arms", e10["arms"] + ["joint"])
         facts = [(f"{a} float32 / BPU", f"{fmt(tw[a]['float32'])} / {fmt(tw[a]['bpu'])}") for a in HL] + \
@@ -248,8 +367,8 @@ def main():
         s = e9["summary"]
         facts = [(f"{a}: post-shift loss", fmt(s[a]["segment_end_loss_1"]["mean"])) for a in e9["arms"]] + \
                 [(f"{a}: total writes/dev", f"{s[a].get('writes_per_device_total', {}).get('mean', float('nan')):.3g}") for a in e9["arms"] if a not in ("sgd_float32", "frozen")]
-        secs.append(section("e9", "E9 · trainability under drift", "Pareto: post-shift loss vs total writes per device, θ_flush ∈ {0.25, 0.5, 1}", "e9_trainability.png", facts, e9["verdict"]["statement"],
-                            [f"Stream: {e9['seg']} steps Shakespeare → {e9['seg']} Python source → {e9['seg']} Shakespeare, batch {e9['batch']}, {e9['seeds']} seeds, σ_eff = {e9['sigma']}, accumulate-and-flush writes at L = 25 levels, chip time {e9['step_seconds']} s/step (assumption).",
+        secs.append(section("e9", "E9 · trainability under drift", ("Loss vs locality with nearest-pulse writes" if e9.get("write_mode", "level") != "level" else "Pareto: post-shift loss vs total writes per device, θ_flush ∈ {0.25, 0.5, 1}"), "e9_trainability.png", facts, e9["verdict"]["statement"],
+                            [f"Stream: {e9['seg']} steps Shakespeare → {e9['seg']} Python source → {e9['seg']} Shakespeare, batch {e9['batch']}, {e9['seeds']} seeds, σ_eff = {e9['sigma']}, {e9.get('write_mode', 'level')} writes, chip time {e9['step_seconds']} s/step (assumption)." + (" The round-two level-gated Pareto run is kept in results/e9_pareto (figures/e9_pareto.png)." if e9p else ""),
                              (f"Diagnostic arm (results/e9_pulse): the same SGD on tiles with the legacy nearest-pulse writes reaches {fmt(R['e9_pulse']['summary']['sgd_bpu_pulse']['segment_end_loss_1']['mean'])} post-shift at {R['e9_pulse']['summary']['sgd_bpu_pulse']['percent_of_budget']['mean']:.0f} % of the budget: device noise costs about 1 %, the level gate costs the rest and buys a 50x lower write rate." if R["e9_pulse"] else ""),
                              "Recovery steps after each switch (per seed): " + "; ".join(f"{a} {s[a]['recovery_steps_after_switch']}" for a in e9["arms"])]))
     if e8b and "table_3x2" in e8b:
@@ -293,16 +412,20 @@ def main():
                                  ("recall bits " + " / ".join(kinds), " / ".join(fmt(s["recall_bit_acc"][k]["mean"], 2) for k in kinds)),
                                  ("composite gap, matched synapses+steps", f"{s['transfer_gap']['mean']:+.2f}"), ("composite gap, continued", f"{s['transfer_gap_continued']['mean']:+.2f}" if "transfer_gap_continued" in s else "–")],
                                 r["verdict"]["statement"], src=eid))
-    if any(e4t.values()) or e4lc:
-        facts = [(f"θ_flush = {th}", f"{r['verdict']['certified_fraction']:.0%} certified, {r.get('writes_per_device_total', r['runs'][0]['writes_per_device_per_s'] * r['development_time_s']):.3g} writes/dev") for th, r in e4t.items() if r]
+    if any(e4t.values()) or e4lc or e4n:
+        facts = ([("nearest-pulse (default), 20 seeds", f"{e4n['verdict']['certified_fraction']:.0%} certified, {e4n['writes_per_device_total']:.3g} writes/dev")] if e4n else []) + \
+                [(f"θ_flush = {th}", f"{r['verdict']['certified_fraction']:.0%} certified, {r.get('writes_per_device_total', r['runs'][0]['writes_per_device_per_s'] * r['development_time_s']):.3g} writes/dev") for th, r in e4t.items() if r]
         facts += [("θ = 1 + quota 6e-3", f"{e4lc['verdict']['certified_fraction']:.0%} certified")] if e4lc else []
         facts += [("threshold writes (weekend)", f"{e4['verdict']['certified_fraction']:.0%} certified, {sum(x['writes_per_device_per_s'] for x in e4['runs']) / len(e4['runs']) * e4['development_time_s']:.3g} writes/dev")] if e4 else []
-        secs.append(section("e4", "E4 · ring self-organisation under the write budget", "Accumulate-and-flush at θ_flush ∈ {0.25, 0.5, 1} levels", "e4_level_t1.png", facts,
-                            " || ".join(f"θ = {th}: " + r["verdict"]["statement"] for th, r in e4t.items() if r), src="e4_level_t1"))
+        secs.append(section("e4", "E4 · ring self-organisation", "Nearest-pulse writes (20 seeds) and the round-two accumulate-and-flush θ_flush ∈ {0.25, 0.5, 1}", "e4_np.png" if e4n else "e4_level_t1.png", facts,
+                            (("nearest-pulse: " + e4n["verdict"]["statement"] + " || ") if e4n else "") + " || ".join(f"θ = {th}: " + r["verdict"]["statement"] for th, r in e4t.items() if r), src="e4_np" if e4n else "e4_level_t1"))
     if e8:
         s = e8["summary"]
         secs.append(section("e8", "E8 · accelerator parity", "nanoGPT on noisy tiles (weekend result)", "e8_nanogpt_tiles.png",
                             [(f"noise-aware gap at σ={sg}", pct(s[str(sg)]["noise_aware_gap_pct"]["mean"], 2)) for sg in e8["sigmas"]], e8["verdict"]["statement"]))
+    if e5n:
+        secs.append(section("e5n", "E5 · grid self-organisation (nearest-pulse writes)", f"{e5n['seeds']} seeds, {e5n['dev_steps']} development steps", "e5_selforg_np.png",
+                            [(f"{spec} self-organised / programmed / control", f"{d['trained_torus_fraction']:.0%} / {d['reference_torus_fraction']:.0%} / {d['control_torus_fraction']:.0%}") for spec, d in e5n["sheets"].items()], e5n["verdict"]["statement"], src="e5_selforg_np"))
     if e5:
         secs.append(section("e5", "E5 · grid module torus", "Programmed Burak–Fiete reference first", "e5_grid_selforg.png",
                             [(f"{spec} programmed reference", f"{d['reference_torus_fraction']:.0%}") for spec, d in e5["sheets"].items()], e5["verdict"]["statement"]))
@@ -324,16 +447,18 @@ figure{{margin:0;background:var(--bg-2);border:1px solid var(--rule);border-radi
 ul{{margin:0;padding-left:20px;max-width:80ch;display:grid;gap:6px}}li::marker{{color:var(--accent-2)}}.verdict{{border-left:3px solid var(--accent-2);padding:8px 14px;font-family:var(--display);font-size:16px;line-height:1.4;max-width:80ch}}.verdict small{{display:block;font-family:var(--mono);font-size:11px;color:var(--fg-2);margin-top:6px}}.muted{{color:var(--fg-2);font-family:var(--mono);font-size:13px}}
 footer{{padding-block:24px;font-family:var(--mono);font-size:12px;color:var(--fg-2)}}
 </style>
-<div class="wrap"><header><div class="eyebrow">BrAIn Processing Unit · simulator results · substrate framing</div><h1>The BPU is a substrate: same algorithm, float32 vs noisy tiles</h1>
-<p>Every row compares the same algorithm on a float32 reference and on noisy BPU tiles; success means the tiles match the reference within the stated tolerance. Local learning rules are additional arms, never the headline. Every number is read from <code>results/&lt;e&gt;/results.json</code>; BPU energy numbers are projections from the device model, the GPU control is measured.</p>
+<div class="wrap"><header><div class="eyebrow">BrAIn Processing Unit · simulator results · variability + substrate framing</div><h1>Variability, used the way the brain uses it — on a substrate that matches float32</h1>
+<p>The first scoreboard asks whether device variability does work for the computation (regularisation, exploration, stochastic resonance, sampling), each row with its brain analogue, the pre-registered hypothesis and the measured result; the read-noise dial (MODULATE), per-read dropout, nearest-pulse writes and the layer-accumulate 8-bit read-out are the four architecture changes of 2026-10-19. The second scoreboard keeps the substrate framing: the same algorithm on a float32 reference and on noisy tiles. Every number is read from <code>results/&lt;e&gt;/results.json</code>; BPU energy numbers are projections from the device model, the GPU control is measured.</p>
 <div class="meta">generated {time.strftime("%Y-%m-%d %H:%M")} · repo ~/Desktop/Arenda_Projects/BrAInOS/bpusim · DECISIONS.md has every choice · MONDAY.md has the HPCC queue</div></header>
+<section id="variability"><div class="eyebrow">Variability, used the way the brain uses it</div><h2>Four mechanisms, E11–E14: mechanism, brain analogue, hypothesis, result, status</h2>{vscore}
+<p class="muted">tiles carry the device model (nearest-pulse writes, d2d / c2c where stated, write-verify); the float32 reference runs the identical algorithm with the same read noise or dropout injected on float weights. The dial's range is 0.005–0.2; "beyond the dial" levels are diagnostics, not chip settings.</p></section>
 <section id="scoreboard"><div class="eyebrow">Substrate claims</div><h2>Six rows, reference first; budget = total writes per device against the 1e6 endurance</h2>{score}
 <p class="muted">tolerances are the ones written into each experiment's docstring and verdict block.</p></section>
 <section id="writes"><div class="eyebrow">Write budget</div><h2>Accumulate-and-flush: writes only on whole conductance levels</h2>{wbox}
 <p class="muted">a device is pulsed only when its digital accumulator holds θ_flush conductance levels (1/L, L = round(1/σ_eff)); the remainder is rounded stochastically. Budget: endurance = total writes per device over the run against 1e6; driver bandwidth = writes per physical tile per second against 1e4; the old 6e-3 writes/device/s is kept as the "lifelong rate" for reference.</p></section>
 <section id="other"><div class="eyebrow">Other rows</div><h2>Remaining experiments</h2>{otab}</section>
 {"".join(secs)}
-<footer>bpusim · substrate programme 2026-10-18 · figures by scripts/make_figures.py · page by scripts/make_results_page.py</footer></div>'''
+<footer>bpusim · variability programme 2026-10-19 on the substrate programme 2026-10-18 · figures by scripts/make_figures.py · page by scripts/make_results_page.py</footer></div>'''
     out = pathlib.Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")
     print(f"wrote {out} ({len(secs)} sections)")

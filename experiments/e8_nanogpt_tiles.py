@@ -35,7 +35,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from common import base_parser, save_results, figure_path, Timer, ROOT
-from bpusim.torchtile import TileLinear, TileOptimizer, OpCounter, tile_attention, tile_modules
+from bpusim.torchtile import TileLinear, TileOptimizer, OpCounter, tile_attention, tile_modules, ReadoutSpec
 from bpusim.noise import summarize
 
 SIGMAS = [0.0, 0.02, 0.04, 0.06, 0.10]
@@ -76,7 +76,14 @@ class Block(nn.Module):
         self.fc = TileLinear(d, 4 * d, **kw)
         self.fc2 = TileLinear(4 * d, d, **kw)
         self.sigma = sigma; self.counter = counter
-        self.readout = None          # ReadoutSpec for the attention reads (E8b)
+        # attention-cache noise follows the tiles' noise split (d2d, c2c, read): cache writes carry the c2c
+        # share, cache reads the read share (equal split: sigma / sqrt(3) each, as before)
+        sp = np.asarray((tile_kw or {}).get("split", (1.0, 1.0, 1.0)), float); sp = sp / max(np.linalg.norm(sp), 1e-12)
+        self.attn_sigma_w = float(sigma) * float(sp[1]) if sigma is not None else 0.0
+        self.attn_sigma_r = float(sigma) * float(sp[2]) if sigma is not None else 0.0
+        # ReadoutSpec for the attention reads: the architecture default (layer-accumulate 8-bit) on device
+        # tiles, None on the ideal model; E8b overrides it per cell with set_readout
+        self.readout = ReadoutSpec.default() if (sigma is not None and (tile_kw or {}).get("write_mode") != "float" and (tile_kw or {}).get("readout", "default") == "default") else None
 
     def attn(self, x):
         B, T, C = x.shape
@@ -90,8 +97,7 @@ class Block(nn.Module):
             # backward was found to be wrong on this laptop's RTX 5070 (DECISIONS.md), and T = 128 is small
             y = tile_attention(q, k, v, sigma_w=0.0, sigma_r=0.0, counter=None, causal=True)
         else:
-            s = self.sigma / math.sqrt(3)
-            y = tile_attention(q, k, v, sigma_w=s, sigma_r=s, counter=self.counter, causal=True, readout=self.readout, site=f"attn{id(self)}")
+            y = tile_attention(q, k, v, sigma_w=self.attn_sigma_w, sigma_r=self.attn_sigma_r, counter=self.counter, causal=True, readout=self.readout, site=f"attn{id(self)}")
         return self.proj(y.transpose(1, 2).reshape(B, T, C))
 
     def forward(self, x):

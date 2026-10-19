@@ -801,3 +801,126 @@ results that were superseded are kept under `results/e9_v1`, `results/e10_v1`,
   old per-second lifelong rate.  The remaining real limit is the driver bandwidth
   (writes per tile per second), which the pulse-write run exceeds during the first steps
   after a switch; that number is in the JSON (`budget.writes_per_tile_per_s`) for every arm.
+
+## Round three (2026-10-19): variability, used the way the brain uses it
+
+### Four architecture changes (`bpusim/tile.py`, `device.py`, `torchtile.py`) and their biological analogues
+1. **Write rule default = nearest_pulse.**  `Tile.accumulate` / `TileLinear(write_mode=
+   "nearest_pulse")`: the requested change goes into a 16-bit signed per-synapse accumulator
+   (full scale = one weight unit; `Tile.ACC_BITS`), the accumulator is flushed EVERY step as
+   the nearest whole number of pulses per device, and the NOMINAL effect of those pulses (the
+   noise-free, gain-free step law, `DeviceArray.nominal_state_after`) is subtracted, because
+   the digital side has no read-back; the sub-pulse remainder and the quantisation error carry
+   over.  The θ_flush gate and the stochastic rounding are gone from the default (the `level`
+   rule is kept as an option; the round-two record stands: under the endurance budget the gate
+   was a cost without a benefit).  The legacy torch `pulse` rule, which subtracted the realised
+   (noisy) change, is kept for the E8 / E9-diagnostic record.  *Analogue:* plasticity is
+   integrated over many sub-threshold events and expressed in discrete synaptic states (all-or-
+   none LTP steps, Petersen et al. 1998; ~26 distinguishable spine sizes, Bartol et al. 2015):
+   the accumulator is the biochemical integration, the pulse is the step.
+2. **`tile.set_noise(sigma_r)` — the MODULATE primitive.**  A per-tile read-noise dial with
+   range `MODULATE_RANGE = (0.005, 0.2)` (values outside are clipped and the clip is logged;
+   0 = dial off for the reference arms); every call is a MODULATE event in
+   `tile.primitive_log` / `OpCounter.modulates`.  *Analogue:* neuromodulatory control of neural
+   variability — noradrenergic gain (locus coeruleus, Aston-Jones & Cohen 2005) and the
+   dopamine-gated song variability of the songbird (LMAN → RA; Kao, Doupe & Brainard 2005):
+   variability is a controlled quantity, not a nuisance.
+3. **`tile.set_dropout(p)`.**  Every read drops each synapse independently with probability p
+   (a per-read Bernoulli mask on the weight matrix, i.e. DropConnect on the crossbar).
+   *Analogue:* probabilistic synaptic transmission — vesicle release fails on a large fraction
+   of spikes (release probability 0.1–0.9, Allen & Stevens 1994; Branco & Staras 2009).
+4. **Read-out default = layer-accumulate, 8-bit, FoM_W 10 fJ.**  `ReadoutSpec.default()` is
+   attached to every device `TileLinear` (and to the attention cache reads) unless the caller
+   passes `readout=None` or its own spec (E8b does); the converter range follows the largest
+   |value| seen at each read site (an automatic-gain converter; `auto=True`, no calibration
+   pass) and the quantiser is a straight-through estimator so gradients flow (the first
+   version of the default killed every gradient: round / clamp have zero derivative, measured
+   as "0 pulses, loss unchanged" in `test_optimizer_learns_through_tiles`).  `E_ADC = FoM_W ×
+   2^b` is on the spec (`E_ADC_J`).  *Analogue:* dendritic analog integration followed by a
+   single spike-initiation threshold at the axon hillock — the partial sums stay analog and are
+   converted once per neuron, not once per branch.
+
+Also new: `FloatTile`, the float32 REFERENCE substrate with the Tile interface (float weights,
+ideal updates, the same multiplicative read noise and dropout injected on every read), and
+`TileLinear(write_mode="float")`, its torch twin, so E11–E14 run the identical algorithm on both
+substrates; `memory.ScaledTile / HopfieldAttention(float_ref=True)`.  Tests: 72 pass + the
+pre-existing E7 route test.
+
+### E11 regularisation (`experiments/e11_regularization.py`)
+nanoGPT 2.7M trained FROM SCRATCH on 10 % of the Shakespeare training split (`--train-frac
+0.1`, 100k characters: at 1500 steps × 4096 tokens the model sees the slice 60 times and
+overfits, so a regulariser has something to do; on the full text the budget never reaches the
+overfitting regime and σ* = 0 would be a statement about the budget, not about noise), read
+noise σ_r ∈ {0, 0.02, 0.04, 0.06, 0.1} as the ONLY device noise (`split=(0, 0, 1)`, the
+attention cache carries the same read noise and no write noise), dropout p ∈ {0.1, 0.3, 0.5} at
+σ = 0, tiles (nearest-pulse writes, default read-out) and the float32 reference, 5 seeds.
+Val loss and the Python-source loss are read as deployed (noise on) and clean (noise off);
+shift gap = Python − val.  σ* = argmin of the seed-mean clean val loss with a bootstrap CI over
+seeds (the bootstrap distribution over the σ grid is reported, so a CI of 0..0 means every
+resample put the minimum at 0); the shift-gap slope vs σ with a bootstrap CI and the number of
+seeds whose own slope is negative.
+
+### E12 exploration (`experiments/e12_exploration.py`)
+2-layer policy (8 → 32 → 4 bandit; 16 → 32 → 4 grid), hidden units `clip(u + 0.25, 0, 2)` (a
+tonic drive so units do not die under negative modulators), greedy on one noisy read.
+**Two renditions per context** (A, B) with independent read noise; per-unit noise sample =
+deviation from the noise-free read (the periphery's estimate of the mean read; an averaged
+read in hardware); eligibility Σ_t x_pre ξ_post over a rendition, presynaptic-normalised
+(÷ |x_pre|²); update η (R_A − R_B)(e_A − e_B), η = 2.  *Why two renditions (measured):* the
+single-rendition rule ΔW = η (R − R̄) x ξ with a running-mean baseline ended at chance on the
+bandit after 6000 trials at every σ up to 1.0 and drove the weights to saturation; a linear
+critic baseline (R − V(x)) also failed (0.0 accuracy on a 2-context version, i.e. the
+anti-solution), because a greedy policy's chosen arm has a positively biased noise sample and
+any baseline mismatch turns the bias into a drift; the two-rendition difference is exactly zero
+when the renditions agree and needs no baseline.  Isolated tests (one context: P(correct) → 1.0;
+hidden layer only / output layer only) are in the session log; the surviving design learns the
+bandit to 0.6–0.7 within 7k pairs at σ = 0.1 on tiles.  *Physics:* multiplicative read noise
+flips a greedy decision only when the margin is within ~σ of the scores (flip rate 1–10 % at
+σ = 0.01–0.1, logged as `flip_rate`), and the rate falls as the learned margins grow — a
+built-in annealing; the tiles explore MORE than the float32 reference because their d2d / c2c
+and pulse quantisation add variability (flip rate 0.08 vs 0.001 at σ = 0.1 on the bandit).
+Schedules: fixed {0.01, 0.02, 0.04, 0.1}, annealed 0.1 → 0.01, reward-gated (0.1 while the
+20-trial mean reward is not above the 200-trial mean, else 0.01; each switch a MODULATE event).
+Criteria: bandit 200-decision accuracy ≥ 0.7 (softmax REINFORCE reaches 0.91 on this task),
+grid 50-episode mean steps ≤ 1.5× optimal.  Hypothesis tests: gated vs best fixed arm (paired
+sign test over seeds on trials-to-criterion); log-log exponent of speed vs σ over σ ≤ 0.04 with
+a bootstrap CI (σ² = the node-perturbation prediction for a fixed η).
+
+### E13 stochastic resonance (`experiments/e13_stochastic_resonance.py`)
+64 LIF neurons (τ_m 20 ms, θ = 1, dt 1 ms), one device each on a 1 × 64 tile programmed to 0.8,
+drive 0.4 + 0.4 sin(2π 5 t) (crest 0.8 θ), σ_r ∈ {0, 0.005, …, 0.2} + beyond-dial diagnostic
+levels {0.3, 0.5, 0.7, 1.0}, 20 s records, 10 seeds, tiles and the float32 reference.  SNR =
+power of the population spike train at 5 Hz over the mean power in the surrounding 2 Hz band
+(dB); per-neuron SNR also kept.  U-curve rule: interior maximum beating both ends of the dial
+by ≥ 3 dB with paired sign tests (p < 0.05); σ* with a bootstrap CI.  *Physics written before
+the run:* the membrane low-passes per-ms read noise by √(dt / 2τ_m) ≈ 0.16, so the dial's
+maximum gives 0.025 of membrane noise against a 0.2 gap — the headline arm is expected to show
+no spikes at all; a diagnostic grid drive ∈ {0.8, 0.9, 0.95} × τ_m ∈ {20, 5, 2} ms (tiles) maps
+where the resonance falls into the dial and into the hypothesised band.
+
+### E14 sampling (`experiments/e14_sampling.py`)
+HopfieldAttention store of 8 random ±1 patterns, N = 64, β = 0.2; cue = α x_a + (1 − α) x_b for
+α ∈ {0.5, 0.55, 0.6} (posteriors ≈ 0.5 / 0.78 / 0.93 on x_a); retrieved pattern = largest
+overlap with the output; 400 trials per cue × 4 cue pairs, 5 seeds; "correct posterior" =
+softmax_μ(β x_μ · cue), the Boltzmann posterior of the retrieval energy at temperature 1/β,
+which is what the noise-free softmax computes; KL(posterior ‖ frequencies) with Laplace
+smoothing; σ_r ∈ {0 … 0.2} + beyond-dial {0.3, 0.5, 0.7, 1.0}; tiles vs float32 reference.
+
+### E3-final, E6, E9, E4, E5 reruns
+* E3-final: `e3_tracking.py --mismatch 0.2,0.3 --cue-amp 0.05,0.02 --omegas 0.5,0.1 --seeds 10`
+  (`results/e3_final`); pinned = σ-0 tile error > 1.5× the float32 reference; U-test only there;
+  if nothing is pinned the verdict reads "no pinning up to 30 % mismatch; attractor robustness
+  is the result".
+* E6: K grid 1..16 (`COUNTS`), 10 seeds, the earlier grid (to 32 in steps of 4) kept in
+  `results/e6_k32`.
+* E9: nearest-pulse default, 5 seeds, arms frozen / sgd_float32 / sgd / fa / dfa / local; the
+  new "loss vs locality" panel orders the BPU gradient arms backprop → FA → DFA → layer-local;
+  the round-two level-gated Pareto run is kept in `results/e9_pareto`.
+* E4: nearest-pulse, 20 seeds (`results/e4_np`): **13/20 certified** (2/20 controls), 4.06
+  writes/device = 0.0004 % of endurance, 208 writes/tile/s = 2.1 % of the driver bandwidth,
+  0.10 writes/device/s = 1693 % of the old lifelong rate; released bumps occupy 4.1/8 bins.
+  Against the round-two level rule (θ = 1: 3/10 at 0.52 writes/device) the nearest-pulse rule
+  certifies four times as often for eight times the writes, all of it inside the endurance and
+  the bandwidth.
+* E5 self-organisation with nearest-pulse writes, 5 seeds, 16×16 and 32×32 sheets
+  (`results/e5_selforg_np`, `--procs 5`).

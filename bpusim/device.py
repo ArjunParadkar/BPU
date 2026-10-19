@@ -159,6 +159,21 @@ class DeviceArray:
         n = np.where(w1 >= w0, n_up, -n_down)
         return np.rint(n).astype(int)
 
+    def nominal_state_after(self, n) -> np.ndarray:
+        """Noise-free, gain-free state after ``n`` signed pulses from the current state: the change the
+        digital side can account for without reading the device back (inverse of ``pulses_for``)."""
+        p = self.p
+        remaining = np.broadcast_to(np.asarray(n), self.shape).astype(int).copy()
+        w = self.w.copy()
+        while True:                                   # the same discrete step law as pulse(), no noise, no gain
+            active = remaining != 0
+            if not active.any():
+                break
+            up = p.alpha_p * np.exp(-p.beta_p * w); down = p.alpha_d * np.exp(-p.beta_d * (1.0 - w))
+            w = np.where(active, np.clip(w + np.where(remaining > 0, up, -down), 0.0, 1.0), w)
+            remaining -= np.sign(remaining)
+        return w
+
     # -------------------------------------------------------------- retention
     def retain(self, dt: float) -> None:
         """Relax w toward w_inf with time constant tau_ret over an interval dt."""

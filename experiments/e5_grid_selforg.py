@@ -72,6 +72,10 @@ def run_reference_only(nx, ny, seed, n_null, n_points, n_points_h2):
     return {"seed": seed, "sheet": [nx, ny], "reference_programmed": ref, "trained": None, "control": None}
 
 
+def _run_sheet_job(a):
+    return run_sheet(*a)
+
+
 def run_sheet(nx, ny, seed, n_dev, n_null, n_points, cfg_kw, n_starts=160, n_points_h2=None):
     rng = np.random.default_rng([seed, nx, ny])
     if nx * ny > 64:            # large sheets: a 256x256 tile costs ~1 ms per step, so sample more sparingly
@@ -106,9 +110,10 @@ def main():
     ap.add_argument("--points-h2", type=int, default=None, help="separate (smaller) sample for H2")
     ap.add_argument("--reference-only", action="store_true", help="certify only the programmed module (no self-organisation)")
     ap.add_argument("--procs", type=int, default=1)
+    ap.add_argument("--write-mode", type=str, default="nearest_pulse", choices=["nearest_pulse", "threshold", "level"])
     args = ap.parse_args()
     seeds = 10 if args.full else args.seeds
-    out = {"seeds": seeds, "dev_steps": args.steps, "sheets": {}}
+    out = {"seeds": seeds, "dev_steps": args.steps, "write_mode": args.write_mode, "sheets": {}}
     statements = []
     for spec in args.sheets.split(","):
         nx, ny = map(int, spec.split("x"))
@@ -126,10 +131,17 @@ def main():
                 c = r["reference_programmed"]
                 print(f"  {spec} seed {r['seed']}: programmed reference {c['verdict']} betti={c['betti']} H1={np.round(c['top_H1'][:3], 2)} H2={np.round(c['top_H2'][:2], 2)} thr={ {k: round(v, 2) for k, v in c['threshold'].items()} }")
         else:
-            for seed in range(seeds):
-                with Timer(f"{spec} seed {seed}"):
-                    r = run_sheet(nx, ny, seed, args.steps, args.null, args.points, {}, n_points_h2=args.points_h2)
-                runs.append(r)
+            cfg_kw = {"write_mode": args.write_mode}
+            if args.procs > 1:
+                import multiprocessing as mp
+                with mp.Pool(min(args.procs, seeds)) as pool:
+                    runs = pool.map(_run_sheet_job, [(nx, ny, seed, args.steps, args.null, args.points, cfg_kw, 160, args.points_h2) for seed in range(seeds)])
+            else:
+                for seed in range(seeds):
+                    with Timer(f"{spec} seed {seed}"):
+                        runs.append(run_sheet(nx, ny, seed, args.steps, args.null, args.points, cfg_kw, n_points_h2=args.points_h2))
+            for r in runs:
+                seed = r["seed"]
                 print(f"  {spec} seed {seed}: trained {r['trained']['verdict']} betti={r['trained']['betti']} | control {r['control']['verdict']} {r['control']['betti']}"
                       f" | programmed reference {r['reference_programmed']['verdict']} {r['reference_programmed']['betti']} | persists {r['bump_persists_frac']:.2f}")
         n_t = sum(bool(r["trained"] and r["trained"]["is_torus"]) for r in runs); n_c = sum(bool(r["control"] and r["control"]["is_torus"]) for r in runs)
