@@ -693,3 +693,9 @@ results that were superseded are kept under `results/e9_v1`, `results/e10_v1`,
   global set in `main()` never reached them and the workers used the default noisy device.
   The device parameters now travel with each job's arguments (the first run is kept as
   `results/e7_ref_bug_was_noisy`, a useful determinism check: same seeds, same numbers).
+* **E7 reference outcome.**  Noise-free tiles: nav grown 0.30 / fixed 0.75 /
+  grown-continued 0.46, recall 0.84 / 0.85 / 0.89,
+  Q 0.06; the verdict logs a NEGATIVE for the continued arm there.  The noisy tiles
+  (0.62 / 0.84 / 0.80) are not worse than the noise-free reference; with 3 seeds and a
+  seed-to-seed spread of 0.2 in navigation accuracy this is not a demonstrated benefit of
+  noise, only the absence of a cost.  The 10-seed pair is job 4 on the HPCC list.
