@@ -81,12 +81,13 @@ class Tasks:
 DEVICE = DeviceParams()   # BPU tiles (sigma_d2d 0.03, c2c 0.03, read 0.02); --noise-free sets all three to 0 (reference)
 
 
-def make_graph(kind, rng, cfg):
+def make_graph(kind, rng, cfg, device=None):
+    device = device or DEVICE
     if kind == "grown":
-        return ModuleGraph(cfg, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, DEVICE)
+        return ModuleGraph(cfg, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, device)
     R = layered_routing(K, [0, 1], [2, 3, 4, 5], [6, 7])
     cfg_f = GraphConfig(**{**cfg.__dict__, "B_density": cfg.edge_budget * cfg.B_density / R.sum()})
-    return ModuleGraph(cfg_f, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, DEVICE, R_fixed=R)
+    return ModuleGraph(cfg_f, {0: 4, 1: OUT}, OUT, [0, 1], [6, 7], rng, device, R_fixed=R)
 
 
 def train(graph, tasks, task_ids, n_trials, structure, log_every=100):
@@ -116,7 +117,10 @@ def evaluate(graph, tasks, task, n=200, record=False):
     return (out, np.array(Z)) if record else out
 
 
-def run_seed(seed, n_base, n_ft, cfg_kw):
+def run_seed(seed, n_base, n_ft, cfg_kw, device_kw=None):
+    # device params travel with the job: pool workers are fresh interpreters (Python 3.14 starts them
+    # with forkserver), so a module global set in main() never reaches them
+    device = DeviceParams(**device_kw) if device_kw else DEVICE
     rng = np.random.default_rng([seed, 7])
     tasks = Tasks(np.random.default_rng([seed, 77]))
     res = {}
@@ -124,7 +128,7 @@ def run_seed(seed, n_base, n_ft, cfg_kw):
     for kind in ("grown", "grown_continued", "fixed", "fixed_compute"):
         tasks.rng = np.random.default_rng([seed, 77, 1])
         cfg = GraphConfig(n_per_module=N_MOD, n_modules=K, out_dim=OUT, **cfg_kw)
-        g = make_graph("grown" if kind.startswith("grown") else "fixed", np.random.default_rng([seed, 8]), cfg)
+        g = make_graph("grown" if kind.startswith("grown") else "fixed", np.random.default_rng([seed, 8]), cfg, device)
         nb, nf = n_base, n_ft
         if kind == "fixed_compute":
             # matched compute: the fixed graph gets as many trials as match the grown graph's MACs
@@ -180,16 +184,17 @@ def main():
     global DEVICE
     if args.noise_free:
         DEVICE = DeviceParams(sigma_d2d=0.0, sigma_c2c=0.0, sigma_r=0.0)
+    device_kw = DEVICE.__dict__
     cfg_kw = {"edge_budget": args.edge_budget, "theta_e": args.theta_e, "rule": args.rule, "eta_local": args.eta_local}
     if args.procs > 1:
         import multiprocessing as mp
         with mp.Pool(args.procs) as pool:
-            runs = pool.starmap(run_seed, [(seed, args.base_trials, args.ft_trials, cfg_kw) for seed in range(seeds)])
+            runs = pool.starmap(run_seed, [(seed, args.base_trials, args.ft_trials, cfg_kw, device_kw) for seed in range(seeds)])
     else:
         runs = []
         for seed in range(seeds):
             with Timer(f"seed {seed}"):
-                runs.append(run_seed(seed, args.base_trials, args.ft_trials, cfg_kw))
+                runs.append(run_seed(seed, args.base_trials, args.ft_trials, cfg_kw, device_kw))
     Q_final = [r["grown"]["Q"] for r in runs]
     Q_hist = np.array([r["grown"]["history"]["Q"] for r in runs])
     gap = [r["transfer_gap"] for r in runs]; gap_c = [r["transfer_gap_matched_compute"] for r in runs]

@@ -688,3 +688,8 @@ results that were superseded are kept under `results/e9_v1`, `results/e10_v1`,
   0.80 nav, 0.90 recall (fixed 0.82): catches up; composition at chance everywhere;
   noise-free reference in results/e7_ref.
 * **E4** level writes: 3/10 at 217 % of budget; + quota 0/10.
+* **E7 reference run, take two.**  The first `--noise-free` run reproduced the BPU numbers to
+  the last digit: Python 3.14 starts multiprocessing workers with forkserver, so the module
+  global set in `main()` never reached them and the workers used the default noisy device.
+  The device parameters now travel with each job's arguments (the first run is kept as
+  `results/e7_ref_bug_was_noisy`, a useful determinism check: same seeds, same numbers).
