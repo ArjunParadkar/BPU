@@ -318,12 +318,18 @@ def main():
     ap.add_argument("--tau-ret", type=str, default="1e3,1e4,1e5", help="retention ablation (s); inf is the main run")
     ap.add_argument("--no-ablation", action="store_true")
     ap.add_argument("--only-arms", type=str, default=None, help="run only these arms (comma list) and merge them into the existing results.json, replacing those arms' runs")
+    ap.add_argument("--resummarize", action="store_true", help="no runs: rebuild summary / verdict / figure from the runs in results.json")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
     seeds = 10 if args.full else args.seeds
+    if args.resummarize:
+        from common import load_results
+        prev = load_results("e10", args.out); runs = prev["runs"]; seeds = prev["seeds"]; taus = [float(x) for x in args.tau_ret.split(",")]
+        dev = "none"
+        return finish(runs, seeds, taus, args, dev)
     if args.smoke:
         data = synthetic_mnist(np.random.default_rng(0)); seeds = 1; args.steps, args.replay_steps = 20, 10
     else:
@@ -354,28 +360,42 @@ def main():
         runs.append(run_arm(arm, sub, seed, tasks_cache[seed], args, tau_ret=tau, gate_quantile=gate, device=dev))
         save_results("e10", {"partial": True, "done": i + 1, "planned": len(plan), "seeds": seeds, "arms": ARMS, "substrates": SUBSTRATES, "runs": runs,
                              "verdict": {"statement": f"PARTIAL: {i + 1}/{len(plan)} runs"}}, args.out)
-    # ---- summary
+    finish(runs, seeds, taus, args, dev)
+
+
+HEADLINE = ["naive", "ewc", "replay", "fpl_replay", "joint"]   # fpl alone is diagnostic (gate off beats gate on), not a consolidation policy
+
+
+def finish(runs, seeds, taus, args, dev):
+    n_steps_main = args.steps * 5
     def sel(arm, substrate, tau=None, gate=0.5):
         return [r for r in runs if r["arm"] == arm and r["substrate"] == substrate and r["tau_ret"] == tau and r["gate_quantile"] == gate]
     def summ(rs):
         return {"avg_acc": summarize([r["avg_acc"] for r in rs]), "forgetting": summarize([r["forgetting"] for r in rs]),
                 "avg_acc_after_rest_1000s": summarize([r["after_rest_1000s"]["avg"] for r in rs]),
                 "forgetting_after_rest_1000s": summarize([r["after_rest_1000s"]["forgetting"] for r in rs]),
-                "writes_per_device_per_s": summarize([r["writes_per_device_per_s"] for r in rs]), "percent_of_budget": summarize([r["percent_of_budget"] for r in rs]),
+                "writes_per_device_total": summarize([r["writes_per_device"] for r in rs]), "percent_of_endurance": summarize([100.0 * r["writes_per_device"] / 1e6 for r in rs]),
+                "writes_per_device_per_s": summarize([r["writes_per_device_per_s"] for r in rs]), "percent_of_lifelong_rate": summarize([r["percent_of_budget"] for r in rs]),
                 "flush_rate": summarize([r["flush_rate"] for r in rs]), "n": len(rs)}
     summary = {s: {a: summ(sel(a, s)) for a in ARMS + ["joint"]} for s in SUBSTRATES}
     twins = {a: {"float32": summary["float32"][a]["avg_acc"]["mean"], "bpu": summary["bpu"][a]["avg_acc"]["mean"],
                  "gap_points": summary["bpu"][a]["avg_acc"]["mean"] - summary["float32"][a]["avg_acc"]["mean"]} for a in ARMS + ["joint"]}
     ok = all(abs(twins[a]["gap_points"]) <= 0.03 for a in ("ewc", "replay"))
-    ablation = {"gate_off": {s: {a: summ(sel(a, s, gate=0.0)) for a in ("fpl", "fpl_replay")} for s in SUBSTRATES} if taus or not args.no_ablation else {},
-                "tau_ret": {f"{tau:g}": {a: summ(sel(a, "bpu", tau=tau)) for a in ARMS} for tau in taus}}
+    ablation = {"gate_off": {s: {a: summ(sel(a, s, gate=0.0)) for a in ("fpl", "fpl_replay") if sel(a, s, gate=0.0)} for s in SUBSTRATES},
+                "tau_ret": {f"{tau:g}": {a: summ(sel(a, "bpu", tau=tau)) for a in ARMS if sel(a, "bpu", tau=tau)} for tau in taus if any(sel(a, "bpu", tau=tau) for a in ARMS)}}
+    retention_row = ablation["tau_ret"].get("10000")
     out = {"seeds": seeds, "steps": args.steps, "replay_steps": args.replay_steps, "sigma": args.sigma, "lam": args.lam, "buffer": args.buffer,
            "tau_f_steps": args.tau_f_steps, "tau_c_steps": args.tau_c_steps, "step_seconds": args.step_seconds, "device": dev, "smoke": args.smoke,
-           "arms": ARMS, "substrates": SUBSTRATES, "runs": runs, "summary": summary, "twins": twins, "ablation": ablation,
+           "arms": ARMS, "headline_arms": HEADLINE, "substrates": SUBSTRATES, "runs": runs, "summary": summary, "twins": twins, "ablation": ablation,
+           "retention_row_tau_1e4": retention_row,
+           "notes": ["FPL is diagnostic, not a consolidation policy: with the gate off (every synapse consolidates) average accuracy is higher than with the FPL gate on "
+                     + (", ".join(f"{s}: {ablation['gate_off'][s]['fpl']['avg_acc']['mean']:.3f} vs {summary[s]['fpl']['avg_acc']['mean']:.3f}" for s in SUBSTRATES if "fpl" in ablation["gate_off"].get(s, {})) if ablation["gate_off"] else "")
+                     + "; the fpl arm is therefore left out of the headline and fpl_replay is read as replay on a fast/slow substrate."],
            "verdict": {"success": bool(ok), "statement": ("SMOKE RUN. " if args.smoke else "") +
-                       f"average accuracy after 5 tasks, float32 / BPU: " + ", ".join(f"{a} {twins[a]['float32']:.3f} / {twins[a]['bpu']:.3f} ({twins[a]['gap_points']:+.3f})" for a in ARMS + ["joint"])
-                       + "; forgetting float32 / BPU: " + ", ".join(f"{a} {summary['float32'][a]['forgetting']['mean']:.3f} / {summary['bpu'][a]['forgetting']['mean']:.3f}" for a in ARMS)
-                       + f"; BPU writes: " + ", ".join(f"{a} {summary['bpu'][a]['percent_of_budget']['mean']:.0f}% of budget" for a in ARMS)
+                       f"average accuracy after 5 tasks, float32 / BPU: " + ", ".join(f"{a} {twins[a]['float32']:.3f} / {twins[a]['bpu']:.3f} ({twins[a]['gap_points']:+.3f})" for a in HEADLINE)
+                       + "; forgetting float32 / BPU: " + ", ".join(f"{a} {summary['float32'][a]['forgetting']['mean']:.3f} / {summary['bpu'][a]['forgetting']['mean']:.3f}" for a in HEADLINE if a != "joint")
+                       + f"; BPU total writes/device: " + ", ".join(f"{a} {summary['bpu'][a]['writes_per_device_total']['mean']:.3g} ({summary['bpu'][a]['percent_of_endurance']['mean']:.2g}% of the 1e6 endurance)" for a in HEADLINE)
+                       + (f"; retention tau_ret = 1e4 s on tiles: " + ", ".join(f"{a} {retention_row[a]['avg_acc']['mean']:.3f} -> {retention_row[a]['avg_acc_after_rest_1000s']['mean']:.3f} after a 1000 s rest" for a in HEADLINE if a in retention_row) if retention_row else "")
                        + (". SUCCESS: BPU-EWC and BPU-replay within 3 points of their float32 twins" if ok else
                           f". Criterion not met: EWC gap {twins['ewc']['gap_points']:+.3f}, replay gap {twins['replay']['gap_points']:+.3f} (limit 0.03)")}}
     print("E10 verdict:", out["verdict"]["statement"])
@@ -388,24 +408,21 @@ def plot(res, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    arms = res["arms"] + ["joint"]; S = res["summary"]
+    arms = res.get("headline_arms", res["arms"] + ["joint"]); S = res["summary"]
     fig, ax = plt.subplots(1, 3, figsize=(15, 4))
     x = np.arange(len(arms))
     for i, s in enumerate(res["substrates"]):
         ax[0].bar(x + (i - 0.5) * 0.38, [S[s][a]["avg_acc"]["mean"] for a in arms], 0.38, yerr=[S[s][a]["avg_acc"]["sem"] for a in arms], capsize=2, label=s, color="k" if s == "float32" else "C0", alpha=0.85 if s == "float32" else 1)
     ax[0].set_xticks(x); ax[0].set_xticklabels(arms, fontsize=8); ax[0].set_ylim(0, 1); ax[0].set_ylabel("average accuracy after 5 tasks"); ax[0].legend(fontsize=8)
     ax[0].set_title("E10: same algorithm, two substrates", fontsize=9)
+    fa = [a for a in arms if a != "joint"]
     for i, s in enumerate(res["substrates"]):
-        ax[1].bar(x[:-1] + (i - 0.5) * 0.38, [S[s][a]["forgetting"]["mean"] for a in res["arms"]], 0.38, yerr=[S[s][a]["forgetting"]["sem"] for a in res["arms"]], capsize=2, label=s, color="k" if s == "float32" else "C0")
-    ax[1].set_xticks(x[:-1]); ax[1].set_xticklabels(res["arms"], fontsize=8); ax[1].set_ylabel("forgetting"); ax[1].legend(fontsize=8); ax[1].set_title("forgetting per arm", fontsize=9)
-    ab = res.get("ablation", {}).get("tau_ret", {})
-    if ab:
-        taus = sorted(ab, key=float) + ["inf"]
-        for a in res["arms"]:
-            ys = [ab[t][a]["avg_acc_after_rest_1000s"]["mean"] for t in taus[:-1]] + [S["bpu"][a]["avg_acc_after_rest_1000s"]["mean"]]
-            ax[2].plot(range(len(taus)), ys, marker="o", label=a)
-        ax[2].set_xticks(range(len(taus))); ax[2].set_xticklabels(taus); ax[2].set_xlabel("tau_ret (s)"); ax[2].set_ylabel("avg accuracy after a 1000 s rest (BPU)"); ax[2].legend(fontsize=7)
-        ax[2].set_title("retention ablation", fontsize=9)
+        ax[1].bar(np.arange(len(fa)) + (i - 0.5) * 0.38, [S[s][a]["forgetting"]["mean"] for a in fa], 0.38, yerr=[S[s][a]["forgetting"]["sem"] for a in fa], capsize=2, label=s, color="k" if s == "float32" else "C0")
+    ax[1].set_xticks(np.arange(len(fa))); ax[1].set_xticklabels(fa, fontsize=8); ax[1].set_ylabel("forgetting"); ax[1].legend(fontsize=8); ax[1].set_title("forgetting per arm", fontsize=9)
+    w = [max(S["bpu"][a]["writes_per_device_total"]["mean"], 1e-3) for a in arms]
+    ax[2].bar(x, w, color="C1"); ax[2].axhline(1e4, color="r", ls="--", label="1e4 writes/device (E9 criterion)"); ax[2].axhline(1e6, color="k", ls=":", label="1e6 endurance")
+    ax[2].set_yscale("log"); ax[2].set_xticks(x); ax[2].set_xticklabels(arms, fontsize=8); ax[2].set_ylabel("total writes per device (BPU, whole sequence)"); ax[2].legend(fontsize=7)
+    ax[2].set_title("writes against endurance", fontsize=9)
     fig.suptitle(res["verdict"]["statement"][:150], fontsize=7)
     fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
     print(f"[e10] figure {path}")

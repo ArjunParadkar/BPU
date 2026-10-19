@@ -699,3 +699,92 @@ results that were superseded are kept under `results/e9_v1`, `results/e10_v1`,
   (0.62 / 0.84 / 0.80) are not worse than the noise-free reference; with 3 seeds and a
   seed-to-seed spread of 0.2 in navigation accuracy this is not a demonstrated benefit of
   noise, only the absence of a cost.  The 10-seed pair is job 4 on the HPCC list.
+
+## Round two (2026-10-19): endurance budget, θ_flush, FoM-based converters, 10-seed E7
+
+### Write budget redefined (`Tile.write_budget_report`, `torchtile.write_budget_report`)
+* Three numbers replace the single per-second budget: **endurance** = total write events per
+  device over the run against 1e6 cycles ("% of endurance"); **driver bandwidth** = write events
+  per physical 32x32 tile per second against 1e4; the old 6e-3 writes/device/s is kept in the
+  table as the **lifelong rate** for reference.  E9's criterion becomes "within 5 % of float32
+  at any θ_flush with < 1e4 total writes per device"; E10 reports total writes per device per
+  arm against the endurance; E4 reports certified fraction and total writes per device.
+* **θ_flush ∈ {0.25, 0.5, 1.0} levels.**  A synapse is considered for a write when its
+  accumulator holds θ_flush conductance levels; the flushed amount is still a whole number of
+  levels with the remainder rounded stochastically, so below one level the device is pulsed
+  with probability |acc| / level and otherwise waits.  Consequence measured in E4 (10 seeds,
+  40 s): θ = 1.0 certifies 3/10 at 0.52 writes/device; θ = 0.5 certifies 0/10 at 3.9
+  writes/device (bumps occupy 1.9/8 bins): a half-full accumulator is pulsed by a whole level
+  half the time, so the smaller threshold makes the writes both more frequent and noisier.
+  θ = 0.25 certifies 0/10 at 2.0e3 writes/device (0.2 % of endurance, flush rate 0.13) and
+  1.0e5 writes per tile per second = 10× the 1e4 driver bandwidth: with a quarter-level
+  threshold the STDP jitter keeps most accumulators above threshold and the stochastic
+  rounding pulses them almost every step.  θ = 1 is the only setting that certifies at all
+  and stays inside the driver bandwidth (8.2e-3 of it); the endurance (≤ 0.2 %) is never the
+  binding constraint at these run lengths, the lifelong rate and the bandwidth are.
+
+### E9 Pareto
+* The four BPU gradient arms rerun at θ_flush 0.25 and 0.5 on the GPU, merged with the θ = 1
+  run (same seeds, same stream; `--merge`), reported as post-shift loss vs total writes per
+  device with the nearest-pulse diagnostic as the no-gate reference point.
+
+### E8b converters
+* `E_ADC = FoM_W × 2^b` with the Walden figure of merit FoM_W ∈ {10, 50} fJ per conversion
+  step (Murmann ADC survey; 10 fJ is state of the art, 50 fJ conservative) and b ∈ {6, 8};
+  the 256 pJ constant of the first version corresponded to FoM_W = 1 pJ, a hundred times
+  worse than the survey, and the 4-bit cells are dropped (they cost 31–53 % in loss).  The 6-bit
+  read-outs cost 1.4–1.9 % in loss (per-tile 1.35 %, per-layer 1.78 %, LIF 1.88 % at 13
+  spikes per output per token), 8-bit are lossless (−0.6 to −0.8 %).  Table: per-tile /
+  per-layer / LIF × FoM 10 / 50 × 6 / 8 bits; the LIF row has no converter so its FoM columns
+  repeat.  Controls: the laptop GPU measurement (256 µJ/token incl. idle, 169 above idle),
+  H100 INT8 at published peak (2.0 µJ/token for this model) and at 40 % utilisation
+  (5.0 µJ).  Outcome: per-layer FoM-10 8-bit 71 nJ/token = 0.014× H100@40 % (6-bit 44 nJ at
+  +1.8 %); per-tile FoM-10 8-bit 257 nJ; LIF 8-bit 11.6 µJ (spikes, not converters, are the
+  LIF cost).  Scaling column "BPU / H100@40 %": 0.014 at 2.7M → 0.002 at 1T for the
+  per-layer 8-bit cell, because conversions grow as layers × d_model and MACs as parameters
+  (~ layers × d_model²), so the converter cost per MAC shrinks as 1/d_model.  The measurement
+  block is reused from the idle-GPU run (`--reuse-measurement`).
+
+### E10 headline
+* Headline arms naive, EWC, replay, fpl_replay, joint; the fpl arm is diagnostic, not a
+  consolidation policy (gate off beats gate on on both substrates) and stays in the notes.
+  Total writes per device per arm: 1.8–4.4 over the whole sequence (≤ 0.0005 % of
+  endurance).  Retention row τ_ret = 1e4 s only: no change at the end of the sequence or
+  after a 1000 s rest for naive / EWC / replay, fpl_replay 0.930 → 0.768 after the rest (its
+  fast weights decay).  Re-summarised from the existing runs (`--resummarize`), no rerun.
+
+### E6
+* `tests/test_memory.py::test_hopfield_k1` (N = 32, K = 1, σ = 0, pinv): exact recall from
+  the clean cue and ≥ 95 % from cues with 20 % flipped bits.  It passed on the first run;
+  nothing needed fixing.  The capacity sweep now includes K = 1 and 2 and was rerun (10 seeds).
+
+### E3 cue-amplitude sweep (`results/e3_cue`)
+* ω = 0.5 rad/s, cue ∈ {0.01, 0.02, 0.05, 0.1}, mismatch {0.05, 0.10}, σ as before, 10 seeds,
+  float32 reference per cue.  A condition is "pinned" when the tile error at σ = 0 exceeds
+  the float32 reference by more than 50 % (the lag is common to both; the excess is pinning);
+  the U-test is applied only there.
+
+### E7 at 10 seeds
+* Tiles and noise-free reference, grown − fixed gap with a bootstrap 95 % CI over seeds for
+  nav, recall and composite; "noise-assisted growth" is flagged if the tiles' nav gap exceeds
+  the reference's at p < 0.05 (Welch one-sided t over per-seed gaps).  The 3-seed runs are
+  kept as `results/e7_3seeds`, `results/e7_ref_3seeds`.
+* **E3 cue-sweep outcome.**  No pinned regime: at ω = 0.5 rad/s the tracking error at σ = 0 is
+  0.18 / 0.35 / 0.94 / 1.49 rad for cue 0.1 / 0.05 / 0.02 / 0.01 on the float32 reference and
+  0.18 / 0.36 / 1.06–1.12 / 1.39–1.40 on tiles with mismatch 0.05–0.10: the loss of tracking
+  at weak cues is the reference's too (the cue is too weak to drag the bump at this speed),
+  and the mismatch adds at most 19 % (cue 0.02, mismatch 0.1), below the 1.5× pinned
+  criterion.  Every curve is flat in dynamic noise (0/8 U-shaped), so the U-test had nothing
+  to act on.  Finding the pinned regime needs ω below 0.5 (the ω = 0.1 run at cue 0.1 showed
+  the only mismatch-dependent excess, +70 % at mismatch 0.1) with cue ≈ 0.02–0.05; queued.
+* **E6 rerun outcome** (10 seeds, K from 1): every reader recalls K = 1 exactly at every σ up
+  to 0.2 (the unit test's condition, on noisy tiles too); the scaffold readers hold 2–4 pairs
+  at 90 % exact recall and attention 20 (σ = 0) to 28 (σ ≥ 0.08) — the capacity curve is
+  unchanged by the tie fix, so the earlier scaffold ceiling is the 20 % flips, not a sign bias.
+* **E7 10-seed outcome.**  Tiles: nav grown 0.42 / fixed 0.81 / continued 0.48, grown − fixed
+  nav gap −0.38 (95 % CI −0.53..−0.23), continued −0.33 (−0.53..−0.13); reference (noise-free):
+  0.45 / 0.69 / 0.58, gap −0.24 (−0.44..−0.04), continued −0.11 (−0.33..+0.14).  Recall and
+  composite gaps are within ±0.05 of zero on both.  Welch one-sided p(tiles gap > reference
+  gap) = 0.85 (Mann–Whitney 0.89): **no noise-assisted growth**; if anything the tiles' grown
+  graph lags more.  The 3-seed "grown catches up when continued" (0.80 vs 0.84) does not
+  survive 10 seeds (0.48 vs 0.81): the verdict logs the NEGATIVE on both substrates.

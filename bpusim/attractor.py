@@ -385,6 +385,7 @@ class SelfOrgConfig:
                                    # (the original E4); "level": the tile's accumulate-and-flush write budget
                                    # (a synapse is pulsed only when one conductance level 1/L is pending,
                                    # stochastic rounding of the remainder; theta_w is then unused)
+    theta_flush: float = 1.0       # level mode: flush when |acc| >= theta_flush conductance levels
     write_budget: float = 0.0      # max write events per device per second during development (0 = no
                                    # cap).  With a cap, pending STDP changes are flushed in order of size
                                    # only as the budget allows (a per-tile write quota), so learning takes
@@ -482,7 +483,7 @@ class SelfOrganizingSheet:
                 dW = (c.A_plus * c.tau_plus - c.A_minus * c.tau_minus) * np.outer(rho, rho) * c.rate_dt * c.eta
             np.fill_diagonal(dW, 0.0)
             if c.write_mode == "level":
-                self.tile.accumulate(dW, write_budget=c.write_budget or None, dt=c.rate_dt)
+                self.tile.accumulate(dW, write_budget=c.write_budget or None, dt=c.rate_dt, theta_flush=c.theta_flush)
                 write = np.zeros_like(self.tile.A)
             else:
                 self.pending += dW

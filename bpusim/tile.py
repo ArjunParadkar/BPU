@@ -144,25 +144,27 @@ class Tile:
         """One conductance level in weight units (= state units for a differential pair): 1 / L."""
         return 1.0 / self.levels
 
-    def accumulate(self, dW: np.ndarray, write_budget: float | None = None, dt: float | None = None) -> np.ndarray:
+    def accumulate(self, dW: np.ndarray, write_budget: float | None = None, dt: float | None = None,
+                   theta_flush: float = 1.0) -> np.ndarray:
         """Accumulate-and-flush write (the write-budget mechanism).
 
-        ``acc[i, j] += dW[i, j]`` in a digital accumulator; a synapse is written only when
-        ``|acc| >= one conductance level`` (1 / L).  The flushed amount is a whole number of
-        levels: the integer part of ``|acc| / level`` plus the remainder rounded stochastically
-        (probability = remainder), so the expected flushed amount equals the accumulator; the
-        flushed amount (not the realised one) is subtracted, since the digital side does not read
-        the device back.  Writes are counted only when a device is pulsed.  ``write_budget``
-        (write events per device per second, with ``dt`` the call interval) optionally caps the
-        number of flushes per call to the largest accumulators, the quota used by E4.
-        Returns the realised weight change.
+        ``acc[i, j] += dW[i, j]`` in a digital accumulator; a synapse is considered for a write
+        only when ``|acc| >= theta_flush`` conductance levels (one level = 1 / L; theta_flush in
+        {0.25, 0.5, 1.0}).  The flushed amount is a whole number of levels: the integer part of
+        ``|acc| / level`` plus the remainder rounded stochastically (probability = remainder), so
+        the expected flushed amount equals the accumulator and, below one level, the device is
+        pulsed with probability |acc| / level; the flushed amount (not the realised one) is
+        subtracted, since the digital side does not read the device back.  Writes are counted
+        only when a device is pulsed.  ``write_budget`` (write events per device per second,
+        with ``dt`` the call interval) optionally caps the number of flushes per call to the
+        largest accumulators, the quota used by E4.  Returns the realised weight change.
         """
         dW = np.asarray(dW, float) * self.A * self.plasticity_gain
         self.acc += dW
         self.n_acc_calls += 1
         lvl = self.level
         q = np.abs(self.acc) / lvl
-        gate = (q >= 1.0) & self.A
+        gate = (q >= theta_flush) & self.A
         if write_budget and dt:
             self.write_credit = getattr(self, "write_credit", 0.0) + write_budget * 2 * self.A.size * dt
             n_allow = int(self.write_credit)
@@ -175,7 +177,7 @@ class Tile:
         n_int = np.floor(q)
         frac = q - n_int
         n_lv = n_int + (self.acc_rng.random(self.shape) < frac)
-        flushed = np.where(gate, np.sign(self.acc) * n_lv * lvl, 0.0)
+        flushed = np.where(gate & (n_lv > 0), np.sign(self.acc) * n_lv * lvl, 0.0)
         before = self.n_writes
         realised = self.update(flushed)
         self.acc -= flushed
@@ -208,12 +210,27 @@ class Tile:
     def events_per_read(self) -> int:
         return self.n_tiles
 
+    ENDURANCE = 1e6              # write cycles per device over its life (technical document)
+    TILE_BANDWIDTH = 1e4         # write driver limit: write events per physical tile per second
+    LIFELONG_RATE = 6e-3         # the earlier per-second budget (1e6 cycles over 5 years), kept for reference
+
     def writes_per_device(self, seconds: float | None = None) -> float:
-        """Average write events per device (per second if ``seconds`` is given).  The
-        technical document's endurance budget is ~6e-3 writes per device per second
-        (1e6 cycles over 5 years)."""
+        """Average write events per device over the run (per second if ``seconds`` is given)."""
         w = self.n_writes / (2.0 * self.A.size)
         return w / seconds if seconds else w
+
+    def write_budget_report(self, seconds: float | None = None) -> dict:
+        """The three write-budget numbers: endurance (total writes per device against 1e6), the write
+        driver bandwidth (write events per physical 32x32 tile per second against 1e4) and the old
+        lifelong rate (writes per device per second against 6e-3)."""
+        wpd = self.writes_per_device()
+        rep = {"writes_per_device_total": wpd, "percent_of_endurance": 100.0 * wpd / self.ENDURANCE,
+               "flush_rate": self.flush_rate, "levels": self.levels}
+        if seconds:
+            per_tile_s = self.n_writes / self.n_tiles / seconds
+            rep.update({"writes_per_tile_per_s": per_tile_s, "percent_of_tile_bandwidth": 100.0 * per_tile_s / self.TILE_BANDWIDTH,
+                        "writes_per_device_per_s": wpd / seconds, "percent_of_lifelong_rate": 100.0 * wpd / seconds / self.LIFELONG_RATE})
+        return rep
 
     def program(self, W_target: np.ndarray, tol: float = 0.02, max_iter: int = 400) -> int:
         """Write-verify the whole tile to W_target in [-1, 1] (positive part on G+, negative on G-)."""

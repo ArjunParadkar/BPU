@@ -53,17 +53,20 @@ from e8_nanogpt_tiles import GPT, load_text, get_batch, train, evaluate, copy_we
 
 V, G, T_READ = 0.2, 10e-6, 10e-9
 E_MAC = V ** 2 * G * T_READ            # 4e-15 J
-E_ADC = {8: 256e-12, 4: 16e-12}
+FOM_W = {"fom10": 10e-15, "fom50": 50e-15}   # Walden figure of merit, J per conversion-step (Murmann ADC survey: 10 fJ = state of the art, 50 fJ = conservative)
+BITS = [6, 8]
+E_ADC = {(f, b): FOM_W[f] * 2 ** b for f in FOM_W for b in BITS}   # E_ADC = FoM_W x 2^b
 E_SPIKE = 10e-12                       # router event per spike
 E_LIF_UPDATE = 5e-12                   # per LIF update (one per spike; the integration is analog)
 E_WRITE = 100e-12
 E_ROUTE = 10e-12
 E_CACHE_WRITE = 10e-12
 T_READ_SERIES = 1e-6
-MODES = ["tile", "layer", "lif"]; BITS = [8, 4]
+MODES = ["tile", "layer", "lif"]
 # (layers, d_model) of standard dense configurations; MACs per token ~ 12 L d^2 (+ attention, scaled as measured)
 SIZES = {"2.7M (E8, measured)": (6, 192), "124M (GPT-2 small)": (12, 768), "1.3B": (24, 2048), "7B": (32, 4096), "70B": (80, 8192), "1T (dense, 140 x 24576)": (140, 24576)}
 H100_INT8_TOPS, H100_W = 1979.0, 700.0   # NVIDIA H100 SXM datasheet, dense INT8 peak; published, not measured
+H100_UTIL = 0.40                         # a realistic sustained utilisation for the "H100 at 40 %" control row
 
 
 # ------------------------------------------------------------------ INT8 digital control on the GPU
@@ -165,17 +168,21 @@ def measure_cpu_int8(model_cpu, data, block, batch, seconds=8.0):
 
 
 # ------------------------------------------------------------------ BPU side
-def bpu_energy(ops, tokens, mode, bits, spikes_per_conversion=0.0, training=False):
+def bpu_energy(ops, tokens, mode, bits, spikes_per_conversion=0.0, training=False, fom="fom10"):
     conv_tile, conv_layer = ops["conversions"], ops["conversions_out"]
     parts = {"mac_J": ops["macs"] * E_MAC, "route_J": ops["events"] * E_ROUTE, "cache_write_J": ops.get("cache_writes", 0) * E_CACHE_WRITE,
              "write_J": ops.get("pulses", 0) * E_WRITE if training else 0.0}
     if mode == "tile":
-        parts["readout_J"] = conv_tile * E_ADC[bits]
+        parts["readout_J"] = conv_tile * E_ADC[(fom, bits)]
     elif mode == "layer":
-        parts["readout_J"] = conv_layer * E_ADC[bits]
-    else:
+        parts["readout_J"] = conv_layer * E_ADC[(fom, bits)]
+    else:   # LIF: no ADC, the FoM does not enter; the window is 2^b - 1 spikes
         parts["readout_J"] = conv_layer * spikes_per_conversion * (E_SPIKE + E_LIF_UPDATE)
     return sum(parts.values()) / tokens, {k: v / tokens for k, v in parts.items()}
+
+
+def h100_J_per_token(macs_per_token, util=1.0):
+    return 2 * macs_per_token * H100_W / (H100_INT8_TOPS * 1e12 * util)
 
 
 def main():
@@ -188,6 +195,7 @@ def main():
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--skip-measure", action="store_true", help="skip the GPU power measurement (e.g. while the GPU is busy)")
     ap.add_argument("--skip-train", action="store_true", help="reuse results/e8b/checkpoint.pt")
+    ap.add_argument("--reuse-measurement", action="store_true", help="take the GPU measurement block from the existing results/e8b/results.json instead of measuring")
     ap.add_argument("--calib-pct", type=float, default=99.9, help="converter range = this percentile of |value| on the calibration batch (100 = max); the max-range result is recorded as well")
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
@@ -244,19 +252,27 @@ def main():
     except Exception:
         wps = 4e-4
     ops_train["pulses"] = max(ops_train.get("pulses", 0), wps * ops_all["n_devices"] * 1.5)
-    # ---- the 3 x 2 table (inference) + training step
+    # ---- the 3 read-out x 2 FoM x 2 bits table (inference) + training step
     table = {}
     for mode in MODES:
-        for bits in BITS:
-            spk = accuracy[f"{mode}_{bits}"]["spikes_per_output_per_token"] or 0.0
-            e, parts = bpu_energy(ops_eval, tokens, mode, bits, spk)
-            e_tr, parts_tr = bpu_energy(ops_train, tokens, mode, bits, spk, training=True)
-            table[f"{mode}_{bits}"] = {"mode": mode, "bits": bits, "nJ_per_token": e * 1e9, "parts_nJ": {k: v * 1e9 for k, v in parts.items()},
-                                       "train_step_nJ_per_token": e_tr * 1e9, "train_parts_nJ": {k: v * 1e9 for k, v in parts_tr.items()},
-                                       "gap_pct_vs_ideal": accuracy[f"{mode}_{bits}"]["gap_pct_vs_ideal"], "spikes_per_output_per_token": spk if mode == "lif" else None}
+        for fom in FOM_W:
+            for bits in BITS:
+                spk = accuracy[f"{mode}_{bits}"]["spikes_per_output_per_token"] or 0.0
+                e, parts = bpu_energy(ops_eval, tokens, mode, bits, spk, fom=fom)
+                e_tr, parts_tr = bpu_energy(ops_train, tokens, mode, bits, spk, training=True, fom=fom)
+                table[f"{mode}_{fom}_{bits}"] = {"mode": mode, "fom": fom, "fom_fJ_per_step": FOM_W[fom] * 1e15, "bits": bits, "E_ADC_pJ": E_ADC[(fom, bits)] * 1e12 if mode != "lif" else None,
+                                                 "nJ_per_token": e * 1e9, "parts_nJ": {k: v * 1e9 for k, v in parts.items()},
+                                                 "train_step_nJ_per_token": e_tr * 1e9, "train_parts_nJ": {k: v * 1e9 for k, v in parts_tr.items()},
+                                                 "gap_pct_vs_ideal": accuracy[f"{mode}_{bits}"]["gap_pct_vs_ideal"], "spikes_per_output_per_token": spk if mode == "lif" else None}
     # ---- digital control: measured on the GPU
     digital = {"gpu": torch.cuda.get_device_name(0) if dev == "cuda" else "none"}
-    if dev == "cuda" and not args.skip_measure:
+    if args.reuse_measurement:
+        prev = load_results("e8b", args.out)["digital_control"]
+        for k in ("idle_power_W", "fp32", "int8", "gpu"):
+            if k in prev:
+                digital[k] = prev[k]
+        print("  GPU measurement reused from results.json", flush=True)
+    elif dev == "cuda" and not args.skip_measure:
         digital["idle_power_W"] = idle_power()
         print(f"  GPU idle power {digital['idle_power_W']:.1f} W", flush=True)
         fp32 = GPT(vocab, 192, 6, 6, args.block, None, None, seed=0).to(dev); fp32.load_state_dict(ideal.state_dict())
@@ -283,7 +299,9 @@ def main():
     digital["cpu_int8_torch_ao"] = measure_cpu_int8(cpu_model, train_ids, args.block, 32, 4.0 if not args.smoke else 1.0)
     digital["h100_int8_published"] = {"source": "NVIDIA H100 SXM datasheet: 1979 TOPS dense INT8, 700 W (peak, published, not measured)",
                                       "pJ_per_op_at_peak": H100_W / (H100_INT8_TOPS * 1e12) * 1e12,
-                                      "nJ_per_token_at_peak_for_this_model": 2 * ops_eval["macs"] / tokens * H100_W / (H100_INT8_TOPS * 1e12) * 1e9}
+                                      "nJ_per_token_at_peak_for_this_model": h100_J_per_token(ops_eval["macs"] / tokens) * 1e9,
+                                      "utilisation_for_40pct_row": H100_UTIL,
+                                      "nJ_per_token_at_40pct_util_for_this_model": h100_J_per_token(ops_eval["macs"] / tokens, H100_UTIL) * 1e9}
     # ---- scaling to 1T
     macs_per_token_meas = ops_eval["macs"] / tokens
     L0, d0 = SIZES["2.7M (E8, measured)"]
@@ -297,33 +315,40 @@ def main():
         P = 12 * L * d ** 2
         ops = {"macs": ratio_macs * 12 * L * d ** 2, "conversions": conv_tile_per_Ld2 * L * d ** 2 / 32, "conversions_out": conv_layer_per_Ld * L * d,
                "events": ev_per_L * L, "cache_writes": cache_per_Ld * L * d, "pulses": 0}
-        row = {"model": name, "layers": L, "d_model": d, "params_approx": P, "macs_per_token": ops["macs"]}
+        row = {"model": name, "layers": L, "d_model": d, "params_approx": P, "macs_per_token": ops["macs"], "conversions_per_token_layer_mode": ops["conversions_out"]}
         for mode in MODES:
-            for bits in BITS:
-                spk = accuracy[f"{mode}_{bits}"]["spikes_per_output_per_token"] or 0.0
-                row[f"{mode}_{bits}_nJ_per_token"] = bpu_energy(ops, 1, mode, bits, spk)[0] * 1e9
-        if dev == "cuda" and "int8" in digital:
+            for fom in FOM_W:
+                for bits in BITS:
+                    spk = accuracy[f"{mode}_{bits}"]["spikes_per_output_per_token"] or 0.0
+                    row[f"{mode}_{fom}_{bits}_nJ_per_token"] = bpu_energy(ops, 1, mode, bits, spk, fom=fom)[0] * 1e9
+        if "int8" in digital:
             # digital control scaled by MACs from the measured INT8 energy of this model
             row["gpu_int8_measured_scaled_nJ_per_token"] = digital["int8"]["nJ_per_token_incl_idle"] * ops["macs"] / macs_per_token_meas
-        row["h100_int8_peak_nJ_per_token"] = 2 * ops["macs"] * H100_W / (H100_INT8_TOPS * 1e12) * 1e9
+        row["h100_int8_peak_nJ_per_token"] = h100_J_per_token(ops["macs"]) * 1e9
+        row["h100_int8_40pct_nJ_per_token"] = h100_J_per_token(ops["macs"], H100_UTIL) * 1e9
+        row["bpu_over_h100_40pct"] = {k: row[f"{k}_nJ_per_token"] / row["h100_int8_40pct_nJ_per_token"] for k in ("layer_fom10_8", "layer_fom50_8", "tile_fom10_8", "lif_fom10_8")}
         scaling.append(row)
     layers = 6; reads_in_series = layers * 4 + 1 + layers * 2
-    best = min(table.values(), key=lambda r: r["nJ_per_token"])
+    lossless = {k: v for k, v in table.items() if v["gap_pct_vs_ideal"] <= 2.0}
+    best = min(lossless.values(), key=lambda r: r["nJ_per_token"]) if lossless else min(table.values(), key=lambda r: r["nJ_per_token"])
     g_int8 = digital.get("int8", {}).get("nJ_per_token_incl_idle")
-    stmt = (f"PROJECTION on the BPU side (device-model constants), MEASURED on the digital side. Same 2.7M-parameter nanoGPT. "
-            + (f"GPU INT8 ({digital['gpu']}): {g_int8:.0f} nJ/token incl. idle power, {digital['int8']['nJ_per_token_above_idle']:.0f} above idle, val loss gap {digital['int8']['gap_pct_vs_ideal']:+.2f}%; FP32 {digital['fp32']['nJ_per_token_incl_idle']:.0f} nJ/token. " if g_int8 else "GPU energy not measured in this run. ")
-            + f"H100 INT8 at published peak: {digital['h100_int8_published']['nJ_per_token_at_peak_for_this_model']:.1f} nJ/token (not measured). BPU inference nJ/token (val-loss gap vs ideal): "
-            + "; ".join(f"{m} {b}-bit {table[f'{m}_{b}']['nJ_per_token']:.0f} ({table[f'{m}_{b}']['gap_pct_vs_ideal']:+.1f}%)" for m in MODES for b in BITS)
-            + f". Cheapest mode {best['mode']} {best['bits']}-bit at {best['nJ_per_token']:.0f} nJ/token"
-            + (f" = {g_int8 / best['nJ_per_token']:.1f}x below the measured GPU INT8 figure" if g_int8 else "")
-            + f"; MACs alone {table['layer_8']['parts_nJ']['mac_J']:.1f} nJ/token; LIF spike rate {accuracy['lif_8']['spikes_per_output_per_token']:.1f} (8-bit window) / {accuracy['lif_4']['spikes_per_output_per_token']:.2f} (4-bit) spikes per output per token; converter ranges at the {args.calib_pct:g}th percentile of the calibration batch"
-            + (f" (with full-range converters 4-bit costs " + ", ".join(f"{m} {accuracy_maxrange[f'{m}_4']['gap_pct_vs_ideal']:+.0f}%" for m in MODES) + ")" if accuracy_maxrange else "") + ".")
+    h_peak = digital["h100_int8_published"]["nJ_per_token_at_peak_for_this_model"]; h_40 = digital["h100_int8_published"]["nJ_per_token_at_40pct_util_for_this_model"]
+    r1t = scaling[-1]["bpu_over_h100_40pct"]["layer_fom10_8"]; r0 = scaling[0]["bpu_over_h100_40pct"]["layer_fom10_8"]
+    stmt = (f"PROJECTION on the BPU side (device-model constants, E_ADC = FoM_W x 2^b with FoM_W 10 / 50 fJ per conversion-step), MEASURED on the digital side. Same 2.7M-parameter nanoGPT. "
+            + (f"GPU INT8 measured ({digital['gpu']}): {g_int8:.0f} nJ/token incl. idle power, {digital['int8']['nJ_per_token_above_idle']:.0f} above idle, val loss gap {digital['int8']['gap_pct_vs_ideal']:+.2f}%; FP32 {digital['fp32']['nJ_per_token_incl_idle']:.0f} nJ/token. " if g_int8 else "GPU energy not measured in this run. ")
+            + f"H100 INT8 published: {h_peak:.1f} nJ/token at peak, {h_40:.1f} at 40% utilisation (not measured). BPU inference nJ/token (val-loss gap vs ideal): "
+            + "; ".join(f"{m} {f.replace('fom', 'FoM ')} fJ {b}-bit {table[f'{m}_{f}_{b}']['nJ_per_token']:.0f} ({table[f'{m}_{f}_{b}']['gap_pct_vs_ideal']:+.1f}%)" for m in MODES for f in FOM_W for b in BITS)
+            + f". Cheapest lossless cell (gap <= 2%): {best['mode']} {best['fom']} {best['bits']}-bit at {best['nJ_per_token']:.0f} nJ/token = {best['nJ_per_token'] / h_40:.2f}x H100@40%"
+            + (f", {g_int8 / best['nJ_per_token']:.0f}x below the measured laptop GPU" if g_int8 else "")
+            + f"; MACs alone {table['layer_fom10_8']['parts_nJ']['mac_J']:.1f} nJ/token; LIF spike rate {accuracy['lif_8']['spikes_per_output_per_token']:.1f} (8-bit window) / {accuracy['lif_6']['spikes_per_output_per_token']:.1f} (6-bit) spikes per output per token; converter ranges at the {args.calib_pct:g}th percentile. "
+            + f"Scaling: conversions grow as layers x d_model while MACs grow as parameters (~ layers x d_model^2), so the BPU / H100@40% ratio for the per-layer 8-bit FoM-10 cell falls from {r0:.2f} at 2.7M to {r1t:.3f} at 1T: the relative advantage grows with model size because the converter cost per MAC shrinks as 1/d_model.")
     out = {"constants": {"E_MAC_J": E_MAC, "E_ADC_J": {str(k): v for k, v in E_ADC.items()}, "E_SPIKE_J": E_SPIKE, "E_LIF_UPDATE_J": E_LIF_UPDATE, "E_WRITE_J": E_WRITE, "E_ROUTE_J": E_ROUTE,
                          "E_CACHE_WRITE_J": E_CACHE_WRITE, "t_read_series_s": T_READ_SERIES, "lif_energy_accounting": "per spike (router 10 pJ + LIF update 5 pJ); the per-time-step alternative is 2^b updates per output per token"},
            "protocol": {"steps": args.steps, "ft_steps": args.ft_steps, "sigma": args.sigma, "batch": args.batch, "block": args.block, "device": dev, "smoke": args.smoke},
            "ideal_val_loss": ideal_val, "noise_aware_val_loss": na_val, "readout_accuracy": accuracy, "readout_accuracy_max_range": accuracy_maxrange,
            "calib_pct": args.calib_pct, "measured_ops": ops_all, "table_3x2": table,
            "digital_control": digital, "scaling": scaling, "latency": {"bpu_s_per_token": reads_in_series * T_READ_SERIES, "reads_in_series": reads_in_series},
+           "fom_W_J_per_step": {k: v for k, v in FOM_W.items()}, "bits": BITS, "modes": MODES,
            "verdict": {"statement": stmt}}
     print("E8b:", stmt)
     save_results("e8b", out, args.out)
@@ -336,9 +361,9 @@ def plot(res, path):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, 2, figsize=(12, 4.2))
-    t = res["table_3x2"]; keys = [f"{m}_{b}" for m in MODES for b in BITS]
+    t = res["table_3x2"]; keys = list(t)
     x = np.arange(len(keys)); vals = [t[k]["nJ_per_token"] for k in keys]
-    ax[0].bar(x, vals, color=["C0" if k.endswith("8") else "C1" for k in keys])
+    ax[0].bar(x, vals, color=["C0" if k.endswith("_8") else "C1" for k in keys])
     for i, k in enumerate(keys):
         ax[0].text(i, vals[i] * 1.05, f"{t[k]['gap_pct_vs_ideal']:+.1f}%", ha="center", fontsize=7)
     g = res["digital_control"].get("int8", {}).get("nJ_per_token_incl_idle")
@@ -346,15 +371,17 @@ def plot(res, path):
         ax[0].axhline(g, color="k", ls="--", lw=1, label=f"GPU INT8 measured {g:.0f} nJ/token")
         ax[0].axhline(res["digital_control"]["int8"]["nJ_per_token_above_idle"], color="k", ls=":", lw=1, label="GPU INT8 above idle")
     ax[0].axhline(res["digital_control"]["h100_int8_published"]["nJ_per_token_at_peak_for_this_model"], color="gray", ls="-.", lw=1, label="H100 INT8 published peak")
-    ax[0].set_yscale("log"); ax[0].set_xticks(x); ax[0].set_xticklabels([k.replace("_", " ") + "-bit" for k in keys], fontsize=8, rotation=15)
-    ax[0].set_ylabel("nJ per token, inference (2.7M model)"); ax[0].legend(fontsize=7); ax[0].set_title("E8b: read-out mode x precision (labels: val-loss gap vs ideal)", fontsize=9)
+    ax[0].axhline(res["digital_control"]["h100_int8_published"]["nJ_per_token_at_40pct_util_for_this_model"], color="gray", ls="-", lw=1, label="H100 INT8 at 40 % utilisation")
+    ax[0].set_yscale("log"); ax[0].set_xticks(x); ax[0].set_xticklabels([k.replace("_fom", " ").replace("_", " ") + "b" for k in keys], fontsize=6, rotation=35)
+    ax[0].set_ylabel("nJ per token, inference (2.7M model)"); ax[0].legend(fontsize=6); ax[0].set_title("E8b: read-out x FoM x bits (labels: val-loss gap vs ideal)", fontsize=9)
     sc = res["scaling"]; P = [r["params_approx"] for r in sc]
-    for k in ("layer_8", "tile_8", "lif_4", "layer_4"):
-        ax[1].loglog(P, [r[f"{k}_nJ_per_token"] for r in sc], "o-", label=f"BPU {k.replace('_', ' ')}-bit (projection)")
+    for k in ("layer_fom10_8", "layer_fom50_8", "tile_fom10_8", "lif_fom10_8"):
+        ax[1].loglog(P, [r[f"{k}_nJ_per_token"] for r in sc], "o-", label=f"BPU {k.replace('_fom', ' FoM').replace('_', ' ')}b (projection)")
     if "gpu_int8_measured_scaled_nJ_per_token" in sc[0]:
         ax[1].loglog(P, [r["gpu_int8_measured_scaled_nJ_per_token"] for r in sc], "s--", color="k", label="GPU INT8 measured, scaled by MACs")
     ax[1].loglog(P, [r["h100_int8_peak_nJ_per_token"] for r in sc], "^:", color="gray", label="H100 INT8 published peak")
-    ax[1].set_xlabel("parameters"); ax[1].set_ylabel("nJ per token"); ax[1].legend(fontsize=7); ax[1].set_title("scaling to 1T (MACs ~ params, conversions ~ layers x d)", fontsize=9)
+    ax[1].loglog(P, [r["h100_int8_40pct_nJ_per_token"] for r in sc], "^-", color="gray", label="H100 INT8 at 40 %")
+    ax[1].set_xlabel("parameters"); ax[1].set_ylabel("nJ per token"); ax[1].legend(fontsize=6); ax[1].set_title("scaling to 1T (MACs ~ params, conversions ~ layers x d)", fontsize=9)
     fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
     print(f"[e8b] figure {path}")
 

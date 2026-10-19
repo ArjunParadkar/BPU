@@ -45,8 +45,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from common import base_parser, save_results, figure_path, Timer, ROOT
-from bpusim.torchtile import TileLinear, TileOptimizer, tile_modules, DFAContext
+from common import base_parser, save_results, figure_path, Timer, ROOT, load_results
+import json
+from bpusim.torchtile import TileLinear, TileOptimizer, tile_modules, DFAContext, write_budget_report
 from bpusim.noise import summarize
 from e8_nanogpt_tiles import GPT, get_batch, train, evaluate, copy_weights, DATA, model_device
 
@@ -129,8 +130,8 @@ def recovery_time(curve, switch_idx, window=100, frac=0.9):
     return int(hit[0]) if hit.size else None
 
 
-def make_model(arm, vocab, block, sigma, seed, device):
-    kw = dict(write_mode="level")
+def make_model(arm, vocab, block, sigma, seed, device, theta_flush=1.0):
+    kw = dict(write_mode="level", theta_flush=theta_flush)
     if arm == "sgd_float32":
         return GPT(vocab, 192, 6, 6, block, None, None, seed=seed).to(device), None
     if arm == "sgd_bpu_pulse":   # diagnostic: the same oracle with the legacy nearest-pulse writes (no level gate)
@@ -188,6 +189,8 @@ def main():
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--arms", type=str, default=",".join(ARMS))
+    ap.add_argument("--theta-flush", type=str, default="1.0", help="flush thresholds in conductance levels, comma list; each BPU gradient arm is run at every value")
+    ap.add_argument("--merge", type=str, default=None, help="results.json whose runs are reused for arms/thetas not rerun here (e.g. the theta = 1.0 run)")
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
     torch.set_num_threads(args.threads)
@@ -199,6 +202,8 @@ def main():
     n = int(0.9 * len(shakes)); shakes_tr = shakes[:n]
     segments = [{"name": "shakespeare", "ids": shakes_tr, "steps": args.seg}, {"name": "python_source", "ids": code, "steps": args.seg},
                 {"name": "shakespeare", "ids": shakes_tr, "steps": args.seg}]
+    thetas = [float(x) for x in args.theta_flush.split(",")]
+    merged = json.load(open(args.merge))["runs"] if args.merge else None
     runs = []
     for seed in range(seeds):
         torch.manual_seed(seed); gen = torch.Generator().manual_seed(seed)
@@ -208,9 +213,13 @@ def main():
         base_loss = {"shakespeare": evaluate(ideal, shakes[n:], args.block, args.batch, 20, torch.Generator().manual_seed(5)),
                      "python_source": evaluate(ideal, code, args.block, args.batch, 20, torch.Generator().manual_seed(5))}
         print(f"  ideal val loss: {base_loss}", flush=True)
-        curves = {}
-        for arm in arms:
-            model, holder = make_model(arm, vocab, args.block, args.sigma, seed, args.device)
+        curves = dict(merged[seed]["curves"]) if merged else {}
+        jobs = [(a, 1.0) for a in arms if a in ("frozen", "sgd_float32")] + [(a, th) for th in thetas for a in arms if a not in ("frozen", "sgd_float32")]
+        for arm, theta in jobs:
+            name = arm if (theta == 1.0 or arm in ("frozen", "sgd_float32")) else f"{arm}@{theta:g}"
+            if name in curves and merged:
+                print(f"  {name}: reused from {args.merge}", flush=True); continue
+            model, holder = make_model(arm, vocab, args.block, args.sigma, seed, args.device, theta)
             model.load_state_dict(ideal.state_dict(), strict=False); copy_weights(ideal, model, verify=True)
             local = LocalLayerLosses(model, vocab, args.lr, args.lr_readout) if arm == "local_bpu" else None
             gen_s = torch.Generator().manual_seed(100 + seed)      # identical stream for every arm of a seed
@@ -223,20 +232,26 @@ def main():
             seg_end = [float(np.mean(losses[k * args.seg:(k + 1) * args.seg][-200:])) for k in range(3)]
             seg_mean = [float(np.mean(losses[k * args.seg:(k + 1) * args.seg])) for k in range(3)]
             fr = float(np.mean([t.flush_rate for t in tiles])) if arm != "sgd_float32" else 0.0
-            curves[arm] = {"loss": losses[::max(1, len(losses) // 600)], "loss_full_len": len(losses), "writes_cum": writes[::max(1, len(writes) // 600)],
-                           "writes_per_device_total": wpd, "writes_per_device_per_s": wpd / total_s, "percent_of_budget": 100.0 * wpd / total_s / BUDGET,
-                           "flush_rate": fr, "levels": tiles[0].levels if arm != "sgd_float32" else None,
-                           "recovery_steps_after_switch": rec, "segment_end_loss": seg_end, "segment_mean_loss": seg_mean}
-            print(f"  {arm}: segment-end losses {np.round(seg_end, 3)}, recovery {rec}, writes/dev/s {wpd / total_s:.3g} ({100 * wpd / total_s / BUDGET:.0f}% of budget), flush rate {fr:.2g}", flush=True)
+            curves[name] = {"arm": arm, "theta_flush": theta, "loss": losses[::max(1, len(losses) // 600)], "loss_full_len": len(losses), "writes_cum": writes[::max(1, len(writes) // 600)],
+                            "writes_per_device_total": wpd, "writes_per_device_per_s": wpd / total_s, "percent_of_budget": 100.0 * wpd / total_s / BUDGET,
+                            "budget": write_budget_report(tiles, seconds=total_s),
+                            "flush_rate": fr, "levels": tiles[0].levels if arm != "sgd_float32" else None,
+                            "recovery_steps_after_switch": rec, "segment_end_loss": seg_end, "segment_mean_loss": seg_mean}
+            print(f"  {name}: segment-end losses {np.round(seg_end, 3)}, recovery {rec}, total writes/dev {wpd:.3g} ({100 * wpd / 1e6:.2g}% endurance), {wpd / total_s:.3g}/dev/s, flush rate {fr:.2g}", flush=True)
             del model
         runs.append({"seed": seed, "ideal_val_loss": base_loss, "curves": curves})
-    # ---- summary over seeds
+    # ---- summary over seeds (one entry per arm@theta)
+    names = [k for k in runs[0]["curves"] if all(k in r["curves"] for r in runs)]
     summ = {}
-    for arm in arms:
-        summ[arm] = {k: summarize([r["curves"][arm][k] for r in runs]) for k in ("writes_per_device_per_s", "percent_of_budget", "flush_rate")}
+    for arm in names:
+        summ[arm] = {k: summarize([r["curves"][arm][k] for r in runs]) for k in ("writes_per_device_per_s", "percent_of_budget", "flush_rate", "writes_per_device_total")}
+        summ[arm]["percent_of_endurance"] = summarize([100.0 * r["curves"][arm]["writes_per_device_total"] / 1e6 for r in runs])
+        summ[arm]["writes_per_tile_per_s"] = summarize([r["curves"][arm].get("budget", {}).get("writes_per_tile_per_s", 0.0) for r in runs])
+        summ[arm]["arm"] = runs[0]["curves"][arm].get("arm", arm); summ[arm]["theta_flush"] = runs[0]["curves"][arm].get("theta_flush", 1.0)
         for k in range(3):
             summ[arm][f"segment_end_loss_{k}"] = summarize([r["curves"][arm]["segment_end_loss"][k] for r in runs])
         summ[arm]["recovery_steps_after_switch"] = [[r["curves"][arm]["recovery_steps_after_switch"][i] for r in runs] for i in (0, 1)]
+    arms = names
     if "sgd_float32" not in summ or "sgd_bpu" not in summ:   # diagnostic subset run: save the curves and stop
         out = {"seg": args.seg, "sigma": args.sigma, "seeds": seeds, "arms": arms, "step_seconds": args.step_seconds, "runs": runs, "summary": summ, "diagnostic": True,
                "verdict": {"statement": "diagnostic arms only: " + "; ".join(f"{a} post-shift {summ[a]['segment_end_loss_1']['mean']:.3f}, {summ[a]['percent_of_budget']['mean']:.0f}% of budget" for a in arms)}}
@@ -246,17 +261,29 @@ def main():
     gap_oracle = {arm: 100.0 * (summ[arm]["segment_end_loss_1"]["mean"] / summ["sgd_bpu"]["segment_end_loss_1"]["mean"] - 1) for arm in arms if arm != "sgd_float32"}
     within5 = abs(gaps.get("sgd_bpu", float("inf"))) <= 5.0
     budget_ok = summ["sgd_bpu"]["writes_per_device_per_s"]["mean"] <= BUDGET if "sgd_bpu" in summ else False
-    success = bool(within5 and budget_ok)
-    out = {"seg": args.seg, "sigma": args.sigma, "pretrain_steps": args.pretrain_steps, "batch": args.batch, "step_seconds": args.step_seconds, "lr": args.lr,
+    # endurance criterion: within 5 % of float32 at ANY theta with < 1e4 total writes per device
+    pareto = [{"name": a, "arm": summ[a]["arm"], "theta_flush": summ[a]["theta_flush"], "post_shift_loss": summ[a]["segment_end_loss_1"]["mean"],
+               "gap_pct": gaps[a], "writes_per_device_total": summ[a]["writes_per_device_total"]["mean"]} for a in arms if a not in ("frozen", "sgd_float32")]
+    passing = [p for p in pareto if abs(p["gap_pct"]) <= 5.0 and p["writes_per_device_total"] < 1e4]
+    success = bool(passing)
+    pulse = None
+    try:
+        pr = load_results("e9_pulse")["summary"]["sgd_bpu_pulse"]
+        pulse = {"post_shift_loss": pr["segment_end_loss_1"]["mean"], "writes_per_device_total": pr["writes_per_device_total"]["mean"] if "writes_per_device_total" in pr else pr["writes_per_device_per_s"]["mean"] * args.seg * 3 * args.step_seconds,
+                 "gap_pct": 100.0 * (pr["segment_end_loss_1"]["mean"] / ref - 1)}
+    except Exception:
+        pass
+    out = {"pulse_diagnostic": pulse, "seg": args.seg, "sigma": args.sigma, "pretrain_steps": args.pretrain_steps, "batch": args.batch, "step_seconds": args.step_seconds, "lr": args.lr,
            "seeds": seeds, "device": args.device, "arms": arms, "segments": [s["name"] for s in segments], "runs": runs, "summary": summ,
            "post_shift_gap_pct_vs_float32": gaps, "post_shift_gap_pct_vs_bpu_oracle": gap_oracle, "budget_writes_per_device_per_s": BUDGET, "smoke": args.smoke,
-           "verdict": {"success": success, "sgd_bpu_within_5pct": bool(within5), "sgd_bpu_within_budget": bool(budget_ok),
+           "thetas": thetas, "pareto": pareto, "endurance_limit_writes_per_device": 1e4,
+           "verdict": {"success": success, "sgd_bpu_within_5pct": bool(within5), "sgd_bpu_within_lifelong_rate": bool(budget_ok), "passing": passing,
                        "statement": ("SMOKE RUN. " if args.smoke else "") +
-                       f"post-shift loss (Python segment, last 200 steps, {seeds} seeds): float32 SGD {ref:.3f}; BPU SGD-oracle {summ['sgd_bpu']['segment_end_loss_1']['mean']:.3f} ({gaps['sgd_bpu']:+.1f}%), "
-                       f"writes {summ['sgd_bpu']['writes_per_device_per_s']['mean']:.3g}/dev/s = {summ['sgd_bpu']['percent_of_budget']['mean']:.0f}% of the 6e-3 budget at {args.step_seconds} s/step; "
-                       + "; ".join(f"{a} {summ[a]['segment_end_loss_1']['mean']:.3f} ({gaps[a]:+.1f}% vs float32, {gap_oracle[a]:+.1f}% vs oracle, {summ[a]['percent_of_budget']['mean']:.0f}% of budget)" for a in arms if a not in ("sgd_float32", "sgd_bpu"))
-                       + (". SUCCESS: the substrate ceiling is within 5% of float32 inside the write budget" if success else
-                          f". Criterion not met: within 5% = {within5}, within budget = {budget_ok}")}}
+                       f"post-shift loss (Python segment, last 200 steps, {seeds} seeds): float32 SGD {ref:.3f}; "
+                       + "; ".join(f"{p['name']} {p['post_shift_loss']:.3f} ({p['gap_pct']:+.1f}%, {p['writes_per_device_total']:.3g} writes/device = {100 * p['writes_per_device_total'] / 1e6:.2g}% endurance)" for p in pareto)
+                       + (". SUCCESS: " + ", ".join(p["name"] for p in passing) + " within 5% of float32 with < 1e4 total writes/device" if success else
+                          ". Criterion not met: no arm is within 5% of float32 with < 1e4 total writes per device"
+                          + (f" (closest: {min(pareto, key=lambda p: abs(p['gap_pct']))['name']} at {min(pareto, key=lambda p: abs(p['gap_pct']))['gap_pct']:+.1f}%)" if pareto else ""))}}
     print("E9 verdict:", out["verdict"]["statement"])
     save_results("e9", out, args.out)
     if not args.no_fig:
@@ -268,7 +295,7 @@ def plot(res, path):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, 3, figsize=(15, 4))
-    seg = res["seg"]; arms = res["arms"]
+    seg = res["seg"]; arms = [a for a in res["arms"] if "@" not in a]
     labels = {"frozen": "frozen (BPU, no updates)", "sgd_float32": "SGD float32 (reference)", "sgd_bpu": "SGD on BPU tiles (substrate ceiling)",
               "fa_bpu": "feedback alignment (BPU)", "dfa_bpu": "direct FA, fully local (BPU)", "local_bpu": "layer-local three-factor (BPU)"}
     for arm in arms:
@@ -286,10 +313,17 @@ def plot(res, path):
     ref = s["sgd_float32"]["segment_end_loss_1"]["mean"]; ax[1].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08, label="float32 +-5 %")
     ax[1].set_xticks(x); ax[1].set_xticklabels(arms, rotation=20, fontsize=7); ax[1].set_ylabel("post-shift loss (Python, last 200 steps)"); ax[1].legend(fontsize=7)
     ax[1].set_title("post-shift loss per arm", fontsize=9)
-    w = [max(s[a]["writes_per_device_per_s"]["mean"], 1e-6) for a in arms]
-    ax[2].bar(x, w, color="C1"); ax[2].axhline(res["budget_writes_per_device_per_s"], color="r", ls="--", label="endurance budget 6e-3")
-    ax[2].set_yscale("log"); ax[2].set_xticks(x); ax[2].set_xticklabels(arms, rotation=20, fontsize=7); ax[2].set_ylabel(f"writes / device / s at {res['step_seconds']} s/step"); ax[2].legend(fontsize=7)
-    ax[2].set_title("write rate vs budget", fontsize=9)
+    # Pareto: post-shift loss vs total writes per device, one marker per arm, one point per theta
+    cols = {"sgd_bpu": "C0", "fa_bpu": "C1", "dfa_bpu": "C2", "local_bpu": "C3", "sgd_bpu_pulse": "C4"}
+    for p in res.get("pareto", []):
+        ax[2].scatter(max(p["writes_per_device_total"], 1e-3), p["post_shift_loss"], color=cols.get(p["arm"], "k"), s=30 + 40 * p["theta_flush"], label=f"{p['arm']} θ={p['theta_flush']:g}")
+    pulse = res.get("pulse_diagnostic")
+    if pulse:
+        ax[2].scatter(pulse["writes_per_device_total"], pulse["post_shift_loss"], marker="x", color="k", s=50, label="nearest-pulse writes (diagnostic)")
+    ax[2].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08); ax[2].axhline(ref, color="k", ls="--", lw=0.8, label="float32 ± 5 %")
+    ax[2].axvline(res.get("endurance_limit_writes_per_device", 1e4), color="r", ls=":", label="1e4 writes/device")
+    ax[2].set_xscale("log"); ax[2].set_xlabel("total writes per device over the stream"); ax[2].set_ylabel("post-shift loss"); ax[2].legend(fontsize=6)
+    ax[2].set_title("Pareto: loss vs writes (marker size = θ_flush)", fontsize=9)
     fig.suptitle(res["verdict"]["statement"][:150], fontsize=7)
     fig.tight_layout(); fig.savefig(path, dpi=130); plt.close(fig)
     print(f"[e9] figure {path}")

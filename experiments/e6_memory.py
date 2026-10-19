@@ -21,7 +21,7 @@ from common import base_parser, save_results, figure_path, Timer
 from bpusim.memory import ScaffoldMemory, HopfieldAttention, signz
 from bpusim.noise import equal_split, summarize
 
-COUNTS = [4, 8, 12, 16, 20, 24, 28, 32]
+COUNTS = [1, 2, 4, 8, 12, 16, 20, 24, 28, 32]
 SIGMAS = [0.0, 0.02, 0.04, 0.08, 0.12, 0.2]
 N = 32
 BETA = 0.5

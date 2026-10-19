@@ -224,6 +224,14 @@ def main():
                        "trials_fixed_compute": [r["fixed_compute"]["trials"] for r in runs],
                        "fraction_modules_task_informative": specialised,
                        "mi_bits_per_module_mean": mi_grown.mean(0).tolist(), "mi_shuffle_mean": mi_sh.mean(0).tolist()}}
+    # grown - fixed gap on the base tasks with a bootstrap CI over seeds (for the noise-assisted-growth test
+    # across the tiles / reference runs, see scripts/make_results_page.py and e7_compare)
+    rng_b = np.random.default_rng(0)
+    for metric, getter in (("nav_gap", lambda r, k: r[k]["nav"]["correct"]), ("recall_gap", lambda r, k: r[k]["recall"]["bit_acc"]), ("composite_gap", lambda r, k: r[k]["composite_after_finetune"]["correct"])):
+        for k in ("grown", "grown_continued"):
+            g = np.array([getter(r, k) - getter(r, "fixed") for r in runs])
+            boot = [g[rng_b.integers(0, len(g), len(g))].mean() for _ in range(2000)]
+            out["summary"][f"{metric}_{k}"] = {"per_seed": g.tolist(), "mean": float(g.mean()), "ci95": [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))]}
     s = out["summary"]
     out["verdict"] = {"statement": (
         f"Q(final, grown) = {s['Q_final_grown']['mean']:.2f} +- {s['Q_final_grown']['sem']:.2f} "
@@ -236,7 +244,8 @@ def main():
         f"grown continued to the fixed graph's step count for its final architecture: nav {s['nav_acc']['grown_continued']['mean']:.2f}, "
         f"recall bits {s['recall_bit_acc']['grown_continued']['mean']:.2f}, composite gap {s['transfer_gap_continued']['mean']:+.2f}"
         + ("; NEGATIVE: the grown graph stays behind the fixed graph on the base tasks even with the extra training" if still_behind
-           else "; the grown graph catches up with the fixed graph on the base tasks given the extra training"))}
+           else "; the grown graph catches up with the fixed graph on the base tasks given the extra training")
+        + f"; grown-fixed nav gap {s['nav_gap_grown']['mean']:+.2f} (95% CI {s['nav_gap_grown']['ci95'][0]:+.2f}..{s['nav_gap_grown']['ci95'][1]:+.2f}), continued {s['nav_gap_grown_continued']['mean']:+.2f} ({s['nav_gap_grown_continued']['ci95'][0]:+.2f}..{s['nav_gap_grown_continued']['ci95'][1]:+.2f}), {seeds} seeds")}
     print("E7 verdict:", out["verdict"]["statement"])
     save_results("e7", out, args.out)
     if not args.no_fig:

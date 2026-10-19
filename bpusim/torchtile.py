@@ -174,7 +174,8 @@ class TileLinear(nn.Module):
                  split=(1.0, 1.0, 1.0), alpha: float = 0.02, beta: float = 3.0, scale: float = 0.5,
                  density: float = 1.0, feedback_alignment: bool = False, counter: OpCounter | None = None,
                  tile: int = 32, generator: torch.Generator | None = None, init_std: float = 0.02,
-                 write_mode: str = "pulse", levels: int | None = None, dfa: DFAContext | None = None, dfa_dim: int = 0):
+                 write_mode: str = "pulse", levels: int | None = None, dfa: DFAContext | None = None, dfa_dim: int = 0,
+                 theta_flush: float = 1.0):
         """sigma: total effective device noise (None = ideal float layer).  ``split`` gives the relative
         weights of (d2d, c2c, read) so that sigma_eff = sigma; default equal split.
 
@@ -192,6 +193,7 @@ class TileLinear(nn.Module):
         self.counter = counter
         self.fa = feedback_alignment
         self.write_mode = write_mode
+        self.theta_flush = float(theta_flush)       # level mode: flush when |acc| >= theta_flush levels
         self.readout: ReadoutSpec | None = None     # set by E8b to emulate the read-out mode
         self.site = f"tile{id(self)}"
         self.levels = int(levels) if levels else (256 if (sigma is None or sigma <= 0) else int(max(2, min(256, round(1.0 / float(sigma))))))
@@ -302,12 +304,12 @@ class TileLinear(nn.Module):
         if self.write_mode == "level":
             lvl = self.scale / self.levels                     # one conductance level in weight units
             q = self.pending.abs() / lvl
-            gate = q >= 1.0
+            gate = q >= self.theta_flush
             if not bool(gate.any()):
                 return torch.zeros_like(dW)
             n_int = torch.floor(q)
             n_lv = n_int + (torch.rand_like(q) < (q - n_int)).to(q.dtype)
-            flushed = torch.where(gate, torch.sign(self.pending) * n_lv * lvl, torch.zeros_like(q))
+            flushed = torch.where(gate & (n_lv > 0), torch.sign(self.pending) * n_lv * lvl, torch.zeros_like(q))
             req = flushed / self.scale
         else:
             flushed = None
@@ -359,6 +361,28 @@ class TileLinear(nn.Module):
         if self.ideal or self.n_acc_calls == 0:
             return 0.0
         return self.n_writes / (self.n_acc_calls * self.in_features * self.out_features)
+
+    ENDURANCE = 1e6; TILE_BANDWIDTH = 1e4; LIFELONG_RATE = 6e-3
+
+
+def write_budget_report(tiles, seconds: float | None = None) -> dict:
+    """Aggregate write-budget report over TileLinear layers: endurance (total writes per device vs 1e6),
+    write-driver bandwidth (write events per physical tile per second vs 1e4), and the old lifelong
+    rate (writes per device per second vs 6e-3)."""
+    tiles = [t for t in tiles if isinstance(t, TileLinear) and not t.ideal]
+    if not tiles:
+        return {"writes_per_device_total": 0.0, "percent_of_endurance": 0.0, "flush_rate": 0.0}
+    n_w = sum(t.n_writes for t in tiles); n_dev = sum(t.n_devices for t in tiles); n_tiles = sum(t.n_tiles for t in tiles)
+    wpd = n_w / n_dev
+    rep = {"writes_per_device_total": wpd, "percent_of_endurance": 100.0 * wpd / TileLinear.ENDURANCE,
+           "flush_rate": float(sum(t.flush_rate for t in tiles) / len(tiles)), "levels": tiles[0].levels, "theta_flush": tiles[0].theta_flush,
+           "max_writes_per_device_any_tile": max(t.n_writes / t.n_devices for t in tiles)}
+    if seconds:
+        per_tile_s = n_w / n_tiles / seconds
+        rep.update({"writes_per_tile_per_s": per_tile_s, "percent_of_tile_bandwidth": 100.0 * per_tile_s / TileLinear.TILE_BANDWIDTH,
+                    "max_writes_per_tile_per_s": max(t.n_writes / t.n_tiles for t in tiles) / seconds,
+                    "writes_per_device_per_s": wpd / seconds, "percent_of_lifelong_rate": 100.0 * wpd / seconds / TileLinear.LIFELONG_RATE})
+    return rep
 
 
 class TileOptimizer:

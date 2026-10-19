@@ -1,0 +1,107 @@
+    grown: base training (9000 trials): 435.3 s
+    grown: composite fine-tune (3000 trials): 230.7 s
+  seed 4 grown: edges=12 syn=8487 Q=0.132 nav acc=0.52 (err 0.44) recall bits=0.85 | composite zero-shot 0.15 -> after ft 0.16 (err 1.48) | MI max 0.95 bits
+    grown_continued: base training (9000 trials): 436.9 s
+    grown_continued: continued training, structure frozen (9000 trials): 286.5 s
+    grown_continued: composite fine-tune (3000 trials): 82.2 s
+  seed 4 grown_continued: edges=12 syn=8487 Q=0.132 nav acc=0.84 (err 0.20) recall bits=0.92 | composite zero-shot 0.15 -> after ft 0.17 (err 1.38) | MI max 1.00 bits
+    fixed: base training (9000 trials): 250.1 s
+    fixed: composite fine-tune (3000 trials): 137.2 s
+  seed 4 fixed: edges=16 syn=8544 Q=0.000 nav acc=0.23 (err 1.03) recall bits=0.51 | composite zero-shot 0.11 -> after ft 0.14 (err 1.48) | MI max 1.00 bits
+    fixed_compute: base training (9306 trials): 212.5 s
+    fixed_compute: composite fine-tune (3102 trials): 61.3 s
+  seed 4 fixed_compute: edges=16 syn=8544 Q=0.000 nav acc=0.20 (err 1.26) recall bits=0.56 | composite zero-shot 0.18 -> after ft 0.10 (err 1.56) | MI max 1.00 bits
+    grown: base training (9000 trials): 517.7 s
+    grown: composite fine-tune (3000 trials): 233.0 s
+  seed 5 grown: edges=12 syn=8529 Q=0.167 nav acc=0.35 (err 0.52) recall bits=0.69 | composite zero-shot 0.12 -> after ft 0.14 (err 1.45) | MI max 0.96 bits
+    grown_continued: base training (9000 trials): 480.0 s
+    grown_continued: continued training, structure frozen (9000 trials): 236.6 s
+    grown_continued: composite fine-tune (3000 trials): 93.0 s
+  seed 5 grown_continued: edges=12 syn=8529 Q=0.167 nav acc=0.30 (err 0.57) recall bits=0.70 | composite zero-shot 0.14 -> after ft 0.12 (err 1.59) | MI max 1.00 bits
+    fixed: base training (9000 trials): 244.1 s
+    fixed: composite fine-tune (3000 trials): 126.0 s
+  seed 5 fixed: edges=16 syn=8495 Q=0.000 nav acc=0.76 (err 0.27) recall bits=0.84 | composite zero-shot 0.15 -> after ft 0.12 (err 1.56) | MI max 0.98 bits
+    fixed_compute: base training (9392 trials): 174.9 s
+    fixed_compute: composite fine-tune (3130 trials): 54.4 s
+  seed 5 fixed_compute: edges=16 syn=8495 Q=0.000 nav acc=0.67 (err 0.33) recall bits=0.76 | composite zero-shot 0.14 -> after ft 0.14 (err 1.56) | MI max 0.96 bits
+    grown: base training (9000 trials): 450.9 s
+    grown: composite fine-tune (3000 trials): 226.2 s
+  seed 2 grown: edges=12 syn=8531 Q=-0.000 nav acc=0.14 (err 1.55) recall bits=0.87 | composite zero-shot 0.06 -> after ft 0.12 (err 1.65) | MI max 1.00 bits
+    grown_continued: base training (9000 trials): 419.2 s
+    grown_continued: continued training, structure frozen (9000 trials): 281.7 s
+    grown_continued: composite fine-tune (3000 trials): 73.2 s
+  seed 2 grown_continued: edges=12 syn=8531 Q=-0.000 nav acc=0.13 (err 1.46) recall bits=0.90 | composite zero-shot 0.13 -> after ft 0.12 (err 1.67) | MI max 0.98 bits
+    fixed: base training (9000 trials): 233.0 s
+    fixed: composite fine-tune (3000 trials): 116.6 s
+  seed 2 fixed: edges=16 syn=8574 Q=0.000 nav acc=0.82 (err 0.23) recall bits=0.78 | composite zero-shot 0.13 -> after ft 0.10 (err 1.50) | MI max 1.00 bits
+    fixed_compute: base training (9304 trials): 228.1 s
+    fixed_compute: composite fine-tune (3101 trials): 71.1 s
+  seed 2 fixed_compute: edges=16 syn=8574 Q=0.000 nav acc=0.30 (err 0.80) recall bits=0.74 | composite zero-shot 0.10 -> after ft 0.24 (err 1.14) | MI max 1.00 bits
+    grown: base training (9000 trials): 102.1 s
+    grown: composite fine-tune (3000 trials): 36.3 s
+  seed 8 grown: edges=12 syn=8688 Q=0.125 nav acc=0.40 (err 0.63) recall bits=0.86 | composite zero-shot 0.08 -> after ft 0.17 (err 1.50) | MI max 1.00 bits
+    grown_continued: base training (9000 trials): 80.1 s
+    grown_continued: continued training, structure frozen (9000 trials): 75.5 s
+    grown_continued: composite fine-tune (3000 trials): 28.9 s
+  seed 8 grown_continued: edges=12 syn=8688 Q=0.125 nav acc=0.81 (err 0.22) recall bits=0.94 | composite zero-shot 0.12 -> after ft 0.10 (err 1.57) | MI max 1.00 bits
+    fixed: base training (9000 trials): 92.9 s
+    fixed: composite fine-tune (3000 trials): 36.5 s
+  seed 8 fixed: edges=16 syn=8530 Q=0.000 nav acc=0.85 (err 0.22) recall bits=0.78 | composite zero-shot 0.17 -> after ft 0.12 (err 1.49) | MI max 1.00 bits
+    fixed_compute: base training (9512 trials): 110.8 s
+    fixed_compute: composite fine-tune (3170 trials): 52.4 s
+  seed 8 fixed_compute: edges=16 syn=8530 Q=0.000 nav acc=0.23 (err 0.86) recall bits=0.77 | composite zero-shot 0.10 -> after ft 0.16 (err 1.42) | MI max 1.00 bits
+    grown: base training (9000 trials): 498.2 s
+    grown: composite fine-tune (3000 trials): 219.6 s
+  seed 0 grown: edges=12 syn=8381 Q=0.142 nav acc=0.39 (err 0.55) recall bits=0.85 | composite zero-shot 0.10 -> after ft 0.12 (err 1.54) | MI max 0.95 bits
+    grown_continued: base training (9000 trials): 448.8 s
+    grown_continued: continued training, structure frozen (9000 trials): 231.7 s
+    grown_continued: composite fine-tune (3000 trials): 81.1 s
+  seed 0 grown_continued: edges=12 syn=8381 Q=0.142 nav acc=0.77 (err 0.28) recall bits=0.88 | composite zero-shot 0.10 -> after ft 0.11 (err 1.60) | MI max 1.00 bits
+    fixed: base training (9000 trials): 223.0 s
+    fixed: composite fine-tune (3000 trials): 107.3 s
+  seed 0 fixed: edges=16 syn=8621 Q=0.000 nav acc=0.86 (err 0.22) recall bits=0.89 | composite zero-shot 0.10 -> after ft 0.16 (err 1.49) | MI max 0.98 bits
+    fixed_compute: base training (9117 trials): 210.9 s
+    fixed_compute: composite fine-tune (3039 trials): 63.8 s
+  seed 0 fixed_compute: edges=16 syn=8621 Q=0.000 nav acc=0.89 (err 0.16) recall bits=0.92 | composite zero-shot 0.12 -> after ft 0.16 (err 1.48) | MI max 0.98 bits
+    grown: base training (9000 trials): 123.8 s
+    grown: composite fine-tune (3000 trials): 39.5 s
+  seed 7 grown: edges=12 syn=8437 Q=0.045 nav acc=0.89 (err 0.20) recall bits=0.90 | composite zero-shot 0.12 -> after ft 0.09 (err 1.24) | MI max 1.00 bits
+    grown_continued: base training (9000 trials): 111.9 s
+    grown_continued: continued training, structure frozen (9000 trials): 112.4 s
+    grown_continued: composite fine-tune (3000 trials): 37.4 s
+  seed 7 grown_continued: edges=12 syn=8437 Q=0.045 nav acc=0.84 (err 0.23) recall bits=0.87 | composite zero-shot 0.15 -> after ft 0.39 (err 0.74) | MI max 1.00 bits
+    fixed: base training (9000 trials): 120.7 s
+    fixed: composite fine-tune (3000 trials): 35.8 s
+  seed 7 fixed: edges=16 syn=8485 Q=0.000 nav acc=0.64 (err 0.38) recall bits=0.79 | composite zero-shot 0.13 -> after ft 0.14 (err 1.49) | MI max 1.00 bits
+    fixed_compute: base training (9292 trials): 89.2 s
+    fixed_compute: composite fine-tune (3097 trials): 36.7 s
+  seed 7 fixed_compute: edges=16 syn=8485 Q=0.000 nav acc=0.57 (err 0.36) recall bits=0.87 | composite zero-shot 0.14 -> after ft 0.16 (err 1.53) | MI max 1.00 bits
+    grown: base training (9000 trials): 488.0 s
+    grown: composite fine-tune (3000 trials): 218.7 s
+  seed 1 grown: edges=12 syn=8499 Q=0.045 nav acc=0.38 (err 0.58) recall bits=0.80 | composite zero-shot 0.12 -> after ft 0.15 (err 1.39) | MI max 1.00 bits
+    grown_continued: base training (9000 trials): 474.1 s
+    grown_continued: continued training, structure frozen (9000 trials): 229.8 s
+    grown_continued: composite fine-tune (3000 trials): 77.7 s
+  seed 1 grown_continued: edges=12 syn=8499 Q=0.045 nav acc=0.47 (err 0.39) recall bits=0.89 | composite zero-shot 0.08 -> after ft 0.17 (err 1.40) | MI max 1.00 bits
+    fixed: base training (9000 trials): 239.9 s
+    fixed: composite fine-tune (3000 trials): 114.7 s
+  seed 1 fixed: edges=16 syn=8503 Q=0.000 nav acc=0.55 (err 0.41) recall bits=0.89 | composite zero-shot 0.09 -> after ft 0.18 (err 1.37) | MI max 1.00 bits
+    fixed_compute: base training (9331 trials): 218.8 s
+    fixed_compute: composite fine-tune (3110 trials): 55.4 s
+  seed 1 fixed_compute: edges=16 syn=8503 Q=0.000 nav acc=0.61 (err 0.33) recall bits=0.88 | composite zero-shot 0.15 -> after ft 0.12 (err 1.53) | MI max 1.00 bits
+    grown: base training (9000 trials): 98.0 s
+    grown: composite fine-tune (3000 trials): 43.8 s
+  seed 9 grown: edges=12 syn=8499 Q=0.116 nav acc=0.81 (err 0.22) recall bits=0.83 | composite zero-shot 0.06 -> after ft 0.14 (err 1.59) | MI max 1.00 bits
+    grown_continued: base training (9000 trials): 115.3 s
+    grown_continued: continued training, structure frozen (9000 trials): 115.7 s
+    grown_continued: composite fine-tune (3000 trials): 50.3 s
+  seed 9 grown_continued: edges=12 syn=8499 Q=0.116 nav acc=0.70 (err 0.28) recall bits=0.80 | composite zero-shot 0.12 -> after ft 0.10 (err 1.50) | MI max 1.00 bits
+    fixed: base training (9000 trials): 124.0 s
+    fixed: composite fine-tune (3000 trials): 46.3 s
+  seed 9 fixed: edges=16 syn=8530 Q=0.000 nav acc=0.79 (err 0.25) recall bits=0.78 | composite zero-shot 0.14 -> after ft 0.14 (err 1.52) | MI max 1.00 bits
+    fixed_compute: base training (9317 trials): 104.2 s
+    fixed_compute: composite fine-tune (3105 trials): 28.2 s
+  seed 9 fixed_compute: edges=16 syn=8530 Q=0.000 nav acc=0.91 (err 0.21) recall bits=0.89 | composite zero-shot 0.09 -> after ft 0.17 (err 1.40) | MI max 1.00 bits
+E7 verdict: Q(final, grown) = 0.10 +- 0.02 (rises over training); 98% of modules carry > 0.1 bit about the task above shuffle; compositional transfer gap (grown - fixed) = +0.00 at matched synapses (sign test p = 0.73), -0.02 at matched compute; base-task accuracy at matched synapses and matched steps: nav 0.45 / 0.69, recall bits 0.83 / 0.79 (grown / fixed); grown continued to the fixed graph's step count for its final architecture: nav 0.58, recall bits 0.87, composite gap +0.01; NEGATIVE: the grown graph stays behind the fixed graph on the base tasks even with the extra training; grown-fixed nav gap -0.24 (95% CI -0.44..-0.04), continued -0.11 (-0.33..+0.14), 10 seeds
+[e7] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e7_ref/results.json
+[e7] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e7_modularity.png

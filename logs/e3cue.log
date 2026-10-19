@@ -1,0 +1,42 @@
+  mismatch 0.05: Delta U = 0.225
+  mismatch 0.1: Delta U = 0.408
+  pinning landscapes: 6.7 s
+    amp0.01_omega0.5_float32 (8 x 10): 10.4 s
+    err: 0.0:1.494 0.001:1.493 0.002:1.494 0.005:1.496 0.01:1.491 0.02:1.501 0.04:1.510 0.08:1.516 | NOT U-shaped: interior minimum at sigma=0.01 not significant (6/10 seeds, p=0.754)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.01_omega0.5_bpu_mismatch0.05 (8 x 10): 291.8 s
+    err: 0.0:1.388 0.001:1.388 0.002:1.388 0.005:1.388 0.01:1.388 0.02:1.387 0.04:1.388 0.08:1.389 | NOT U-shaped: interior minimum at sigma=0.02 not significant (6/10 seeds, p=0.754)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.01_omega0.5_bpu_mismatch0.1 (8 x 10): 456.3 s
+    err: 0.0:1.401 0.001:1.401 0.002:1.401 0.005:1.402 0.01:1.400 0.02:1.404 0.04:1.407 0.08:1.397 | NOT U-shaped: interior minimum at sigma=0.08 not significant (5/10 seeds, p=1)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.02_omega0.5_float32 (8 x 10): 20.0 s
+    err: 0.0:0.944 0.001:0.943 0.002:0.943 0.005:0.941 0.01:0.943 0.02:0.941 0.04:0.956 0.08:0.944 | NOT U-shaped: interior minimum at sigma=0.02 not significant (6/10 seeds, p=0.754)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.02_omega0.5_bpu_mismatch0.05 (8 x 10): 359.0 s
+    err: 0.0:1.058 0.001:1.058 0.002:1.058 0.005:1.059 0.01:1.057 0.02:1.051 0.04:1.089 0.08:1.046 | NOT U-shaped: interior minimum at sigma=0.08 not significant (7/10 seeds, p=0.344)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.02_omega0.5_bpu_mismatch0.1 (8 x 10): 242.4 s
+    err: 0.0:1.123 0.001:1.123 0.002:1.123 0.005:1.123 0.01:1.120 0.02:1.124 0.04:1.137 0.08:1.115 | NOT U-shaped: interior minimum at sigma=0.08 not significant (5/10 seeds, p=1)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.05_omega0.5_float32 (8 x 10): 9.3 s
+    err: 0.0:0.346 0.001:0.346 0.002:0.346 0.005:0.346 0.01:0.346 0.02:0.346 0.04:0.351 0.08:0.347 | NOT U-shaped: interior minimum at sigma=0.02 not significant (7/10 seeds, p=0.344)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.05_omega0.5_bpu_mismatch0.05 (8 x 10): 139.8 s
+    err: 0.0:0.355 0.001:0.355 0.002:0.355 0.005:0.355 0.01:0.355 0.02:0.354 0.04:0.357 0.08:0.354 | NOT U-shaped: interior minimum at sigma=0.08 not significant (7/10 seeds, p=0.344)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.05_omega0.5_bpu_mismatch0.1 (8 x 10): 147.8 s
+    err: 0.0:0.356 0.001:0.356 0.002:0.356 0.005:0.356 0.01:0.356 0.02:0.355 0.04:0.357 0.08:0.354 | NOT U-shaped: interior minimum at sigma=0.08 not significant (6/10 seeds, p=0.754)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.1_omega0.5_float32 (8 x 10): 14.3 s
+    err: 0.0:0.182 0.001:0.182 0.002:0.182 0.005:0.182 0.01:0.182 0.02:0.182 0.04:0.185 0.08:0.182 | NOT U-shaped: interior minimum at sigma=0.02 not significant (5/10 seeds, p=1)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.1_omega0.5_bpu_mismatch0.05 (8 x 10): 159.9 s
+    err: 0.0:0.185 0.001:0.185 0.002:0.185 0.005:0.185 0.01:0.185 0.02:0.185 0.04:0.186 0.08:0.185 | NOT U-shaped: interior minimum at sigma=0.08 not significant (7/10 seeds, p=0.344)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+    amp0.1_omega0.5_bpu_mismatch0.1 (8 x 10): 164.2 s
+    err: 0.0:0.181 0.001:0.181 0.002:0.181 0.005:0.181 0.01:0.181 0.02:0.181 0.04:0.182 0.08:0.181 | NOT U-shaped: interior minimum at sigma=0.02 not significant (7/10 seeds, p=0.344)
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+E3 verdict: 0/8 mismatched BPU conditions (cue amp x omega x sigma_d2d) show a significant U in tracking error vs dynamic noise; pinned regime (sigma = 0 error > 1.5x the float32 reference): 0/8 conditions, of which 0 U-shaped; sigma = 0 error per condition: amp0.01_omega0.5_bpu_mismatch0.05: 1.388 vs ref 1.494; amp0.01_omega0.5_bpu_mismatch0.1: 1.401 vs ref 1.494; amp0.02_omega0.5_bpu_mismatch0.05: 1.058 vs ref 0.944; amp0.02_omega0.5_bpu_mismatch0.1: 1.123 vs ref 0.944; amp0.05_omega0.5_bpu_mismatch0.05: 0.355 vs ref 0.346; amp0.05_omega0.5_bpu_mismatch0.1: 0.356 vs ref 0.346; amp0.1_omega0.5_bpu_mismatch0.05: 0.185 vs ref 0.182; amp0.1_omega0.5_bpu_mismatch0.1: 0.181 vs ref 0.182
+[e3_tracking] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e3_cue/results.json
+[e3_tracking] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e3_tracking.png

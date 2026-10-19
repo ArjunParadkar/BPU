@@ -134,6 +134,7 @@ def main():
     ap.add_argument("--omegas", type=str, default=",".join(map(str, OMEGAS)))
     ap.add_argument("--cue-amp", type=str, default="0.1,0.05", help="cue amplitudes (fraction of the tonic drive); the first is the headline arm")
     ap.add_argument("--procs", type=int, default=max(1, min(8, (os.cpu_count() or 2) // 2)))
+    ap.add_argument("--no-tile-control", action="store_true", help="skip the mismatch-free tile arm (the float32 reference is always run)")
     ap.add_argument("--finalize", action="store_true", help="no simulation: build the verdict, comparison and figure from the (partial) results.json on disk")
     args = ap.parse_args()
     if args.finalize:
@@ -149,11 +150,11 @@ def main():
            "T": args.T, "tau_H": 0.0, "sweeps": {}, "landscape": {}, "verdicts": {}}
     pool = mp.Pool(args.procs)
     with Timer("pinning landscapes"):
-        for mismatch in mismatches + [0.0]:
+        for mismatch in mismatches + ([] if args.no_tile_control else [0.0]):
             L = pool.map(landscape_one, [(N, mismatch, s, 0.0) for s in range(min(seeds, 10))])
             out["landscape"][f"mismatch{mismatch}"] = {"delta_U": summarize([l["delta_U"] for l in L]), "rms_drift": summarize([l["rms_drift"] for l in L]), "example": L[0]}
             print(f"  mismatch {mismatch}: Delta U = {out['landscape'][f'mismatch{mismatch}']['delta_U']['mean']:.3g}", flush=True)
-    arms = [("float32", 0.0)] + [("bpu", m) for m in mismatches + [0.0]]
+    arms = [("float32", 0.0)] + [("bpu", m) for m in mismatches + ([] if args.no_tile_control else [0.0])]
     for amp in amps:
         for omega in omegas:
             for substrate, mismatch in arms:
@@ -182,6 +183,19 @@ def finish(out, args):
     LEVELS = out["levels"]; amps = out["cue_amps"]; omegas = out["omegas"]; mismatches = out["mismatch"]
     main_keys = [k for k in out["verdicts"] if "_bpu_mismatch" in k and not k.endswith("mismatch0.0")]
     n_u = sum(out["verdicts"][k]["u_shaped"] for k in main_keys)
+    # pinned regime: at sigma = 0 the tiles fail to track when their error exceeds the float32 reference
+    # by more than 50 % (the lag is the same for both; the excess is pinning); the U test counts only there
+    pinned = {}
+    for k in main_keys:
+        amp_tag, rest = k.split("_omega", 1); om_tag = rest.split("_")[0]
+        ref_key = f"{amp_tag}_omega{om_tag}_float32"
+        if ref_key not in out["sweeps"]:
+            continue
+        e0 = out["sweeps"][k]["0.0"]["track_err"]["mean"]; r0 = out["sweeps"][ref_key]["0.0"]["track_err"]["mean"]
+        pinned[k] = {"err_sigma0": e0, "ref_err_sigma0": r0, "excess": e0 / max(r0, 1e-9) - 1, "fails": bool(e0 > 1.5 * r0),
+                     "u_shaped_if_fails": bool(out["verdicts"][k]["u_shaped"]) if e0 > 1.5 * r0 else None}
+    out["pinned_regime"] = pinned
+    n_fail = sum(v["fails"] for v in pinned.values()); n_u_fail = sum(bool(v["u_shaped_if_fails"]) for v in pinned.values())
     # substrate comparison at the headline amplitude: BPU tracking error vs the float32 reference at every (omega, sigma)
     comp = {}
     amp0 = amps[0]
@@ -196,13 +210,14 @@ def finish(out, args):
             comp[f"omega{omega:g}_mismatch{mismatch}"] = {str(s): {"float32": ref[str(s)]["track_err"]["mean"], "bpu": b[str(s)]["track_err"]["mean"],
                                                                   "ratio": b[str(s)]["track_err"]["mean"] / max(ref[str(s)]["track_err"]["mean"], 1e-9)} for s in LEVELS}
     out["substrate_comparison"] = comp
-    out["verdict"] = {"n_u_shaped": n_u, "n_conditions": len(main_keys),
-                      "statement": f"{n_u}/{len(main_keys)} mismatched BPU conditions (cue amp x omega x sigma_d2d) show a significant U in tracking error vs dynamic noise; " +
-                                   "; ".join(f"{k}: {out['verdicts'][k]['statement']}" for k in main_keys)}
+    out["verdict"] = {"n_u_shaped": n_u, "n_conditions": len(main_keys), "n_pinned": n_fail, "n_u_shaped_among_pinned": n_u_fail,
+                      "statement": f"{n_u}/{len(main_keys)} mismatched BPU conditions (cue amp x omega x sigma_d2d) show a significant U in tracking error vs dynamic noise; "
+                                   f"pinned regime (sigma = 0 error > 1.5x the float32 reference): {n_fail}/{len(pinned)} conditions, of which {n_u_fail} U-shaped; "
+                                   "sigma = 0 error per condition: " + "; ".join(f"{k}: {v['err_sigma0']:.3f} vs ref {v['ref_err_sigma0']:.3f}" + (" PINNED" if v["fails"] else "") for k, v in pinned.items())}
     print("E3 verdict:", out["verdict"]["statement"])
     save_results("e3_tracking", out, args.out)
     if not args.no_fig:
-        plot(out, figure_path("e3_tracking"))
+        plot(out, figure_path(pathlib.Path(args.out).name if args.out else "e3_tracking"))
 
 
 def plot(res, path):
@@ -210,9 +225,10 @@ def plot(res, path):
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     L = np.array(res["levels"], float)
-    omegas = res["omegas"]; amp0 = res["cue_amps"][0]
-    fig, axes = plt.subplots(1, len(omegas) + 1, figsize=(4.6 * (len(omegas) + 1), 4))
-    for ax, omega in zip(axes, omegas):
+    omegas = res["omegas"]; amps = res["cue_amps"]
+    panels = [(a, omegas[0]) for a in amps] if len(amps) > 1 else [(amps[0], o) for o in omegas]
+    fig, axes = plt.subplots(1, len(panels) + 1, figsize=(4.6 * (len(panels) + 1), 4))
+    for ax, (amp0, omega) in zip(axes, panels):
         for key, sweep in res["sweeps"].items():
             if not key.startswith(f"amp{amp0:g}_omega{omega:g}_"):
                 continue

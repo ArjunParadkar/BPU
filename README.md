@@ -36,6 +36,24 @@ pip install -e .                      # or run with PYTHONPATH=.
 pytest -q
 ```
 
+## Round two (2026-10-19): endurance budget, θ_flush, FoM converters, 10-seed E7
+
+Budget redefined: **endurance** = total writes per device over the run against 1e6 cycles,
+**driver bandwidth** = writes per 32×32 tile per second against 1e4, the old 6e-3/dev/s kept
+as the "lifelong rate". Flush threshold θ_flush ∈ {0.25, 0.5, 1} levels (stochastic rounding of
+the remainder). Page order: E10, E9 Pareto, E8b, then the rest. Details in `DECISIONS.md`
+("Round two").
+
+| Row | Result (3 seeds unless stated) | Status |
+|---|---|---|
+| E10 continual (headline: naive, EWC, replay, fpl_replay, joint) | EWC 0.947 / 0.943, replay 0.942 / 0.935 (float32 / BPU); total writes/device 1.8–4.4 (≤ 0.0005 % of endurance); τ_ret = 1e4 s changes nothing except fpl_replay after a 1000 s rest (0.93 → 0.77). FPL alone is diagnostic (gate off beats gate on), not a consolidation policy | **met** |
+| E9 Pareto (θ_flush ∈ {0.25, 0.5, 1}) | θ = 1: SGD on tiles 1.483 (+25 %) at 0.32 writes/device; nearest-pulse diagnostic 1.226 (+1 %) at 15 writes/device; θ = 0.25 / 0.5 arms: **see results/e9 (running at the time of this commit)** | criterion: within 5 % at < 1e4 writes/device |
+| E8b, E_ADC = FoM_W × 2^b | per-layer FoM-10 8-bit **71 nJ/token** (−0.8 % loss) = 0.014× H100 INT8 at 40 % utilisation (5.0 µJ), 6-bit 44 nJ at +1.8 %; per-tile 257 nJ; LIF 11.6 µJ; laptop GPU measured 256 µJ. Ratio BPU/H100@40 % falls from 0.014 (2.7M) to 0.002 (1T) because conversions ∝ layers × d and MACs ∝ params | projection vs measured / published |
+| E3 cue sweep (ω = 0.5, cue 0.01–0.1, mismatch 0.05 / 0.1, 10 seeds) | σ = 0 error 0.18 / 0.35 / 0.94 / 1.49 rad (reference) vs 0.18 / 0.36 / 1.06–1.12 / 1.39–1.40 (tiles): weak cues fail on both substrates, mismatch adds ≤ 19 %, **no pinned regime**, 0/8 U-shaped | pinned regime not found at ω = 0.5 |
+| E6 (10 seeds, K from 1) | K = 1 recalled exactly at every σ (unit test passes); scaffold 2–4 pairs, attention 20–28 | unchanged |
+| E4 θ_flush (10 seeds) | θ = 1: 3/10 certified, 0.52 writes/device; θ = 0.5: 0/10, 3.9; θ = 0.25: 0/10, 2,020 writes/device and 10× the driver bandwidth | θ = 1 only |
+| E7 (10 seeds, tiles and noise-free reference) | nav gap grown−fixed −0.38 (CI −0.53..−0.23) on tiles vs −0.24 (−0.44..−0.04) on the reference; continued −0.33 vs −0.11; Welch p(tiles > ref) = 0.85 | **no noise-assisted growth**; negative on both |
+
 ## Substrate programme (2026-10-18): same algorithm, float32 vs noisy tiles
 
 The BPU is a **substrate**.  Every row below compares the SAME algorithm on a

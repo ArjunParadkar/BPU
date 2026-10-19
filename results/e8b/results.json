@@ -2,8 +2,10 @@
  "constants": {
   "E_MAC_J": 4.000000000000001e-15,
   "E_ADC_J": {
-   "8": 2.56e-10,
-   "4": 1.6e-11
+   "('fom10', 6)": 6.4e-13,
+   "('fom10', 8)": 2.56e-12,
+   "('fom50', 6)": 3.2e-12,
+   "('fom50', 8)": 1.28e-11
   },
   "E_SPIKE_J": 1e-11,
   "E_LIF_UPDATE_J": 5e-12,
@@ -23,92 +25,92 @@
   "smoke": false
  },
  "ideal_val_loss": 1.6570655137300492,
- "noise_aware_val_loss": 1.6411136746406556,
+ "noise_aware_val_loss": 1.6410941898822784,
  "readout_accuracy": {
-  "tile_8": {
-   "val_loss": 1.6469755977392198,
-   "gap_pct_vs_ideal": -0.6089026599869984,
-   "gap_pct_vs_noise_aware_unquantised": 0.3571917770929467,
+  "tile_6": {
+   "val_loss": 1.679462206363678,
+   "gap_pct_vs_ideal": 1.3515876377883096,
+   "gap_pct_vs_noise_aware_unquantised": 2.3379533434428668,
    "spikes_per_output_per_token": null,
    "calib_pct": 99.9
   },
-  "tile_4": {
-   "val_loss": 2.168879806995392,
-   "gap_pct_vs_ideal": 30.886786854507054,
-   "gap_pct_vs_noise_aware_unquantised": 32.159023503981096,
+  "tile_8": {
+   "val_loss": 1.6468983381986617,
+   "gap_pct_vs_ideal": -0.6135650912498458,
+   "gap_pct_vs_noise_aware_unquantised": 0.3536755143103365,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 99.9
+  },
+  "layer_6": {
+   "val_loss": 1.6865848153829575,
+   "gap_pct_vs_ideal": 1.781420312493287,
+   "gap_pct_vs_noise_aware_unquantised": 2.771969200862401,
    "spikes_per_output_per_token": null,
    "calib_pct": 99.9
   },
   "layer_8": {
-   "val_loss": 1.6445303082466125,
-   "gap_pct_vs_ideal": -0.7564701201957846,
-   "gap_pct_vs_noise_aware_unquantised": 0.20818994191276197,
+   "val_loss": 1.644186145067215,
+   "gap_pct_vs_ideal": -0.7772395572847701,
+   "gap_pct_vs_noise_aware_unquantised": 0.1884081489045064,
    "spikes_per_output_per_token": null,
    "calib_pct": 99.9
   },
-  "layer_4": {
-   "val_loss": 2.3466190099716187,
-   "gap_pct_vs_ideal": 41.612929031960036,
-   "gap_pct_vs_noise_aware_unquantised": 42.9894251832033,
-   "spikes_per_output_per_token": null,
+  "lif_6": {
+   "val_loss": 1.6882855623960495,
+   "gap_pct_vs_ideal": 1.8840563880738959,
+   "gap_pct_vs_noise_aware_unquantised": 2.875604142938104,
+   "spikes_per_output_per_token": 13.007465099535036,
    "calib_pct": 99.9
   },
   "lif_8": {
-   "val_loss": 1.6435916036367417,
-   "gap_pct_vs_ideal": -0.8131187319792677,
-   "gap_pct_vs_noise_aware_unquantised": 0.15099069822988032,
-   "spikes_per_output_per_token": 55.30783263523156,
-   "calib_pct": 99.9
-  },
-  "lif_4": {
-   "val_loss": 2.540790152549744,
-   "gap_pct_vs_ideal": 53.3307000536408,
-   "gap_pct_vs_noise_aware_unquantised": 54.82109446843071,
-   "spikes_per_output_per_token": 2.377656441878982,
+   "val_loss": 1.6437745630741118,
+   "gap_pct_vs_ideal": -0.8020775609540842,
+   "gap_pct_vs_noise_aware_unquantised": 0.16332841882924498,
+   "spikes_per_output_per_token": 55.281490584983835,
    "calib_pct": 99.9
   }
  },
  "readout_accuracy_max_range": {
-  "tile_8": {
-   "val_loss": 1.64581278860569,
-   "gap_pct_vs_ideal": -0.6790754518226305,
-   "gap_pct_vs_noise_aware_unquantised": 0.28633689656283323,
+  "tile_6": {
+   "val_loss": 1.7180661290884018,
+   "gap_pct_vs_ideal": 3.6812434302033292,
+   "gap_pct_vs_noise_aware_unquantised": 4.690281623119086,
    "spikes_per_output_per_token": null,
    "calib_pct": 100.0
   },
-  "tile_4": {
-   "val_loss": 2.5202724516391752,
-   "gap_pct_vs_ideal": 52.09250513976662,
-   "gap_pct_vs_noise_aware_unquantised": 53.57086413840428,
+  "tile_8": {
+   "val_loss": 1.645758393406868,
+   "gap_pct_vs_ideal": -0.6823580739260482,
+   "gap_pct_vs_noise_aware_unquantised": 0.28421303014449784,
+   "spikes_per_output_per_token": null,
+   "calib_pct": 100.0
+  },
+  "layer_6": {
+   "val_loss": 1.7293475300073624,
+   "gap_pct_vs_ideal": 4.362049398675039,
+   "gap_pct_vs_noise_aware_unquantised": 5.3777132762510504,
    "spikes_per_output_per_token": null,
    "calib_pct": 100.0
   },
   "layer_8": {
-   "val_loss": 1.645340970158577,
-   "gap_pct_vs_ideal": -0.7075485835849826,
-   "gap_pct_vs_noise_aware_unquantised": 0.2575870022438975,
+   "val_loss": 1.6455234616994858,
+   "gap_pct_vs_ideal": -0.6965356490089669,
+   "gap_pct_vs_noise_aware_unquantised": 0.2698974772145757,
    "spikes_per_output_per_token": null,
    "calib_pct": 100.0
   },
-  "layer_4": {
-   "val_loss": 2.674703764915466,
-   "gap_pct_vs_ideal": 61.412071083098965,
-   "gap_pct_vs_noise_aware_unquantised": 62.98101747894638,
-   "spikes_per_output_per_token": null,
+  "lif_6": {
+   "val_loss": 1.7354616463184356,
+   "gap_pct_vs_ideal": 4.731021914270417,
+   "gap_pct_vs_noise_aware_unquantised": 5.750276676253807,
+   "spikes_per_output_per_token": 8.812423272530312,
    "calib_pct": 100.0
   },
   "lif_8": {
-   "val_loss": 1.6450537085533141,
-   "gap_pct_vs_ideal": -0.7248841447250021,
-   "gap_pct_vs_noise_aware_unquantised": 0.24008293718722484,
-   "spikes_per_output_per_token": 38.207431958949115,
-   "calib_pct": 100.0
-  },
-  "lif_4": {
-   "val_loss": 2.9136024951934814,
-   "gap_pct_vs_ideal": 75.82904665217318,
-   "gap_pct_vs_noise_aware_unquantised": 77.53812793202486,
-   "spikes_per_output_per_token": 1.3566328191740515,
+   "val_loss": 1.6448461920022965,
+   "gap_pct_vs_ideal": -0.7374072797065812,
+   "gap_pct_vs_noise_aware_unquantised": 0.22862807894574733,
+   "spikes_per_output_per_token": 38.20974564506075,
    "calib_pct": 100.0
   }
  },
@@ -141,137 +143,305 @@
   "n_tiles": 2610
  },
  "table_3x2": {
-  "tile_8": {
+  "tile_fom10_6": {
    "mode": "tile",
-   "bits": 8,
-   "nJ_per_token": 22258.119184000003,
+   "fom": "fom10",
+   "fom_fJ_per_step": 10.0,
+   "bits": 6,
+   "E_ADC_pJ": 0.64,
+   "nJ_per_token": 90.828304,
    "parts_nJ": {
     "mac_J": 11.261184000000004,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.0,
-    "readout_J": 22222.848
+    "readout_J": 55.557120000000005
    },
-   "train_step_nJ_per_token": 22280.749231915925,
+   "train_step_nJ_per_token": 113.45835191592727,
    "train_parts_nJ": {
     "mac_J": 33.78355200000001,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.10767991592725931,
-    "readout_J": 22222.848
+    "readout_J": 55.557120000000005
    },
-   "gap_pct_vs_ideal": -0.6089026599869984,
+   "gap_pct_vs_ideal": 1.3515876377883096,
    "spikes_per_output_per_token": null
   },
-  "tile_4": {
+  "tile_fom10_8": {
    "mode": "tile",
-   "bits": 4,
-   "nJ_per_token": 1424.199184,
-   "parts_nJ": {
-    "mac_J": 11.261184000000004,
-    "route_J": 0.97,
-    "cache_write_J": 23.04,
-    "write_J": 0.0,
-    "readout_J": 1388.928
-   },
-   "train_step_nJ_per_token": 1446.8292319159273,
-   "train_parts_nJ": {
-    "mac_J": 33.78355200000001,
-    "route_J": 0.97,
-    "cache_write_J": 23.04,
-    "write_J": 0.10767991592725931,
-    "readout_J": 1388.928
-   },
-   "gap_pct_vs_ideal": 30.886786854507054,
-   "spikes_per_output_per_token": null
-  },
-  "layer_8": {
-   "mode": "layer",
+   "fom": "fom10",
+   "fom_fJ_per_step": 10.0,
    "bits": 8,
-   "nJ_per_token": 3595.463184,
+   "E_ADC_pJ": 2.56,
+   "nJ_per_token": 257.499664,
    "parts_nJ": {
     "mac_J": 11.261184000000004,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.0,
-    "readout_J": 3560.192
+    "readout_J": 222.22848000000002
    },
-   "train_step_nJ_per_token": 3618.0932319159274,
+   "train_step_nJ_per_token": 280.1297119159273,
    "train_parts_nJ": {
     "mac_J": 33.78355200000001,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.10767991592725931,
-    "readout_J": 3560.192
+    "readout_J": 222.22848000000002
    },
-   "gap_pct_vs_ideal": -0.7564701201957846,
+   "gap_pct_vs_ideal": -0.6135650912498458,
    "spikes_per_output_per_token": null
   },
-  "layer_4": {
-   "mode": "layer",
-   "bits": 4,
-   "nJ_per_token": 257.783184,
+  "tile_fom50_6": {
+   "mode": "tile",
+   "fom": "fom50",
+   "fom_fJ_per_step": 50.0,
+   "bits": 6,
+   "E_ADC_pJ": 3.2,
+   "nJ_per_token": 313.056784,
    "parts_nJ": {
     "mac_J": 11.261184000000004,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.0,
-    "readout_J": 222.512
+    "readout_J": 277.78560000000004
    },
-   "train_step_nJ_per_token": 280.4132319159273,
+   "train_step_nJ_per_token": 335.68683191592726,
    "train_parts_nJ": {
     "mac_J": 33.78355200000001,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.10767991592725931,
-    "readout_J": 222.512
+    "readout_J": 277.78560000000004
    },
-   "gap_pct_vs_ideal": 41.612929031960036,
+   "gap_pct_vs_ideal": 1.3515876377883096,
    "spikes_per_output_per_token": null
   },
-  "lif_8": {
-   "mode": "lif",
+  "tile_fom50_8": {
+   "mode": "tile",
+   "fom": "fom50",
+   "fom_fJ_per_step": 50.0,
    "bits": 8,
-   "nJ_per_token": 11572.761610872478,
+   "E_ADC_pJ": 12.8,
+   "nJ_per_token": 1146.4135840000001,
    "parts_nJ": {
     "mac_J": 11.261184000000004,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.0,
-    "readout_J": 11537.490426872479
+    "readout_J": 1111.1424000000002
    },
-   "train_step_nJ_per_token": 11595.391658788407,
+   "train_step_nJ_per_token": 1169.0436319159273,
    "train_parts_nJ": {
     "mac_J": 33.78355200000001,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.10767991592725931,
-    "readout_J": 11537.490426872479
+    "readout_J": 1111.1424000000002
    },
-   "gap_pct_vs_ideal": -0.8131187319792677,
-   "spikes_per_output_per_token": 55.30783263523156
+   "gap_pct_vs_ideal": -0.6135650912498458,
+   "spikes_per_output_per_token": null
   },
-  "lif_4": {
-   "mode": "lif",
-   "bits": 4,
-   "nJ_per_token": 531.262206058165,
+  "layer_fom10_6": {
+   "mode": "layer",
+   "fom": "fom10",
+   "fom_fJ_per_step": 10.0,
+   "bits": 6,
+   "E_ADC_pJ": 0.64,
+   "nJ_per_token": 44.17166400000001,
    "parts_nJ": {
     "mac_J": 11.261184000000004,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.0,
-    "readout_J": 495.9910220581651
+    "readout_J": 8.90048
    },
-   "train_step_nJ_per_token": 553.8922539740923,
+   "train_step_nJ_per_token": 66.80171191592726,
    "train_parts_nJ": {
     "mac_J": 33.78355200000001,
     "route_J": 0.97,
     "cache_write_J": 23.04,
     "write_J": 0.10767991592725931,
-    "readout_J": 495.9910220581651
+    "readout_J": 8.90048
    },
-   "gap_pct_vs_ideal": 53.3307000536408,
-   "spikes_per_output_per_token": 2.377656441878982
+   "gap_pct_vs_ideal": 1.781420312493287,
+   "spikes_per_output_per_token": null
+  },
+  "layer_fom10_8": {
+   "mode": "layer",
+   "fom": "fom10",
+   "fom_fJ_per_step": 10.0,
+   "bits": 8,
+   "E_ADC_pJ": 2.56,
+   "nJ_per_token": 70.873104,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 35.60192
+   },
+   "train_step_nJ_per_token": 93.50315191592726,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 35.60192
+   },
+   "gap_pct_vs_ideal": -0.7772395572847701,
+   "spikes_per_output_per_token": null
+  },
+  "layer_fom50_6": {
+   "mode": "layer",
+   "fom": "fom50",
+   "fom_fJ_per_step": 50.0,
+   "bits": 6,
+   "E_ADC_pJ": 3.2,
+   "nJ_per_token": 79.77358400000001,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 44.50240000000001
+   },
+   "train_step_nJ_per_token": 102.40363191592728,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 44.50240000000001
+   },
+   "gap_pct_vs_ideal": 1.781420312493287,
+   "spikes_per_output_per_token": null
+  },
+  "layer_fom50_8": {
+   "mode": "layer",
+   "fom": "fom50",
+   "fom_fJ_per_step": 50.0,
+   "bits": 8,
+   "E_ADC_pJ": 12.8,
+   "nJ_per_token": 213.28078400000004,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 178.00960000000003
+   },
+   "train_step_nJ_per_token": 235.9108319159273,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 178.00960000000003
+   },
+   "gap_pct_vs_ideal": -0.7772395572847701,
+   "spikes_per_output_per_token": null
+  },
+  "lif_fom10_6": {
+   "mode": "lif",
+   "fom": "fom10",
+   "fom_fJ_per_step": 10.0,
+   "bits": 6,
+   "E_ADC_pJ": null,
+   "nJ_per_token": 2748.693441088506,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 2713.422257088506
+   },
+   "train_step_nJ_per_token": 2771.3234890044328,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 2713.422257088506
+   },
+   "gap_pct_vs_ideal": 1.8840563880738959,
+   "spikes_per_output_per_token": 13.007465099535036
+  },
+  "lif_fom10_8": {
+   "mode": "lif",
+   "fom": "fom10",
+   "fom_fJ_per_step": 10.0,
+   "bits": 8,
+   "E_ADC_pJ": null,
+   "nJ_per_token": 11567.266527480553,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 11531.995343480552
+   },
+   "train_step_nJ_per_token": 11589.89657539648,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 11531.995343480552
+   },
+   "gap_pct_vs_ideal": -0.8020775609540842,
+   "spikes_per_output_per_token": 55.281490584983835
+  },
+  "lif_fom50_6": {
+   "mode": "lif",
+   "fom": "fom50",
+   "fom_fJ_per_step": 50.0,
+   "bits": 6,
+   "E_ADC_pJ": null,
+   "nJ_per_token": 2748.693441088506,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 2713.422257088506
+   },
+   "train_step_nJ_per_token": 2771.3234890044328,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 2713.422257088506
+   },
+   "gap_pct_vs_ideal": 1.8840563880738959,
+   "spikes_per_output_per_token": 13.007465099535036
+  },
+  "lif_fom50_8": {
+   "mode": "lif",
+   "fom": "fom50",
+   "fom_fJ_per_step": 50.0,
+   "bits": 8,
+   "E_ADC_pJ": null,
+   "nJ_per_token": 11567.266527480553,
+   "parts_nJ": {
+    "mac_J": 11.261184000000004,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.0,
+    "readout_J": 11531.995343480552
+   },
+   "train_step_nJ_per_token": 11589.89657539648,
+   "train_parts_nJ": {
+    "mac_J": 33.78355200000001,
+    "route_J": 0.97,
+    "cache_write_J": 23.04,
+    "write_J": 0.10767991592725931,
+    "readout_J": 11531.995343480552
+   },
+   "gap_pct_vs_ideal": -0.8020775609540842,
+   "spikes_per_output_per_token": 55.281490584983835
   }
  },
  "digital_control": {
@@ -302,13 +472,15 @@
    "nJ_per_token_above_idle": 169376.69137065505
   },
   "cpu_int8_torch_ao": {
-   "tokens_per_s": 53298.318307538684,
+   "tokens_per_s": 7166.277330608705,
    "energy": "not measurable here (RAPL counters are root-only)"
   },
   "h100_int8_published": {
    "source": "NVIDIA H100 SXM datasheet: 1979 TOPS dense INT8, 700 W (peak, published, not measured)",
    "pJ_per_op_at_peak": 0.35371399696816574,
-   "nJ_per_token_at_peak_for_this_model": 1991.6192016169782
+   "nJ_per_token_at_peak_for_this_model": 1991.6192016169782,
+   "utilisation_for_40pct_row": 0.4,
+   "nJ_per_token_at_40pct_util_for_this_model": 4979.048004042445
   }
  },
  "scaling": [
@@ -318,14 +490,28 @@
    "d_model": 192,
    "params_approx": 2654208,
    "macs_per_token": 2815295.9999999995,
-   "tile_8_nJ_per_token": 22258.119184,
-   "tile_4_nJ_per_token": 1424.1991839999998,
-   "layer_8_nJ_per_token": 3595.4631839999997,
-   "layer_4_nJ_per_token": 257.783184,
-   "lif_8_nJ_per_token": 11572.761610872478,
-   "lif_4_nJ_per_token": 531.2622060581649,
+   "conversions_per_token_layer_mode": 13906.999999999998,
+   "tile_fom10_6_nJ_per_token": 90.828304,
+   "tile_fom10_8_nJ_per_token": 257.499664,
+   "tile_fom50_6_nJ_per_token": 313.056784,
+   "tile_fom50_8_nJ_per_token": 1146.4135840000001,
+   "layer_fom10_6_nJ_per_token": 44.171664,
+   "layer_fom10_8_nJ_per_token": 70.873104,
+   "layer_fom50_6_nJ_per_token": 79.773584,
+   "layer_fom50_8_nJ_per_token": 213.28078399999998,
+   "lif_fom10_6_nJ_per_token": 2748.693441088506,
+   "lif_fom10_8_nJ_per_token": 11567.266527480551,
+   "lif_fom50_6_nJ_per_token": 2748.693441088506,
+   "lif_fom50_8_nJ_per_token": 11567.266527480551,
    "gpu_int8_measured_scaled_nJ_per_token": 256076.6135512623,
-   "h100_int8_peak_nJ_per_token": 1991.6192016169782
+   "h100_int8_peak_nJ_per_token": 1991.6192016169782,
+   "h100_int8_40pct_nJ_per_token": 4979.048004042445,
+   "bpu_over_h100_40pct": {
+    "layer_fom10_8": 0.014234268065392972,
+    "layer_fom50_8": 0.04283565529531733,
+    "tile_fom10_8": 0.05171664619239225,
+    "lif_fom10_8": 2.3231883922567507
+   }
   },
   {
    "model": "124M (GPT-2 small)",
@@ -333,14 +519,28 @@
    "d_model": 768,
    "params_approx": 84934656,
    "macs_per_token": 90089471.99999999,
-   "tile_8_nJ_per_token": 711677.7538879999,
-   "tile_4_nJ_per_token": 44992.313888,
-   "layer_8_nJ_per_token": 29028.153887999997,
-   "layer_4_nJ_per_token": 2326.7138879999998,
-   "lif_8_nJ_per_token": 92846.54130297982,
-   "lif_4_nJ_per_token": 4514.546064465319,
+   "conversions_per_token_layer_mode": 111255.99999999999,
+   "tile_fom10_6_nJ_per_token": 2324.445728,
+   "tile_fom10_8_nJ_per_token": 7657.9292479999995,
+   "tile_fom50_6_nJ_per_token": 9435.757088,
+   "tile_fom50_8_nJ_per_token": 36103.17468800001,
+   "layer_fom10_6_nJ_per_token": 617.8217280000001,
+   "layer_fom10_8_nJ_per_token": 831.433248,
+   "layer_fom50_6_nJ_per_token": 902.6370880000001,
+   "layer_fom50_8_nJ_per_token": 1970.6946879999998,
+   "lif_fom10_6_nJ_per_token": 22253.995944708047,
+   "lif_fom10_8_nJ_per_token": 92802.58063584441,
+   "lif_fom50_6_nJ_per_token": 22253.995944708047,
+   "lif_fom50_8_nJ_per_token": 92802.58063584441,
    "gpu_int8_measured_scaled_nJ_per_token": 8194451.633640394,
-   "h100_int8_peak_nJ_per_token": 63731.8144517433
+   "h100_int8_peak_nJ_per_token": 63731.8144517433,
+   "h100_int8_40pct_nJ_per_token": 159329.53612935825,
+   "bpu_over_h100_40pct": {
+    "layer_fom10_8": 0.0052183246634507656,
+    "layer_fom50_8": 0.012368671470931855,
+    "tile_fom10_8": 0.048063462896060866,
+    "lif_fom10_8": 0.5824568557112901
+   }
   },
   {
    "model": "1.3B",
@@ -348,14 +548,28 @@
    "d_model": 2048,
    "params_approx": 1207959552,
    "macs_per_token": 1281272490.6666665,
-   "tile_8_nJ_per_token": 10119977.055296,
-   "tile_4_nJ_per_token": 638228.5752960001,
-   "layer_8_nJ_per_token": 158013.53529599996,
-   "layer_4_nJ_per_token": 15605.855296,
-   "lif_8_nJ_per_token": 498378.2681758925,
-   "lif_4_nJ_per_token": 27274.293570481703,
+   "conversions_per_token_layer_mode": 593365.3333333333,
+   "tile_fom10_6_nJ_per_token": 31396.672576,
+   "tile_fom10_8_nJ_per_token": 107250.66041600001,
+   "tile_fom50_6_nJ_per_token": 132535.32302933335,
+   "tile_fom50_8_nJ_per_token": 511805.26222933346,
+   "layer_fom10_6_nJ_per_token": 6491.763776000001,
+   "layer_fom10_8_nJ_per_token": 7631.025216,
+   "layer_fom50_6_nJ_per_token": 8010.779029333335,
+   "layer_fom50_8_nJ_per_token": 13707.086229333334,
+   "lif_fom10_6_nJ_per_token": 121884.69293177624,
+   "lif_fom10_8_nJ_per_token": 498143.8112845036,
+   "lif_fom50_6_nJ_per_token": 121884.69293177624,
+   "lif_fom50_8_nJ_per_token": 498143.8112845036,
    "gpu_int8_measured_scaled_nJ_per_token": 116543312.12288561,
-   "h100_int8_peak_nJ_per_token": 906408.0277581267
+   "h100_int8_peak_nJ_per_token": 906408.0277581267,
+   "h100_int8_40pct_nJ_per_token": 2266020.069395317,
+   "bpu_over_h100_40pct": {
+    "layer_fom10_8": 0.0033675894221167793,
+    "layer_fom50_8": 0.006048969474922189,
+    "tile_fom10_8": 0.04732996934339581,
+    "lif_fom10_8": 0.2198320385650566
+   }
   },
   {
    "model": "7B",
@@ -363,14 +577,28 @@
    "d_model": 4096,
    "params_approx": 6442450944,
    "macs_per_token": 6833453283.555555,
-   "tile_8_nJ_per_token": 53970574.00157867,
-   "tile_4_nJ_per_token": 3401248.774912,
-   "layer_8_nJ_per_token": 435031.16068977775,
-   "layer_4_nJ_per_token": 55277.34735644445,
-   "lif_8_nJ_per_token": 1342670.4483694911,
-   "lif_4_nJ_per_token": 86393.18275506233,
+   "conversions_per_token_layer_mode": 1582307.5555555555,
+   "tile_fom10_6_nJ_per_token": 164811.96040533338,
+   "tile_fom10_8_nJ_per_token": 569366.5622186668,
+   "tile_fom50_6_nJ_per_token": 704218.0961564445,
+   "tile_fom50_8_nJ_per_token": 2726991.1052231113,
+   "layer_fom10_6_nJ_per_token": 30973.10330311112,
+   "layer_fom10_8_nJ_per_token": 34011.133809777784,
+   "layer_fom50_6_nJ_per_token": 35023.81064533334,
+   "layer_fom50_8_nJ_per_token": 50213.96317866667,
+   "lif_fom10_6_nJ_per_token": 338687.5810518478,
+   "lif_fom10_8_nJ_per_token": 1342045.2299924542,
+   "lif_fom50_6_nJ_per_token": 338687.5810518478,
+   "lif_fom50_8_nJ_per_token": 1342045.2299924542,
    "gpu_int8_measured_scaled_nJ_per_token": 621564331.3220567,
-   "h100_int8_peak_nJ_per_token": 4834176.148043344
+   "h100_int8_peak_nJ_per_token": 4834176.148043344,
+   "h100_int8_40pct_nJ_per_token": 12085440.37010836,
+   "bpu_over_h100_40pct": {
+    "layer_fom10_8": 0.00281422379062823,
+    "layer_fom50_8": 0.004154913817030934,
+    "tile_fom10_8": 0.047111776218507935,
+    "lif_fom10_8": 0.11104644836209814
+   }
   },
   {
    "model": "70B",
@@ -378,14 +606,28 @@
    "d_model": 8192,
    "params_approx": 64424509440,
    "macs_per_token": 68334532835.55556,
-   "tile_8_nJ_per_token": 539692594.0157868,
-   "tile_4_nJ_per_token": 33999341.749120004,
-   "layer_8_nJ_per_token": 2311811.935786667,
-   "layer_4_nJ_per_token": 413042.86912000005,
-   "lif_8_nJ_per_token": 6850008.374185233,
-   "lif_4_nJ_per_token": 568622.0461130894,
+   "conversions_per_token_layer_mode": 7911537.777777778,
+   "tile_fom10_6_nJ_per_token": 1634973.6040533334,
+   "tile_fom10_8_nJ_per_token": 5680519.622186667,
+   "tile_fom50_6_nJ_per_token": 7029034.961564445,
+   "tile_fom50_8_nJ_per_token": 27256765.052231114,
+   "layer_fom10_6_nJ_per_token": 291521.64885333343,
+   "layer_fom10_8_nJ_per_token": 306711.8013866668,
+   "layer_fom50_6_nJ_per_token": 311775.18556444446,
+   "layer_fom50_8_nJ_per_token": 387725.9482311112,
+   "lif_fom10_6_nJ_per_token": 1830094.037597017,
+   "lif_fom10_8_nJ_per_token": 6846882.2823000485,
+   "lif_fom50_6_nJ_per_token": 1830094.037597017,
+   "lif_fom50_8_nJ_per_token": 6846882.2823000485,
    "gpu_int8_measured_scaled_nJ_per_token": 6215643313.220567,
-   "h100_int8_peak_nJ_per_token": 48341761.48043344
+   "h100_int8_peak_nJ_per_token": 48341761.48043344,
+   "h100_int8_40pct_nJ_per_token": 120854403.7010836,
+   "bpu_over_h100_40pct": {
+    "layer_fom10_8": 0.0025378620223494327,
+    "layer_fom50_8": 0.003208207035550785,
+    "tile_fom10_8": 0.047003000703529474,
+    "lif_fom10_8": 0.05665397430808438
+   }
   },
   {
    "model": "1T (dense, 140 x 24576)",
@@ -393,28 +635,55 @@
    "d_model": 24576,
    "params_approx": 1014686023680,
    "macs_per_token": 1076268892159.9999,
-   "tile_8_nJ_per_token": 8500020549.081974,
-   "tile_4_nJ_per_token": 535351825.8819734,
-   "layer_8_nJ_per_token": 15007017.775306664,
-   "layer_4_nJ_per_token": 5038480.175306668,
-   "lif_8_nJ_per_token": 38832549.07689913,
-   "lif_4_nJ_per_token": 5855270.854520387,
+   "conversions_per_token_layer_mode": 41535573.33333333,
+   "tile_fom10_6_nJ_per_token": 25613027.597173333,
+   "tile_fom10_8_nJ_per_token": 89330377.38277332,
+   "tile_fom50_6_nJ_per_token": 110569493.97797333,
+   "tile_fom50_8_nJ_per_token": 429156242.9059733,
+   "layer_fom10_6_nJ_per_token": 4400493.768906668,
+   "layer_fom10_8_nJ_per_token": 4480242.069706667,
+   "layer_fom50_6_nJ_per_token": 4506824.83664,
+   "layer_fom50_8_nJ_per_token": 4905566.340640001,
+   "lif_fom10_6_nJ_per_token": 12477998.809811005,
+   "lif_fom10_8_nJ_per_token": 38816137.09450191,
+   "lif_fom50_6_nJ_per_token": 12477998.809811005,
+   "lif_fom50_8_nJ_per_token": 38816137.09450191,
    "gpu_int8_measured_scaled_nJ_per_token": 97896382183.2239,
-   "h100_int8_peak_nJ_per_token": 761382743.3168266
+   "h100_int8_peak_nJ_per_token": 761382743.3168266,
+   "h100_int8_40pct_nJ_per_token": 1903456858.2920663,
+   "bpu_over_h100_40pct": {
+    "layer_fom10_8": 0.0023537397499655962,
+    "layer_fom50_8": 0.0025771880876993805,
+    "tile_fom10_8": 0.04693060260001253,
+    "lif_fom10_8": 0.02039244384521058
+   }
   }
  ],
  "latency": {
   "bpu_s_per_token": 3.7e-05,
   "reads_in_series": 37
  },
+ "fom_W_J_per_step": {
+  "fom10": 1e-14,
+  "fom50": 5e-14
+ },
+ "bits": [
+  6,
+  8
+ ],
+ "modes": [
+  "tile",
+  "layer",
+  "lif"
+ ],
  "verdict": {
-  "statement": "PROJECTION on the BPU side (device-model constants), MEASURED on the digital side. Same 2.7M-parameter nanoGPT. GPU INT8 (NVIDIA GeForce RTX 5070 Laptop GPU): 256077 nJ/token incl. idle power, 169377 above idle, val loss gap +0.05%; FP32 179763 nJ/token. H100 INT8 at published peak: 1991.6 nJ/token (not measured). BPU inference nJ/token (val-loss gap vs ideal): tile 8-bit 22258 (-0.6%); tile 4-bit 1424 (+30.9%); layer 8-bit 3595 (-0.8%); layer 4-bit 258 (+41.6%); lif 8-bit 11573 (-0.8%); lif 4-bit 531 (+53.3%). Cheapest mode layer 4-bit at 258 nJ/token = 993.4x below the measured GPU INT8 figure; MACs alone 11.3 nJ/token; LIF spike rate 55.3 (8-bit window) / 2.38 (4-bit) spikes per output per token; converter ranges at the 99.9th percentile of the calibration batch (with full-range converters 4-bit costs tile +52%, layer +61%, lif +76%)."
+  "statement": "PROJECTION on the BPU side (device-model constants, E_ADC = FoM_W x 2^b with FoM_W 10 / 50 fJ per conversion-step), MEASURED on the digital side. Same 2.7M-parameter nanoGPT. GPU INT8 measured (NVIDIA GeForce RTX 5070 Laptop GPU): 256077 nJ/token incl. idle power, 169377 above idle, val loss gap +0.05%; FP32 179763 nJ/token. H100 INT8 published: 1991.6 nJ/token at peak, 4979.0 at 40% utilisation (not measured). BPU inference nJ/token (val-loss gap vs ideal): tile FoM 10 fJ 6-bit 91 (+1.4%); tile FoM 10 fJ 8-bit 257 (-0.6%); tile FoM 50 fJ 6-bit 313 (+1.4%); tile FoM 50 fJ 8-bit 1146 (-0.6%); layer FoM 10 fJ 6-bit 44 (+1.8%); layer FoM 10 fJ 8-bit 71 (-0.8%); layer FoM 50 fJ 6-bit 80 (+1.8%); layer FoM 50 fJ 8-bit 213 (-0.8%); lif FoM 10 fJ 6-bit 2749 (+1.9%); lif FoM 10 fJ 8-bit 11567 (-0.8%); lif FoM 50 fJ 6-bit 2749 (+1.9%); lif FoM 50 fJ 8-bit 11567 (-0.8%). Cheapest lossless cell (gap <= 2%): layer fom10 6-bit at 44 nJ/token = 0.01x H100@40%, 5797x below the measured laptop GPU; MACs alone 11.3 nJ/token; LIF spike rate 55.3 (8-bit window) / 13.0 (6-bit) spikes per output per token; converter ranges at the 99.9th percentile. Scaling: conversions grow as layers x d_model while MACs grow as parameters (~ layers x d_model^2), so the BPU / H100@40% ratio for the per-layer 8-bit FoM-10 cell falls from 0.01 at 2.7M to 0.002 at 1T: the relative advantage grows with model size because the converter cost per MAC shrinks as 1/d_model."
  },
  "meta": {
   "experiment": "e8b",
-  "git": "88646a9",
+  "git": "2cc13f5",
   "python": "3.14.7",
   "numpy": "2.4.4",
-  "finished": "2026-10-18 22:59:53"
+  "finished": "2026-10-19 00:05:44"
  }
 }

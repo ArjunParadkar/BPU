@@ -80,3 +80,21 @@ def test_noisy_tile_still_recalls_small_sets():
     mem.store(P, S)
     ok = sum(np.array_equal(mem.recall(S[:, mu])["content"], S[:, mu]) for mu in range(8))
     assert ok >= 7
+
+
+def test_hopfield_k1():
+    """One stored pair on noise-free tiles: the scaffold loop must recall it exactly from the clean
+    cue, and in at least 95 % of trials from a cue with 20 % of its bits flipped."""
+    import numpy as np
+    from bpusim.memory import ScaffoldMemory
+    from bpusim.device import DeviceParams
+    rng = np.random.default_rng(0)
+    N, K = 32, 1
+    P = rng.choice([-1.0, 1.0], (N, K)); S = rng.choice([-1.0, 1.0], (N, K))
+    mem = ScaffoldMemory(N, N, rng, DeviceParams(sigma_d2d=0, sigma_c2c=0, sigma_r=0)); mem.store(P, S, method="pinv")
+    assert np.array_equal(mem.recall(S[:, 0].copy())["content"], S[:, 0])
+    ok = 0; n = 200
+    for _ in range(n):
+        cue = S[:, 0].copy(); m = rng.random(N) < 0.2; cue[m] = -cue[m]
+        ok += np.array_equal(mem.recall(cue)["content"], S[:, 0])
+    assert ok / n >= 0.95, ok / n
