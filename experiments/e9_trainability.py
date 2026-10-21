@@ -338,13 +338,16 @@ def plot(res, path):
     x = np.arange(len(arms))
     m = [s[a]["segment_end_loss_1"]["mean"] for a in arms]; e = [s[a]["segment_end_loss_1"]["sem"] for a in arms]
     ax[1].bar(x, m, yerr=e, capsize=3, color=["gray" if a == "frozen" else "k" if a == "sgd_float32" else "C0" if a == "sgd_bpu" else "C1" for a in arms])
-    ref = s["sgd_float32"]["segment_end_loss_1"]["mean"]; ax[1].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08, label="float32 +-5 %")
+    ref = s["sgd_float32"]["segment_end_loss_1"]["mean"] if "sgd_float32" in s else None   # the e9_pulse diagnostic run has no float32 arm
+    if ref is not None:
+        ax[1].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08, label="float32 +-5 %")
     ax[1].set_xticks(x); ax[1].set_xticklabels(arms, rotation=20, fontsize=7); ax[1].set_ylabel("post-shift loss (Python, last 200 steps)"); ax[1].legend(fontsize=7)
     ax[1].set_title("post-shift loss per arm", fontsize=9)
     if res.get("write_mode", "level") != "level" and res.get("locality"):
         L = res["locality"]
         ax[2].errorbar([l["locality"] for l in L], [l["post_shift_loss"] for l in L], [l["sem"] for l in L], marker="o", capsize=3, color="C0", label="BPU tiles")
-        ax[2].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08); ax[2].axhline(ref, color="k", ls="--", lw=0.8, label="float32 backprop ± 5 %")
+        if ref is not None:
+            ax[2].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08); ax[2].axhline(ref, color="k", ls="--", lw=0.8, label="float32 backprop ± 5 %")
         ax[2].set_xticks([l["locality"] for l in L]); ax[2].set_xticklabels([l["arm"].replace("_bpu", "") for l in L])
         ax[2].set_xlabel("locality: 0 backprop → 3 layer-local"); ax[2].set_ylabel("post-shift loss"); ax[2].legend(fontsize=7)
         ax[2].set_title(f"loss vs locality ({res['write_mode']} writes)", fontsize=9)
@@ -358,7 +361,8 @@ def plot(res, path):
     pulse = res.get("pulse_diagnostic")
     if pulse:
         ax[2].scatter(pulse["writes_per_device_total"], pulse["post_shift_loss"], marker="x", color="k", s=50, label="nearest-pulse writes (diagnostic)")
-    ax[2].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08); ax[2].axhline(ref, color="k", ls="--", lw=0.8, label="float32 ± 5 %")
+    if ref is not None:
+        ax[2].axhspan(ref * 0.95, ref * 1.05, color="k", alpha=0.08); ax[2].axhline(ref, color="k", ls="--", lw=0.8, label="float32 ± 5 %")
     ax[2].axvline(res.get("endurance_limit_writes_per_device", 1e4), color="r", ls=":", label="1e4 writes/device")
     ax[2].set_xscale("log"); ax[2].set_xlabel("total writes per device over the stream"); ax[2].set_ylabel("post-shift loss"); ax[2].legend(fontsize=6)
     ax[2].set_title("Pareto: loss vs writes (marker size = θ_flush)", fontsize=9)

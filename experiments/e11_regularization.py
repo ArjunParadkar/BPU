@@ -38,7 +38,8 @@ from bpusim.noise import summarize
 from e8_nanogpt_tiles import GPT, get_batch, train, evaluate, load_text
 from e9_trainability import load_corpora
 
-SIGMAS = [0.0, 0.02, 0.04, 0.06, 0.1]
+SIGMAS = [0.0, 0.02, 0.04, 0.06, 0.1, 0.15, 0.2]   # the MODULATE dial (top 0.2); the first sweep stopped at 0.1 and put sigma* on its edge
+SIGMAS_BEYOND = [0.3]                              # beyond-dial diagnostic, excluded from the sigma* / slope tests
 DROPOUTS = [0.1, 0.3, 0.5]        # p = 0 is the sigma = 0 arm
 
 
@@ -50,7 +51,7 @@ def set_all_noise(model, sigma, dropout):
 
 
 def arm_list():
-    arms = [("sigma", s) for s in SIGMAS] + [("dropout", p) for p in DROPOUTS]
+    arms = [("sigma", s) for s in SIGMAS + SIGMAS_BEYOND] + [("dropout", p) for p in DROPOUTS]
     return arms
 
 
@@ -141,7 +142,8 @@ def summarize_runs(runs, seeds, args):
         a = H["sigma_star_val_clean"]; b = H["sigma_star_val_noisy"]; g = H["shift_gap_gap_clean"]
         parts.append(f"{sub}: sigma* = {a['star']:g} (clean read; 95% CI {a['ci95'][0]:g}..{a['ci95'][1]:g}, per-seed {a['per_seed_argmin']}), {b['star']:g} as deployed (CI {b['ci95'][0]:g}..{b['ci95'][1]:g}); "
                      f"shift gap slope {g['slope_per_unit_sigma']:+.2f} nats per unit sigma (CI {g['ci95'][0]:+.2f}..{g['ci95'][1]:+.2f}), gap {g['gap_at_zero']:.3f} -> {g['gap_at_max']:.3f}, {g['seeds_negative']}/{seeds} seeds narrowing"
-                     + (f"; dropout p* = {H['p_star_val_clean']['star']:g} (clean, CI {H['p_star_val_clean']['ci95'][0]:g}..{H['p_star_val_clean']['ci95'][1]:g})" if "p_star_val_clean" in H else ""))
+                     + (f"; dropout p* = {H['p_star_val_clean']['star']:g} (clean, CI {H['p_star_val_clean']['ci95'][0]:g}..{H['p_star_val_clean']['ci95'][1]:g})" if "p_star_val_clean" in H else "")
+                     + "".join(f"; beyond the dial sigma = {sb:g}: val {S[sub][f'sigma={sb:g}']['val_clean']['mean']:.3f} clean / {S[sub][f'sigma={sb:g}']['val_noisy']['mean']:.3f} deployed" for sb in SIGMAS_BEYOND if f"sigma={sb:g}" in S[sub]))
     t = hyp.get("tiles", {})
     met_sigma = bool(t.get("complete") and t["sigma_star_val_clean"]["star"] > 0 and t["sigma_star_val_clean"]["ci95"][0] > 0)
     met_gap = bool(t.get("complete") and t["shift_gap_gap_clean"]["ci95"][1] < 0)
@@ -151,7 +153,7 @@ def summarize_runs(runs, seeds, args):
             if k in S["float32"]:
                 twin[k] = {"val_clean_gap_pct": 100 * (S["tiles"][k]["val_clean"]["mean"] / S["float32"][k]["val_clean"]["mean"] - 1),
                            "val_noisy_gap_pct": 100 * (S["tiles"][k]["val_noisy"]["mean"] / S["float32"][k]["val_noisy"]["mean"] - 1)}
-    out = {"sigmas": SIGMAS, "dropouts": DROPOUTS, "seeds": seeds, "steps": args.steps, "batch": args.batch, "block": args.block, "lr": args.lr,
+    out = {"sigmas": SIGMAS, "sigmas_beyond": SIGMAS_BEYOND, "dropouts": DROPOUTS, "seeds": seeds, "steps": args.steps, "batch": args.batch, "block": args.block, "lr": args.lr,
            "train_frac": args.train_frac, "eval_batches": args.eval_batches, "device": args.device, "runs": runs, "summary": S, "hypotheses": hyp, "twin_gap": twin,
            "verdict": {"sigma_star_positive_with_ci": met_sigma, "shift_gap_narrows_with_ci": met_gap,
                        "statement": ("SMOKE RUN. " if args.smoke else "") + f"{args.steps} steps on {100 * args.train_frac:.0f}% of Shakespeare, {seeds} seeds. " + " || ".join(parts)
@@ -216,7 +218,7 @@ def plot(res, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    S = res["summary"]; sig = res["sigmas"]
+    S = res["summary"]; sig = res["sigmas"] + res.get("sigmas_beyond", []); top = max(res["sigmas"])
     fig, ax = plt.subplots(1, 3, figsize=(15, 4))
     for sub, col in (("float32", "k"), ("tiles", "C0")):
         for key, ls, lab in (("val_clean", "-", "val, clean read"), ("val_noisy", "--", "val, as deployed")):
@@ -228,6 +230,8 @@ def plot(res, path):
         m = [S[sub].get("sigma=0" if p == 0 else f"dropout={p:g}", {}).get("val_clean", {}).get("mean", np.nan) for p in P]
         e = [S[sub].get("sigma=0" if p == 0 else f"dropout={p:g}", {}).get("val_clean", {}).get("sem", 0) for p in P]
         ax[2].errorbar(P, m, e, marker="s", color=col, capsize=3, label=f"{sub}: val, clean read")
+    for a in ax[:2]:
+        a.axvline(top, color="0.6", ls=":", lw=1); a.text(top, a.get_ylim()[1], " dial top", fontsize=7, color="0.4", va="top")
     ax[0].set_xlabel("read noise σ_r (training)"); ax[0].set_ylabel("loss (nats/char)"); ax[0].legend(fontsize=7); ax[0].set_title("E11: validation loss vs training read noise", fontsize=9)
     ax[1].set_xlabel("read noise σ_r"); ax[1].set_ylabel("shift gap (nats/char)"); ax[1].legend(fontsize=7); ax[1].set_title("distribution shift: Python after Shakespeare", fontsize=9)
     ax[2].set_xlabel("synapse dropout p (σ = 0)"); ax[2].set_ylabel("val loss, clean read"); ax[2].legend(fontsize=7); ax[2].set_title("dropout arm", fontsize=9)

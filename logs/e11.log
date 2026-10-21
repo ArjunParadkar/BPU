@@ -1,0 +1,564 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/.venv, got /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/.venv, got /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/../.venv
+vocab 102, train 100385 chars (10% of the split), val 111540, python 1115394
+    tiles sigma=0.0 s0 step 500/1500 loss 2.256 (120s)
+    tiles sigma=0.0 s0 step 1000/1500 loss 1.269 (265s)
+    tiles sigma=0.0 s0 step 1500/1500 loss 0.732 (396s)
+  tiles sigma=0.0 seed 0: train 0.600 val 3.350 (clean 3.351) python 7.962 gap 4.612 | 398s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.0 s0 step 500/1500 loss 2.161 (56s)
+    float32 sigma=0.0 s0 step 1000/1500 loss 1.237 (111s)
+    float32 sigma=0.0 s0 step 1500/1500 loss 0.590 (165s)
+  float32 sigma=0.0 seed 0: train 0.422 val 3.619 (clean 3.619) python 8.128 gap 4.509 | 165s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.02 s0 step 500/1500 loss 2.259 (144s)
+    tiles sigma=0.02 s0 step 1000/1500 loss 1.307 (265s)
+    tiles sigma=0.02 s0 step 1500/1500 loss 0.864 (379s)
+  tiles sigma=0.02 seed 0: train 0.768 val 3.007 (clean 3.000) python 7.472 gap 4.465 | 379s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.02 s0 step 500/1500 loss 2.163 (59s)
+    float32 sigma=0.02 s0 step 1000/1500 loss 1.244 (117s)
+    float32 sigma=0.02 s0 step 1500/1500 loss 0.603 (175s)
+  float32 sigma=0.02 seed 0: train 0.437 val 3.559 (clean 3.558) python 8.110 gap 4.551 | 175s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.04 s0 step 500/1500 loss 2.282 (134s)
+    tiles sigma=0.04 s0 step 1000/1500 loss 1.391 (264s)
+    tiles sigma=0.04 s0 step 1500/1500 loss 1.063 (391s)
+  tiles sigma=0.04 seed 0: train 1.003 val 2.680 (clean 2.664) python 7.066 gap 4.386 | 391s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.04 s0 step 500/1500 loss 2.168 (64s)
+    float32 sigma=0.04 s0 step 1000/1500 loss 1.262 (135s)
+    float32 sigma=0.04 s0 step 1500/1500 loss 0.648 (202s)
+  float32 sigma=0.04 seed 0: train 0.490 val 3.444 (clean 3.442) python 7.997 gap 4.553 | 202s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.06 s0 step 500/1500 loss 2.294 (109s)
+    tiles sigma=0.06 s0 step 1000/1500 loss 1.471 (210s)
+    tiles sigma=0.06 s0 step 1500/1500 loss 1.225 (301s)
+  tiles sigma=0.06 seed 0: train 1.185 val 2.471 (clean 2.441) python 6.909 gap 4.438 | 301s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.06 s0 step 500/1500 loss 2.173 (59s)
+    float32 sigma=0.06 s0 step 1000/1500 loss 1.276 (119s)
+    float32 sigma=0.06 s0 step 1500/1500 loss 0.691 (174s)
+  float32 sigma=0.06 seed 0: train 0.540 val 3.344 (clean 3.335) python 7.974 gap 4.630 | 174s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.1 s0 step 500/1500 loss 2.349 (107s)
+    tiles sigma=0.1 s0 step 1000/1500 loss 1.628 (227s)
+    tiles sigma=0.1 s0 step 1500/1500 loss 1.473 (342s)
+  tiles sigma=0.1 seed 0: train 1.454 val 2.353 (clean 2.301) python 6.592 gap 4.239 | 342s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.1 s0 step 500/1500 loss 2.195 (65s)
+    float32 sigma=0.1 s0 step 1000/1500 loss 1.333 (124s)
+    float32 sigma=0.1 s0 step 1500/1500 loss 0.826 (185s)
+  float32 sigma=0.1 seed 0: train 0.695 val 3.049 (clean 3.030) python 7.598 gap 4.549 | 185s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.1 s0 step 500/1500 loss 2.477 (99s)
+    tiles dropout=0.1 s0 step 1000/1500 loss 1.742 (202s)
+    tiles dropout=0.1 s0 step 1500/1500 loss 1.504 (305s)
+  tiles dropout=0.1 seed 0: train 1.465 val 2.335 (clean 2.446) python 6.313 gap 3.978 | 305s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.1 s0 step 500/1500 loss 2.393 (56s)
+    float32 dropout=0.1 s0 step 1000/1500 loss 1.724 (114s)
+    float32 dropout=0.1 s0 step 1500/1500 loss 1.462 (170s)
+  float32 dropout=0.1 seed 0: train 1.415 val 2.297 (clean 2.407) python 6.498 gap 4.202 | 170s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.3 s0 step 500/1500 loss 2.683 (148s)
+    tiles dropout=0.3 s0 step 1000/1500 loss 2.134 (261s)
+    tiles dropout=0.3 s0 step 1500/1500 loss 1.978 (400s)
+  tiles dropout=0.3 seed 0: train 1.951 val 2.477 (clean 3.175) python 5.851 gap 3.375 | 400s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.3 s0 step 500/1500 loss 2.627 (81s)
+    float32 dropout=0.3 s0 step 1000/1500 loss 2.145 (153s)
+    float32 dropout=0.3 s0 step 1500/1500 loss 1.976 (209s)
+  float32 dropout=0.3 seed 0: train 1.946 val 2.456 (clean 3.098) python 5.853 gap 3.396 | 209s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.5 s0 step 500/1500 loss 2.851 (96s)
+    tiles dropout=0.5 s0 step 1000/1500 loss 2.377 (200s)
+    tiles dropout=0.5 s0 step 1500/1500 loss 2.285 (310s)
+  tiles dropout=0.5 seed 0: train 2.268 val 2.585 (clean 5.323) python 5.478 gap 2.893 | 310s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.5 s0 step 500/1500 loss 2.809 (54s)
+    float32 dropout=0.5 s0 step 1000/1500 loss 2.378 (110s)
+    float32 dropout=0.5 s0 step 1500/1500 loss 2.280 (166s)
+  float32 dropout=0.5 seed 0: train 2.261 val 2.591 (clean 4.670) python 5.395 gap 2.803 | 166s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.0 s1 step 500/1500 loss 2.248 (88s)
+    tiles sigma=0.0 s1 step 1000/1500 loss 1.224 (190s)
+    tiles sigma=0.0 s1 step 1500/1500 loss 0.642 (300s)
+  tiles sigma=0.0 seed 1: train 0.500 val 3.512 (clean 3.514) python 7.759 gap 4.247 | 300s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.0 s1 step 500/1500 loss 2.160 (54s)
+    float32 sigma=0.0 s1 step 1000/1500 loss 1.237 (106s)
+    float32 sigma=0.0 s1 step 1500/1500 loss 0.588 (158s)
+  float32 sigma=0.0 seed 1: train 0.422 val 3.592 (clean 3.592) python 7.736 gap 4.144 | 158s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.02 s1 step 500/1500 loss 2.256 (112s)
+    tiles sigma=0.02 s1 step 1000/1500 loss 1.284 (217s)
+    tiles sigma=0.02 s1 step 1500/1500 loss 0.825 (320s)
+  tiles sigma=0.02 seed 1: train 0.722 val 3.034 (clean 3.030) python 7.304 gap 4.270 | 320s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.02 s1 step 500/1500 loss 2.160 (60s)
+    float32 sigma=0.02 s1 step 1000/1500 loss 1.246 (120s)
+    float32 sigma=0.02 s1 step 1500/1500 loss 0.614 (178s)
+  float32 sigma=0.02 seed 1: train 0.449 val 3.534 (clean 3.533) python 7.765 gap 4.230 | 178s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.04 s1 step 500/1500 loss 2.278 (117s)
+    tiles sigma=0.04 s1 step 1000/1500 loss 1.372 (262s)
+    tiles sigma=0.04 s1 step 1500/1500 loss 1.040 (369s)
+  tiles sigma=0.04 seed 1: train 0.973 val 2.663 (clean 2.651) python 7.239 gap 4.576 | 369s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.04 s1 step 500/1500 loss 2.163 (58s)
+    float32 sigma=0.04 s1 step 1000/1500 loss 1.259 (118s)
+    float32 sigma=0.04 s1 step 1500/1500 loss 0.648 (179s)
+  float32 sigma=0.04 seed 1: train 0.486 val 3.422 (clean 3.419) python 7.691 gap 4.268 | 179s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.06 s1 step 500/1500 loss 2.290 (103s)
+    tiles sigma=0.06 s1 step 1000/1500 loss 1.454 (206s)
+    tiles sigma=0.06 s1 step 1500/1500 loss 1.215 (328s)
+  tiles sigma=0.06 seed 1: train 1.174 val 2.440 (clean 2.419) python 6.911 gap 4.470 | 328s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.06 s1 step 500/1500 loss 2.171 (61s)
+    float32 sigma=0.06 s1 step 1000/1500 loss 1.280 (122s)
+    float32 sigma=0.06 s1 step 1500/1500 loss 0.694 (183s)
+  float32 sigma=0.06 seed 1: train 0.539 val 3.315 (clean 3.309) python 7.748 gap 4.432 | 183s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.1 s1 step 500/1500 loss 2.356 (128s)
+    tiles sigma=0.1 s1 step 1000/1500 loss 1.627 (250s)
+    tiles sigma=0.1 s1 step 1500/1500 loss 1.479 (386s)
+  tiles sigma=0.1 seed 1: train 1.461 val 2.324 (clean 2.286) python 6.740 gap 4.416 | 386s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.1 s1 step 500/1500 loss 2.193 (93s)
+    float32 sigma=0.1 s1 step 1000/1500 loss 1.336 (165s)
+    float32 sigma=0.1 s1 step 1500/1500 loss 0.829 (240s)
+  float32 sigma=0.1 seed 1: train 0.697 val 3.012 (clean 2.995) python 7.439 gap 4.426 | 240s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.1 s1 step 500/1500 loss 2.486 (127s)
+    tiles dropout=0.1 s1 step 1000/1500 loss 1.725 (264s)
+    tiles dropout=0.1 s1 step 1500/1500 loss 1.494 (386s)
+  tiles dropout=0.1 seed 1: train 1.457 val 2.336 (clean 2.439) python 6.322 gap 3.985 | 386s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.1 s1 step 500/1500 loss 2.392 (56s)
+    float32 dropout=0.1 s1 step 1000/1500 loss 1.709 (115s)
+    float32 dropout=0.1 s1 step 1500/1500 loss 1.460 (180s)
+  float32 dropout=0.1 seed 1: train 1.415 val 2.305 (clean 2.413) python 6.288 gap 3.983 | 180s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.3 s1 step 500/1500 loss 2.694 (104s)
+    tiles dropout=0.3 s1 step 1000/1500 loss 2.121 (201s)
+    tiles dropout=0.3 s1 step 1500/1500 loss 1.967 (301s)
+  tiles dropout=0.3 seed 1: train 1.942 val 2.445 (clean 3.035) python 5.807 gap 3.362 | 301s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.3 s1 step 500/1500 loss 2.623 (66s)
+    float32 dropout=0.3 s1 step 1000/1500 loss 2.130 (126s)
+    float32 dropout=0.3 s1 step 1500/1500 loss 1.968 (180s)
+  float32 dropout=0.3 seed 1: train 1.939 val 2.444 (clean 3.054) python 5.884 gap 3.439 | 180s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.5 s1 step 500/1500 loss 2.856 (110s)
+    tiles dropout=0.5 s1 step 1000/1500 loss 2.372 (216s)
+    tiles dropout=0.5 s1 step 1500/1500 loss 2.273 (317s)
+  tiles dropout=0.5 seed 1: train 2.259 val 2.570 (clean 4.678) python 5.406 gap 2.836 | 317s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.5 s1 step 500/1500 loss 2.812 (58s)
+    float32 dropout=0.5 s1 step 1000/1500 loss 2.372 (115s)
+    float32 dropout=0.5 s1 step 1500/1500 loss 2.271 (172s)
+  float32 dropout=0.5 seed 1: train 2.252 val 2.583 (clean 4.310) python 5.402 gap 2.819 | 172s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.0 s2 step 500/1500 loss 2.292 (86s)
+    tiles sigma=0.0 s2 step 1000/1500 loss 1.262 (170s)
+    tiles sigma=0.0 s2 step 1500/1500 loss 0.706 (277s)
+  tiles sigma=0.0 seed 2: train 0.574 val 3.354 (clean 3.353) python 7.889 gap 4.535 | 277s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.0 s2 step 500/1500 loss 2.163 (52s)
+    float32 sigma=0.0 s2 step 1000/1500 loss 1.262 (107s)
+    float32 sigma=0.0 s2 step 1500/1500 loss 0.639 (165s)
+  float32 sigma=0.0 seed 2: train 0.473 val 3.500 (clean 3.500) python 7.588 gap 4.088 | 165s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.02 s2 step 500/1500 loss 2.302 (107s)
+    tiles sigma=0.02 s2 step 1000/1500 loss 1.299 (202s)
+    tiles sigma=0.02 s2 step 1500/1500 loss 0.834 (301s)
+  tiles sigma=0.02 seed 2: train 0.735 val 3.010 (clean 3.005) python 7.562 gap 4.552 | 301s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.02 s2 step 500/1500 loss 2.165 (64s)
+    float32 sigma=0.02 s2 step 1000/1500 loss 1.274 (124s)
+    float32 sigma=0.02 s2 step 1500/1500 loss 0.666 (192s)
+  float32 sigma=0.02 seed 2: train 0.503 val 3.418 (clean 3.415) python 7.636 gap 4.218 | 192s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.04 s2 step 500/1500 loss 2.314 (122s)
+    tiles sigma=0.04 s2 step 1000/1500 loss 1.385 (250s)
+    tiles sigma=0.04 s2 step 1500/1500 loss 1.044 (376s)
+  tiles sigma=0.04 seed 2: train 0.980 val 2.650 (clean 2.631) python 7.255 gap 4.605 | 376s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.04 s2 step 500/1500 loss 2.173 (72s)
+    float32 sigma=0.04 s2 step 1000/1500 loss 1.280 (140s)
+    float32 sigma=0.04 s2 step 1500/1500 loss 0.683 (210s)
+  float32 sigma=0.04 seed 2: train 0.524 val 3.363 (clean 3.359) python 7.617 gap 4.255 | 210s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.06 s2 step 500/1500 loss 2.348 (140s)
+    tiles sigma=0.06 s2 step 1000/1500 loss 1.477 (292s)
+    tiles sigma=0.06 s2 step 1500/1500 loss 1.230 (429s)
+  tiles sigma=0.06 seed 2: train 1.188 val 2.440 (clean 2.405) python 6.943 gap 4.503 | 429s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.06 s2 step 500/1500 loss 2.177 (76s)
+    float32 sigma=0.06 s2 step 1000/1500 loss 1.309 (156s)
+    float32 sigma=0.06 s2 step 1500/1500 loss 0.761 (243s)
+  float32 sigma=0.06 seed 2: train 0.614 val 3.155 (clean 3.146) python 7.429 gap 4.275 | 243s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.1 s2 step 500/1500 loss 2.392 (120s)
+    tiles sigma=0.1 s2 step 1000/1500 loss 1.641 (239s)
+    tiles sigma=0.1 s2 step 1500/1500 loss 1.486 (349s)
+  tiles sigma=0.1 seed 2: train 1.465 val 2.314 (clean 2.266) python 6.685 gap 4.371 | 349s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.1 s2 step 500/1500 loss 2.201 (60s)
+    float32 sigma=0.1 s2 step 1000/1500 loss 1.358 (121s)
+    float32 sigma=0.1 s2 step 1500/1500 loss 0.868 (179s)
+  float32 sigma=0.1 seed 2: train 0.741 val 2.970 (clean 2.952) python 7.402 gap 4.432 | 179s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.1 s2 step 500/1500 loss 2.508 (101s)
+    tiles dropout=0.1 s2 step 1000/1500 loss 1.740 (207s)
+    tiles dropout=0.1 s2 step 1500/1500 loss 1.503 (312s)
+  tiles dropout=0.1 seed 2: train 1.460 val 2.316 (clean 2.415) python 6.312 gap 3.997 | 312s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.1 s2 step 500/1500 loss 2.400 (57s)
+    float32 dropout=0.1 s2 step 1000/1500 loss 1.730 (115s)
+    float32 dropout=0.1 s2 step 1500/1500 loss 1.477 (172s)
+  float32 dropout=0.1 seed 2: train 1.427 val 2.318 (clean 2.435) python 6.298 gap 3.980 | 172s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.3 s2 step 500/1500 loss 2.704 (90s)
+    tiles dropout=0.3 s2 step 1000/1500 loss 2.132 (180s)
+    tiles dropout=0.3 s2 step 1500/1500 loss 1.979 (274s)
+  tiles dropout=0.3 seed 2: train 1.952 val 2.463 (clean 3.100) python 5.852 gap 3.389 | 274s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.3 s2 step 500/1500 loss 2.627 (60s)
+    float32 dropout=0.3 s2 step 1000/1500 loss 2.152 (121s)
+    float32 dropout=0.3 s2 step 1500/1500 loss 1.984 (181s)
+  float32 dropout=0.3 seed 2: train 1.951 val 2.463 (clean 3.078) python 5.816 gap 3.353 | 181s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.5 s2 step 500/1500 loss 2.868 (107s)
+    tiles dropout=0.5 s2 step 1000/1500 loss 2.387 (195s)
+    tiles dropout=0.5 s2 step 1500/1500 loss 2.293 (299s)
+  tiles dropout=0.5 seed 2: train 2.276 val 2.587 (clean 5.038) python 5.444 gap 2.857 | 299s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.5 s2 step 500/1500 loss 2.817 (57s)
+    float32 dropout=0.5 s2 step 1000/1500 loss 2.385 (114s)
+    float32 dropout=0.5 s2 step 1500/1500 loss 2.286 (175s)
+  float32 dropout=0.5 seed 2: train 2.265 val 2.582 (clean 4.473) python 5.486 gap 2.905 | 175s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.0 s3 step 500/1500 loss 2.272 (102s)
+    tiles sigma=0.0 s3 step 1000/1500 loss 1.260 (200s)
+    tiles sigma=0.0 s3 step 1500/1500 loss 0.688 (296s)
+  tiles sigma=0.0 seed 3: train 0.547 val 3.410 (clean 3.410) python 7.890 gap 4.479 | 296s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.0 s3 step 500/1500 loss 2.154 (59s)
+    float32 sigma=0.0 s3 step 1000/1500 loss 1.239 (117s)
+    float32 sigma=0.0 s3 step 1500/1500 loss 0.579 (179s)
+  float32 sigma=0.0 seed 3: train 0.410 val 3.642 (clean 3.642) python 8.113 gap 4.471 | 179s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.02 s3 step 500/1500 loss 2.290 (121s)
+    tiles sigma=0.02 s3 step 1000/1500 loss 1.308 (241s)
+    tiles sigma=0.02 s3 step 1500/1500 loss 0.839 (350s)
+  tiles sigma=0.02 seed 3: train 0.734 val 3.056 (clean 3.043) python 7.564 gap 4.509 | 350s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.02 s3 step 500/1500 loss 2.155 (61s)
+    float32 sigma=0.02 s3 step 1000/1500 loss 1.238 (153s)
+    float32 sigma=0.02 s3 step 1500/1500 loss 0.587 (235s)
+  float32 sigma=0.02 seed 3: train 0.419 val 3.598 (clean 3.597) python 8.088 gap 4.490 | 235s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.04 s3 step 500/1500 loss 2.288 (135s)
+    tiles sigma=0.04 s3 step 1000/1500 loss 1.384 (287s)
+    tiles sigma=0.04 s3 step 1500/1500 loss 1.043 (414s)
+  tiles sigma=0.04 seed 3: train 0.976 val 2.675 (clean 2.656) python 7.085 gap 4.410 | 414s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.04 s3 step 500/1500 loss 2.154 (57s)
+    float32 sigma=0.04 s3 step 1000/1500 loss 1.249 (117s)
+    float32 sigma=0.04 s3 step 1500/1500 loss 0.622 (178s)
+  float32 sigma=0.04 seed 3: train 0.457 val 3.505 (clean 3.501) python 8.209 gap 4.704 | 178s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.06 s3 step 500/1500 loss 2.309 (104s)
+    tiles sigma=0.06 s3 step 1000/1500 loss 1.476 (215s)
+    tiles sigma=0.06 s3 step 1500/1500 loss 1.228 (313s)
+  tiles sigma=0.06 seed 3: train 1.184 val 2.465 (clean 2.435) python 6.926 gap 4.461 | 313s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.06 s3 step 500/1500 loss 2.160 (63s)
+    float32 sigma=0.06 s3 step 1000/1500 loss 1.267 (124s)
+    float32 sigma=0.06 s3 step 1500/1500 loss 0.670 (189s)
+  float32 sigma=0.06 seed 3: train 0.514 val 3.388 (clean 3.380) python 7.873 gap 4.485 | 189s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.1 s3 step 500/1500 loss 2.369 (95s)
+    tiles sigma=0.1 s3 step 1000/1500 loss 1.638 (189s)
+    tiles sigma=0.1 s3 step 1500/1500 loss 1.481 (311s)
+  tiles sigma=0.1 seed 3: train 1.459 val 2.336 (clean 2.281) python 6.540 gap 4.204 | 311s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.1 s3 step 500/1500 loss 2.188 (61s)
+    float32 sigma=0.1 s3 step 1000/1500 loss 1.331 (122s)
+    float32 sigma=0.1 s3 step 1500/1500 loss 0.814 (180s)
+  float32 sigma=0.1 seed 3: train 0.679 val 3.063 (clean 3.046) python 7.605 gap 4.541 | 180s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.1 s3 step 500/1500 loss 2.493 (98s)
+    tiles dropout=0.1 s3 step 1000/1500 loss 1.744 (187s)
+    tiles dropout=0.1 s3 step 1500/1500 loss 1.507 (282s)
+  tiles dropout=0.1 seed 3: train 1.466 val 2.313 (clean 2.416) python 6.306 gap 3.993 | 282s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.1 s3 step 500/1500 loss 2.395 (58s)
+    float32 dropout=0.1 s3 step 1000/1500 loss 1.727 (116s)
+    float32 dropout=0.1 s3 step 1500/1500 loss 1.470 (175s)
+  float32 dropout=0.1 seed 3: train 1.419 val 2.325 (clean 2.419) python 6.322 gap 3.998 | 175s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.3 s3 step 500/1500 loss 2.689 (93s)
+    tiles dropout=0.3 s3 step 1000/1500 loss 2.145 (203s)
+    tiles dropout=0.3 s3 step 1500/1500 loss 1.989 (313s)
+  tiles dropout=0.3 seed 3: train 1.964 val 2.447 (clean 3.091) python 5.831 gap 3.385 | 313s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.3 s3 step 500/1500 loss 2.620 (61s)
+    float32 dropout=0.3 s3 step 1000/1500 loss 2.148 (120s)
+    float32 dropout=0.3 s3 step 1500/1500 loss 1.981 (180s)
+  float32 dropout=0.3 seed 3: train 1.949 val 2.457 (clean 3.061) python 5.923 gap 3.466 | 180s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.5 s3 step 500/1500 loss 2.853 (97s)
+    tiles dropout=0.5 s3 step 1000/1500 loss 2.381 (195s)
+    tiles dropout=0.5 s3 step 1500/1500 loss 2.288 (291s)
+  tiles dropout=0.5 seed 3: train 2.271 val 2.584 (clean 4.898) python 5.384 gap 2.800 | 291s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.5 s3 step 500/1500 loss 2.808 (62s)
+    float32 dropout=0.5 s3 step 1000/1500 loss 2.385 (122s)
+    float32 dropout=0.5 s3 step 1500/1500 loss 2.293 (183s)
+  float32 dropout=0.5 seed 3: train 2.273 val 2.591 (clean 5.215) python 5.423 gap 2.832 | 183s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.0 s4 step 500/1500 loss 2.297 (66s)
+    tiles sigma=0.0 s4 step 1000/1500 loss 1.304 (124s)
+    tiles sigma=0.0 s4 step 1500/1500 loss 0.782 (187s)
+  tiles sigma=0.0 seed 4: train 0.654 val 3.225 (clean 3.225) python 7.951 gap 4.725 | 187s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.0 s4 step 500/1500 loss 2.177 (34s)
+    float32 sigma=0.0 s4 step 1000/1500 loss 1.264 (92s)
+    float32 sigma=0.0 s4 step 1500/1500 loss 0.619 (164s)
+  float32 sigma=0.0 seed 4: train 0.451 val 3.548 (clean 3.548) python 8.196 gap 4.648 | 164s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.02 s4 step 500/1500 loss 2.293 (105s)
+    tiles sigma=0.02 s4 step 1000/1500 loss 1.328 (216s)
+    tiles sigma=0.02 s4 step 1500/1500 loss 0.889 (333s)
+  tiles sigma=0.02 seed 4: train 0.795 val 2.954 (clean 2.948) python 7.612 gap 4.658 | 333s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.02 s4 step 500/1500 loss 2.175 (82s)
+    float32 sigma=0.02 s4 step 1000/1500 loss 1.266 (282s)
+    float32 sigma=0.02 s4 step 1500/1500 loss 0.632 (573s)
+  float32 sigma=0.02 seed 4: train 0.464 val 3.471 (clean 3.471) python 7.884 gap 4.413 | 573s
+=== E11 resume Tue Oct 20 08:48:39 AM CDT 2026
+vocab 109, train 100385 chars (10% of the split), val 111540, python 1115394
+resuming with 68 runs on disk
+    tiles sigma=0.04 s4 step 500/1500 loss 2.307 (240s)
+    tiles sigma=0.04 s4 step 1000/1500 loss 1.400 (519s)
+    tiles sigma=0.04 s4 step 1500/1500 loss 1.072 (748s)
+  tiles sigma=0.04 seed 4: train 1.011 val 2.596 (clean 2.575) python 7.101 gap 4.505 | 749s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.04 s4 step 500/1500 loss 2.176 (99s)
+    float32 sigma=0.04 s4 step 1000/1500 loss 1.264 (204s)
+    float32 sigma=0.04 s4 step 1500/1500 loss 0.652 (302s)
+  float32 sigma=0.04 seed 4: train 0.493 val 3.449 (clean 3.444) python 7.619 gap 4.169 | 302s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.06 s4 step 500/1500 loss 2.321 (198s)
+    tiles sigma=0.06 s4 step 1000/1500 loss 1.481 (373s)
+    tiles sigma=0.06 s4 step 1500/1500 loss 1.235 (609s)
+  tiles sigma=0.06 seed 4: train 1.196 val 2.432 (clean 2.402) python 6.739 gap 4.307 | 609s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.06 s4 step 500/1500 loss 2.180 (155s)
+    float32 sigma=0.06 s4 step 1000/1500 loss 1.282 (302s)
+    float32 sigma=0.06 s4 step 1500/1500 loss 0.701 (448s)
+  float32 sigma=0.06 seed 4: train 0.550 val 3.292 (clean 3.284) python 7.641 gap 4.349 | 448s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.1 s4 step 500/1500 loss 2.371 (191s)
+    tiles sigma=0.1 s4 step 1000/1500 loss 1.641 (352s)
+    tiles sigma=0.1 s4 step 1500/1500 loss 1.483 (483s)
+  tiles sigma=0.1 seed 4: train 1.466 val 2.310 (clean 2.253) python 6.617 gap 4.307 | 483s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.1 s4 step 500/1500 loss 2.203 (60s)
+    float32 sigma=0.1 s4 step 1000/1500 loss 1.340 (170s)
+    float32 sigma=0.1 s4 step 1500/1500 loss 0.836 (285s)
+  float32 sigma=0.1 seed 4: train 0.706 val 3.034 (clean 3.015) python 7.428 gap 4.394 | 285s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.1 s4 step 500/1500 loss 2.489 (150s)
+    tiles dropout=0.1 s4 step 1000/1500 loss 1.737 (322s)
+    tiles dropout=0.1 s4 step 1500/1500 loss 1.497 (497s)
+  tiles dropout=0.1 seed 4: train 1.459 val 2.319 (clean 2.424) python 6.398 gap 4.079 | 497s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.1 s4 step 500/1500 loss 2.407 (108s)
+    float32 dropout=0.1 s4 step 1000/1500 loss 1.739 (217s)
+    float32 dropout=0.1 s4 step 1500/1500 loss 1.478 (316s)
+  float32 dropout=0.1 seed 4: train 1.432 val 2.302 (clean 2.399) python 6.369 gap 4.068 | 316s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.3 s4 step 500/1500 loss 2.692 (137s)
+    tiles dropout=0.3 s4 step 1000/1500 loss 2.127 (259s)
+    tiles dropout=0.3 s4 step 1500/1500 loss 1.968 (407s)
+  tiles dropout=0.3 seed 4: train 1.944 val 2.454 (clean 3.100) python 5.860 gap 3.406 | 407s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.3 s4 step 500/1500 loss 2.632 (110s)
+    float32 dropout=0.3 s4 step 1000/1500 loss 2.155 (228s)
+    float32 dropout=0.3 s4 step 1500/1500 loss 1.984 (362s)
+  float32 dropout=0.3 seed 4: train 1.954 val 2.447 (clean 3.034) python 5.808 gap 3.361 | 362s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles dropout=0.5 s4 step 500/1500 loss 2.868 (224s)
+    tiles dropout=0.5 s4 step 1000/1500 loss 2.374 (401s)
+    tiles dropout=0.5 s4 step 1500/1500 loss 2.272 (559s)
+  tiles dropout=0.5 seed 4: train 2.257 val 2.586 (clean 4.851) python 5.450 gap 2.865 | 559s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 dropout=0.5 s4 step 500/1500 loss 2.816 (101s)
+    float32 dropout=0.5 s4 step 1000/1500 loss 2.389 (211s)
+    float32 dropout=0.5 s4 step 1500/1500 loss 2.289 (306s)
+  float32 dropout=0.5 seed 4: train 2.273 val 2.589 (clean 5.255) python 5.501 gap 2.912 | 306s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+E11 verdict: 1500 steps on 10% of Shakespeare, 5 seeds. tiles: sigma* = 0.1 (clean read; 95% CI 0.1..0.1, per-seed [0.1, 0.1, 0.1, 0.1, 0.1]), 0.1 as deployed (CI 0.1..0.1); shift gap slope -0.32 nats per unit sigma (CI -1.99..+1.75), gap 4.520 -> 4.477, 3/5 seeds narrowing; dropout p* = 0.1 (clean, CI 0.1..0.1) || float32: sigma* = 0.1 (clean read; 95% CI 0.1..0.1, per-seed [0.1, 0.1, 0.1, 0.1, 0.1]), 0.1 as deployed (CI 0.1..0.1); shift gap slope +1.45 nats per unit sigma (CI -0.10..+3.01), gap 4.372 -> 4.508, 1/5 seeds narrowing; dropout p* = 0.1 (clean, CI 0.1..0.1). Hypothesis 'optimal val loss at sigma > 0' on tiles: SUPPORTED (CI excludes 0: True); 'shift gap narrows with sigma': NOT supported (slope CI below 0: False).
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+[e11] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e11_regularization.png
+=== E11 sigma extension 0.15/0.2/0.3 Tue Oct 20 10:22:24 AM CDT 2026
+vocab 109, train 100385 chars (10% of the split), val 111540, python 1115394
+resuming with 80 runs on disk
+    tiles sigma=0.15 s0 step 500/1500 loss 2.411 (157s)
+    tiles sigma=0.15 s0 step 1000/1500 loss 1.801 (339s)
+    tiles sigma=0.15 s0 step 1500/1500 loss 1.702 (501s)
+  tiles sigma=0.15 seed 0: train 1.694 val 2.366 (clean 2.293) python 6.401 gap 4.035 | 502s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.15 s0 step 500/1500 loss 2.235 (119s)
+    float32 sigma=0.15 s0 step 1000/1500 loss 1.440 (232s)
+    float32 sigma=0.15 s0 step 1500/1500 loss 1.042 (332s)
+  float32 sigma=0.15 seed 0: train 0.947 val 2.669 (clean 2.641) python 7.078 gap 4.410 | 332s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.2 s0 step 500/1500 loss 2.481 (155s)
+    tiles sigma=0.2 s0 step 1000/1500 loss 1.977 (312s)
+    tiles sigma=0.2 s0 step 1500/1500 loss 1.916 (444s)
+  tiles sigma=0.2 seed 0: train 1.912 val 2.475 (clean 2.364) python 6.288 gap 3.813 | 444s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.2 s0 step 500/1500 loss 2.273 (86s)
+    float32 sigma=0.2 s0 step 1000/1500 loss 1.511 (179s)
+    float32 sigma=0.2 s0 step 1500/1500 loss 1.175 (263s)
+  float32 sigma=0.2 seed 0: train 1.099 val 2.480 (clean 2.440) python 6.663 gap 4.183 | 263s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.3 s0 step 500/1500 loss 2.483 (125s)
+    tiles sigma=0.3 s0 step 1000/1500 loss 1.993 (274s)
+    tiles sigma=0.3 s0 step 1500/1500 loss 1.934 (409s)
+  tiles sigma=0.3 seed 0: train 1.930 val 2.487 (clean 2.381) python 6.204 gap 3.717 | 409s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.3 s0 step 500/1500 loss 2.281 (94s)
+    float32 sigma=0.3 s0 step 1000/1500 loss 1.540 (171s)
+    float32 sigma=0.3 s0 step 1500/1500 loss 1.224 (252s)
+  float32 sigma=0.3 seed 0: train 1.155 val 2.445 (clean 2.393) python 6.623 gap 4.179 | 252s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.15 s1 step 500/1500 loss 2.452 (134s)
+    tiles sigma=0.15 s1 step 1000/1500 loss 1.835 (270s)
+    tiles sigma=0.15 s1 step 1500/1500 loss 1.731 (410s)
+  tiles sigma=0.15 seed 1: train 1.721 val 2.388 (clean 2.323) python 6.275 gap 3.888 | 410s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.15 s1 step 500/1500 loss 2.236 (81s)
+    float32 sigma=0.15 s1 step 1000/1500 loss 1.423 (182s)
+    float32 sigma=0.15 s1 step 1500/1500 loss 1.017 (263s)
+  float32 sigma=0.15 seed 1: train 0.918 val 2.697 (clean 2.667) python 6.995 gap 4.298 | 263s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.2 s1 step 500/1500 loss 2.533 (154s)
+    tiles sigma=0.2 s1 step 1000/1500 loss 2.021 (293s)
+    tiles sigma=0.2 s1 step 1500/1500 loss 1.950 (422s)
+  tiles sigma=0.2 seed 1: train 1.944 val 2.490 (clean 2.390) python 6.158 gap 3.668 | 422s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.2 s1 step 500/1500 loss 2.272 (91s)
+    float32 sigma=0.2 s1 step 1000/1500 loss 1.504 (178s)
+    float32 sigma=0.2 s1 step 1500/1500 loss 1.173 (254s)
+  float32 sigma=0.2 seed 1: train 1.098 val 2.510 (clean 2.472) python 6.716 gap 4.206 | 254s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.3 s1 step 500/1500 loss 2.536 (129s)
+    tiles sigma=0.3 s1 step 1000/1500 loss 2.040 (251s)
+    tiles sigma=0.3 s1 step 1500/1500 loss 1.975 (382s)
+  tiles sigma=0.3 seed 1: train 1.969 val 2.501 (clean 2.389) python 6.204 gap 3.703 | 382s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.3 s1 step 500/1500 loss 2.280 (84s)
+    float32 sigma=0.3 s1 step 1000/1500 loss 1.533 (165s)
+    float32 sigma=0.3 s1 step 1500/1500 loss 1.223 (260s)
+  float32 sigma=0.3 seed 1: train 1.156 val 2.462 (clean 2.414) python 6.741 gap 4.279 | 260s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.15 s2 step 500/1500 loss 2.437 (139s)
+    tiles sigma=0.15 s2 step 1000/1500 loss 1.828 (264s)
+    tiles sigma=0.15 s2 step 1500/1500 loss 1.725 (421s)
+  tiles sigma=0.15 seed 2: train 1.714 val 2.361 (clean 2.285) python 6.436 gap 4.075 | 421s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.15 s2 step 500/1500 loss 2.230 (78s)
+    float32 sigma=0.15 s2 step 1000/1500 loss 1.423 (148s)
+    float32 sigma=0.15 s2 step 1500/1500 loss 1.020 (231s)
+  float32 sigma=0.15 seed 2: train 0.921 val 2.695 (clean 2.664) python 7.156 gap 4.461 | 231s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.2 s2 step 500/1500 loss 2.506 (140s)
+    tiles sigma=0.2 s2 step 1000/1500 loss 1.993 (259s)
+    tiles sigma=0.2 s2 step 1500/1500 loss 1.929 (372s)
+  tiles sigma=0.2 seed 2: train 1.923 val 2.464 (clean 2.362) python 6.298 gap 3.834 | 372s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.2 s2 step 500/1500 loss 2.266 (69s)
+    float32 sigma=0.2 s2 step 1000/1500 loss 1.507 (149s)
+    float32 sigma=0.2 s2 step 1500/1500 loss 1.173 (221s)
+  float32 sigma=0.2 seed 2: train 1.098 val 2.499 (clean 2.457) python 6.890 gap 4.391 | 221s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.3 s2 step 500/1500 loss 2.506 (65s)
+    tiles sigma=0.3 s2 step 1000/1500 loss 2.016 (155s)
+    tiles sigma=0.3 s2 step 1500/1500 loss 1.957 (229s)
+  tiles sigma=0.3 seed 2: train 1.952 val 2.475 (clean 2.360) python 6.309 gap 3.834 | 229s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.3 s2 step 500/1500 loss 2.273 (68s)
+    float32 sigma=0.3 s2 step 1000/1500 loss 1.535 (136s)
+    float32 sigma=0.3 s2 step 1500/1500 loss 1.223 (203s)
+  float32 sigma=0.3 seed 2: train 1.153 val 2.453 (clean 2.401) python 6.770 gap 4.317 | 203s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.15 s3 step 500/1500 loss 2.460 (90s)
+    tiles sigma=0.15 s3 step 1000/1500 loss 1.840 (178s)
+    tiles sigma=0.15 s3 step 1500/1500 loss 1.733 (267s)
+  tiles sigma=0.15 seed 3: train 1.721 val 2.353 (clean 2.281) python 6.244 gap 3.891 | 267s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.15 s3 step 500/1500 loss 2.226 (66s)
+    float32 sigma=0.15 s3 step 1000/1500 loss 1.416 (132s)
+    float32 sigma=0.15 s3 step 1500/1500 loss 1.001 (199s)
+  float32 sigma=0.15 seed 3: train 0.896 val 2.719 (clean 2.685) python 7.084 gap 4.366 | 199s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.2 s3 step 500/1500 loss 2.532 (88s)
+    tiles sigma=0.2 s3 step 1000/1500 loss 2.021 (176s)
+    tiles sigma=0.2 s3 step 1500/1500 loss 1.949 (263s)
+  tiles sigma=0.2 seed 3: train 1.941 val 2.453 (clean 2.341) python 6.180 gap 3.727 | 263s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.2 s3 step 500/1500 loss 2.265 (66s)
+    float32 sigma=0.2 s3 step 1000/1500 loss 1.502 (131s)
+    float32 sigma=0.2 s3 step 1500/1500 loss 1.159 (197s)
+  float32 sigma=0.2 seed 3: train 1.079 val 2.534 (clean 2.497) python 6.865 gap 4.330 | 197s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.3 s3 step 500/1500 loss 2.542 (87s)
+    tiles sigma=0.3 s3 step 1000/1500 loss 2.037 (174s)
+    tiles sigma=0.3 s3 step 1500/1500 loss 1.973 (262s)
+  tiles sigma=0.3 seed 3: train 1.968 val 2.489 (clean 2.369) python 6.188 gap 3.699 | 262s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.3 s3 step 500/1500 loss 2.275 (66s)
+    float32 sigma=0.3 s3 step 1000/1500 loss 1.530 (174s)
+    float32 sigma=0.3 s3 step 1500/1500 loss 1.208 (229s)
+  float32 sigma=0.3 seed 3: train 1.136 val 2.484 (clean 2.435) python 6.866 gap 4.382 | 229s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.15 s4 step 500/1500 loss 2.445 (59s)
+    tiles sigma=0.15 s4 step 1000/1500 loss 1.820 (113s)
+    tiles sigma=0.15 s4 step 1500/1500 loss 1.715 (167s)
+  tiles sigma=0.15 seed 4: train 1.709 val 2.370 (clean 2.286) python 6.438 gap 4.069 | 167s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.15 s4 step 500/1500 loss 2.236 (41s)
+    float32 sigma=0.15 s4 step 1000/1500 loss 1.422 (82s)
+    float32 sigma=0.15 s4 step 1500/1500 loss 1.009 (122s)
+  float32 sigma=0.15 seed 4: train 0.908 val 2.721 (clean 2.691) python 7.166 gap 4.444 | 122s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.2 s4 step 500/1500 loss 2.506 (54s)
+    tiles sigma=0.2 s4 step 1000/1500 loss 1.990 (109s)
+    tiles sigma=0.2 s4 step 1500/1500 loss 1.925 (164s)
+  tiles sigma=0.2 seed 4: train 1.925 val 2.471 (clean 2.361) python 6.192 gap 3.721 | 164s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.2 s4 step 500/1500 loss 2.280 (40s)
+    float32 sigma=0.2 s4 step 1000/1500 loss 1.510 (81s)
+    float32 sigma=0.2 s4 step 1500/1500 loss 1.169 (122s)
+  float32 sigma=0.2 seed 4: train 1.091 val 2.532 (clean 2.488) python 6.892 gap 4.360 | 122s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    tiles sigma=0.3 s4 step 500/1500 loss 2.509 (54s)
+    tiles sigma=0.3 s4 step 1000/1500 loss 2.001 (109s)
+    tiles sigma=0.3 s4 step 1500/1500 loss 1.941 (163s)
+  tiles sigma=0.3 seed 4: train 1.942 val 2.473 (clean 2.360) python 6.252 gap 3.778 | 163s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+    float32 sigma=0.3 s4 step 500/1500 loss 2.287 (39s)
+    float32 sigma=0.3 s4 step 1000/1500 loss 1.538 (80s)
+    float32 sigma=0.3 s4 step 1500/1500 loss 1.219 (121s)
+  float32 sigma=0.3 seed 4: train 1.149 val 2.481 (clean 2.429) python 6.782 gap 4.301 | 121s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+E11 verdict: 1500 steps on 10% of Shakespeare, 5 seeds. tiles: sigma* = 0.1 (clean read; 95% CI 0.1..0.1, per-seed [0.15, 0.1, 0.1, 0.15, 0.1]), 0.1 as deployed (CI 0.1..0.1); shift gap slope -3.48 nats per unit sigma (CI -3.84..-3.19), gap 4.520 -> 3.850, 5/5 seeds narrowing; dropout p* = 0.1 (clean, CI 0.1..0.1); beyond the dial sigma = 0.3: val 2.372 clean / 2.485 deployed || float32: sigma* = 0.2 (clean read; 95% CI 0.2..0.2, per-seed [0.2, 0.2, 0.2, 0.2, 0.2]), 0.2 as deployed (CI 0.2..0.2); shift gap slope +0.12 nats per unit sigma (CI -0.77..+1.03), gap 4.372 -> 4.359, 3/5 seeds narrowing; dropout p* = 0.1 (clean, CI 0.1..0.1); beyond the dial sigma = 0.3: val 2.414 clean / 2.465 deployed. Hypothesis 'optimal val loss at sigma > 0' on tiles: SUPPORTED (CI excludes 0: True); 'shift gap narrows with sigma': SUPPORTED (slope CI below 0: True).
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e11/results.json
+[e11] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e11_regularization.png

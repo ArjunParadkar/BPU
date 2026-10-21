@@ -1,0 +1,33 @@
+................................F....................................... [ 98%]
+.                                                                        [100%]
+=================================== FAILURES ===================================
+____________________ test_graph_grows_routes_toward_output _____________________
+
+    def test_graph_grows_routes_toward_output():
+        g, rng = _graph(fixed=False)
+        g.cfg.theta_e = 0.0
+        x = np.array([1.0, 0.0, 0.0]); target = np.array([1.0, 0.0])
+        for _ in range(300):
+            fwd = g.forward({0: x})
+            loss = float(np.sum((fwd["y"] - target) ** 2))
+            g.learn(fwd, loss, task=0, structure=True, target=target)
+        assert g.n_edges >= 1
+        # the first route created should end in the output module (only it influences the loss)
+        ks, ls = np.nonzero(g.R)
+>       assert 3 in set(ls.tolist())
+E       assert 3 in {0, 1, 2}
+E        +  where {0, 1, 2} = set([1, 2, 0, 0])
+E        +    where [1, 2, 0, 0] = <built-in method tolist of numpy.ndarray object at 0x7f3a583d4ed0>()
+E        +      where <built-in method tolist of numpy.ndarray object at 0x7f3a583d4ed0> = array([1, 2, 0, 0]).tolist
+
+tests/test_modules.py:67: AssertionError
+=============================== warnings summary ===============================
+tests/test_torchtile.py::test_float_write_mode_is_the_reference_arm
+  /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/tests/test_torchtile.py:119: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    assert abs(float((reads.std(0) / W.abs()).mean()) - 0.05) < 0.01
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_modules.py::test_graph_grows_routes_toward_output - assert ...
+1 failed, 72 passed, 1 warning in 243.98s (0:04:03)

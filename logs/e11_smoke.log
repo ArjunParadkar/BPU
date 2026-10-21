@@ -1,0 +1,22 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/.venv, got /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/.venv, got /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/../.venv
+vocab 102, train 100385 chars (10% of the split), val 111540, python 1115394
+resuming with 8 runs on disk
+  tiles sigma=0.1 seed 0: train 4.440 val 4.282 (clean 4.274) python 4.302 gap 0.020 | 20s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  float32 sigma=0.1 seed 0: train 3.826 val 3.421 (clean 3.416) python 3.945 gap 0.524 | 4s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  tiles dropout=0.1 seed 0: train 4.505 val 4.408 (clean 4.335) python 4.393 gap -0.015 | 13s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  float32 dropout=0.1 seed 0: train 4.032 val 3.712 (clean 3.644) python 3.917 gap 0.205 | 6s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  tiles dropout=0.3 seed 0: train 4.581 val 4.548 (clean 4.461) python 4.507 gap -0.041 | 8s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  float32 dropout=0.3 seed 0: train 4.311 val 4.049 (clean 3.825) python 4.092 gap 0.042 | 6s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  tiles dropout=0.5 seed 0: train 4.598 val 4.561 (clean 4.548) python 4.531 gap -0.030 | 10s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+  float32 dropout=0.5 seed 0: train 4.533 val 4.375 (clean 3.994) python 4.396 gap 0.021 | 5s
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json
+E11 verdict: SMOKE RUN. 40 steps on 10% of Shakespeare, 1 seeds. tiles: sigma* = 0 (clean read; 95% CI 0..0, per-seed [0.0]), 0 as deployed (CI 0..0); shift gap slope -0.02 nats per unit sigma (CI -0.02..-0.02), gap 0.013 -> 0.011, 1/1 seeds narrowing; dropout p* = 0 (clean, CI 0..0) || float32: sigma* = 0 (clean read; 95% CI 0..0, per-seed [0.0]), 0 as deployed (CI 0..0); shift gap slope -0.31 nats per unit sigma (CI -0.31..-0.31), gap 0.566 -> 0.533, 1/1 seeds narrowing; dropout p* = 0 (clean, CI 0..0). Hypothesis 'optimal val loss at sigma > 0' on tiles: NOT supported (CI excludes 0: False); 'shift gap narrows with sigma': SUPPORTED (slope CI below 0: True).
+[e11] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/_smoke_e11/results.json

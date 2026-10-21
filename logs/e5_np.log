@@ -1,0 +1,21 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/.venv, got /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/.venv, got /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/experiments/../.venv
+  16x16 seed 0: trained none betti={0: 85, 1: 0, 2: 1} | control none {0: 96, 1: 0, 2: 0} | programmed reference torus {0: 0, 1: 2, 2: 1} | persists 1.00
+  16x16 seed 1: trained none betti={0: 87, 1: 0, 2: 0} | control none {0: 97, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 2, 2: 8} | persists 1.00
+  16x16 seed 2: trained none betti={0: 91, 1: 0, 2: 0} | control none {0: 88, 1: 0, 2: 0} | programmed reference torus {0: 0, 1: 2, 2: 1} | persists 1.00
+  16x16 seed 3: trained none betti={0: 98, 1: 0, 2: 0} | control none {0: 92, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 7, 2: 8} | persists 1.00
+  16x16 seed 4: trained none betti={0: 97, 1: 0, 2: 0} | control none {0: 89, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 8, 2: 1} | persists 1.00
+=== E5 np rerun Tue Oct 20 08:48:39 AM CDT 2026
+  16x16 seed 0: trained none betti={0: 85, 1: 0, 2: 1} | control none {0: 96, 1: 0, 2: 0} | programmed reference torus {0: 0, 1: 2, 2: 1} | persists 1.00
+  16x16 seed 1: trained none betti={0: 87, 1: 0, 2: 0} | control none {0: 97, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 2, 2: 8} | persists 1.00
+  16x16 seed 2: trained none betti={0: 91, 1: 0, 2: 0} | control none {0: 88, 1: 0, 2: 0} | programmed reference torus {0: 0, 1: 2, 2: 1} | persists 1.00
+  16x16 seed 3: trained none betti={0: 98, 1: 0, 2: 0} | control none {0: 92, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 7, 2: 8} | persists 1.00
+  16x16 seed 4: trained none betti={0: 97, 1: 0, 2: 0} | control none {0: 89, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 8, 2: 1} | persists 1.00
+  32x32 seed 0: trained none betti={0: 99, 1: 0, 2: 0} | control none {0: 99, 1: 0, 2: 0} | programmed reference torus {0: 0, 1: 2, 2: 1} | persists 1.00
+  32x32 seed 1: trained none betti={0: 99, 1: 0, 2: 0} | control none {0: 99, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 50, 2: 24} | persists 1.00
+  32x32 seed 2: trained none betti={0: 99, 1: 0, 2: 3} | control none {0: 99, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 72, 2: 91} | persists 1.00
+  32x32 seed 3: trained none betti={0: 99, 1: 0, 2: 0} | control none {0: 99, 1: 0, 2: 0} | programmed reference torus {0: 0, 1: 2, 2: 1} | persists 1.00
+  32x32 seed 4: trained none betti={0: 99, 1: 0, 2: 0} | control none {0: 99, 1: 0, 2: 2} | programmed reference none {0: 0, 1: 11, 2: 1} | persists 1.00
+E5 verdict: 16x16: programmed DoG reference 2/5; 0/5 self-organised sheets certified (1,2,1); untrained control 0/5; 32x32: programmed DoG reference 2/5; 0/5 self-organised sheets certified (1,2,1); untrained control 0/5
+[e5] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e5_selforg_np/results.json
+[e5] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e5_grid_selforg.png

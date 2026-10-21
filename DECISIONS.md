@@ -859,6 +859,11 @@ shift gap = Python − val.  σ* = argmin of the seed-mean clean val loss with a
 seeds (the bootstrap distribution over the σ grid is reported, so a CI of 0..0 means every
 resample put the minimum at 0); the shift-gap slope vs σ with a bootstrap CI and the number of
 seeds whose own slope is negative.
+*Grid extended 2026-10-20:* the first sweep (σ ≤ 0.1) put σ* = 0.1 on the edge of the grid for
+every seed on both substrates (val loss 3.37 → 2.28 on tiles, 3.58 → 3.01 float32, still falling),
+i.e. the minimum was not bracketed, so the sweep was extended to the top of the dial (0.15, 0.2)
+plus one beyond-dial diagnostic point (0.3, excluded from the σ* and slope tests); the 80 runs
+on disk were kept and only the new arms were run (`bpu-e11b`).
 
 ### E12 exploration (`experiments/e12_exploration.py`)
 2-layer policy (8 → 32 → 4 bandit; 16 → 32 → 4 grid), hidden units `clip(u + 0.25, 0, 2)` (a
@@ -924,3 +929,119 @@ smoothing; σ_r ∈ {0 … 0.2} + beyond-dial {0.3, 0.5, 0.7, 1.0}; tiles vs flo
   the bandwidth.
 * E5 self-organisation with nearest-pulse writes, 5 seeds, 16×16 and 32×32 sheets
   (`results/e5_selforg_np`, `--procs 5`).
+
+### Outcomes (2026-10-19 evening)
+* **E14 sampling** (5 seeds): σ = 0 is deterministic (one pattern every time, KL 2.29 at α = 0.5).
+  At exact ambiguity the dial samples the posterior: KL 2.29 → 0.38 / 0.08 / 0.02 at σ = 0.005 /
+  0.01 / 0.02 and ≈ 0.02 from there to 1.0 on tiles (σ* 0.06, CI 0.03..0.2; float32 0.01 and
+  σ* 0.1), with no rise even at σ = 1.0 (no spurious third pattern: 8 patterns in 64 dimensions
+  are too far apart).  The asymmetric posteriors are NOT matched inside the dial: at α = 0.55
+  (posterior 0.78 / 0.22) the retrieval stays deterministic up to σ = 0.2 (KL 0.746 flat) and
+  needs σ ≈ 0.5–1.0 (KL 0.18 at 0.5, 0.015 at 1.0); α = 0.6 (0.93 / 0.07) likewise (KL 0.167
+  flat, 0.016 at 1.0).  Reading: the score margin of an asymmetric cue is (2α − 1) N = 6.4 at
+  α = 0.55 against a read-noise standard deviation of ≈ 4σ on the score, so flips need σ ≳ 1;
+  the dial's range only samples decisions that are already within ~20 % of a tie.  Hypothesis
+  "KL minimum at σ > 0" holds at α = 0.5 only; "one σ* for every α" fails.  Tiles and float32
+  agree to within the seed noise at every point (the substrate is not the limit).
+* **E12 exploration** (5 seeds, 10 000 pairs = 20 000 decisions): no hypothesis supported.
+  Bandit on tiles: fixed σ = 0.1 reaches the 0.7 criterion in 3/5 seeds (median 7 042 decisions,
+  final accuracy 0.61), σ = 0.04 in 3/5 late (0.60), σ ≤ 0.02 never (0.26 / 0.37); annealed
+  4/5 (9 408, 0.63); reward-gated 3/5 (13 544, 0.61) — gated vs the best fixed arm 2/5 seeds
+  faster, p = 1.  Float32 reference: σ = 0.1 4/5 (10 374), gated 2/5 (0.49).  Grid: at most 1/5
+  seeds per arm reach 1.5× optimal on either substrate (final 12–15 steps against 4.5), i.e.
+  the grid is not learned in the budget.  Speed exponent over σ ≤ 0.04: 0.07 (CI 0.00..0.17)
+  bandit / tiles, 0.03 float32, 0.16 grid — nowhere near σ².  Flip rates (the actual exploration
+  rate): 0.010 / 0.014 / 0.035 / 0.048 for σ 0.01 / 0.02 / 0.04 / 0.1 on tiles vs 0.006 / 0.012 /
+  0.020 / 0.036 on float32: the tiles explore more than the reference (d2d / c2c and pulse
+  quantisation add variability) and learn the bandit sooner.  Reading: with multiplicative
+  read noise ≤ 0.2 the exploration rate is a few per cent of decisions and grows only
+  linearly in σ, so the σ² law (which assumes the perturbation is the gradient probe) does not
+  apply — the probe here is the rare decision flip — and a reward-gated dial that can only move
+  between 0.01 and 0.1 has too little range to beat the fixed 0.1 arm.  The dial would need a
+  top of order 1 (E14 finds the same number) to act as a real exploration knob.
+* **E13 stochastic resonance** (10 seeds): the physics written before the run held.  Headline
+  (drive 0.8× threshold, τ_m 20 ms): no spike at any dial setting (0–0.2) on tiles or float32;
+  spikes appear at σ = 0.7 (0.04 Hz, SNR 17 dB) and 1.0 (0.46 Hz, 27.5 dB), and the SNR is still
+  rising at 1.0 — the whole resonance sits beyond the dial.  The diagnostic grid is monotone in
+  every cell within the dial (0/10 U-curves, 0 peaks in [0.02, 0.06]): the onset of firing moves
+  into the dial as the membrane gets faster or the drive closer to threshold (τ_m 5 ms: 7 dB at
+  σ = 0.2 for drive 0.8, 34 dB for 0.9; τ_m 2 ms: 32 / 44 / 48 dB at 0.2 for drives 0.8 / 0.9 /
+  0.95), and the only hint of a descending branch is the fastest, strongest cell (0.95 × θ,
+  2 ms: 50.2 dB at 0.5, 50.1 at 0.7, 50.2 at 1.0, saturating rather than falling; 0.9 × θ, 2 ms
+  peaks at 0.7).  Tiles and the float32 reference coincide (0.8 / 20 ms: 17.0 vs 16.5 dB at 0.7,
+  27.5 vs 27.6 at 1.0).  Reading: a per-read multiplicative noise of ≤ 20 % on a current that
+  stays ≥ 20 % below threshold, low-passed by a 20 ms membrane, is an order of magnitude too
+  small to cross; stochastic resonance of a LIF through a device needs membrane noise of order
+  the gap, i.e. σ_r ≈ 1 at this read rate, or a drive within a few per cent of threshold.  The
+  "noise band [0.02, 0.06]" is not anchored by this experiment; what the dial's range does do is
+  set the firing onset (the SNR ascending branch) when the neuron is already near threshold.
+* **E6 rerun, K grid 1..16** (10 seeds, 20 % flipped cues): scaffold readers hold 3 / 3 / 4 / 3 /
+  4 / 5 pairs (pinv loop) at σ 0 / 0.02 / 0.04 / 0.08 / 0.12 / 0.2, delta rule the same, direct
+  read 3–4; attention recalls every K up to the top of the grid (16) at every σ, so its capacity
+  is ≥ 16 here (the earlier grid, kept in `results/e6_k32`, placed it at 20–28).  The finer grid
+  changes nothing: K = 1 is exact everywhere, the scaffold ceiling is 3–5 and does not fall with
+  device noise up to 0.2.
+* **E3-final** (mismatch 0.2 / 0.3, cue 0.02 / 0.05, ω 0.5 / 0.1, 10 seeds): the pinned regime
+  exists at 20–30 % mismatch — 5/8 mismatched conditions have a σ-0 tracking error above 1.5×
+  the float32 reference (ω 0.1: 0.207 / 0.211 rad vs 0.068 at cue 0.05, 0.518 / 0.767 vs 0.153
+  at cue 0.02 for mismatch 0.2 / 0.3; ω 0.5, cue 0.05, mismatch 0.3: 0.537 vs 0.346); pinning
+  barrier ΔU 0.88 (mismatch 0.2) and 1.35 (0.3) against 0.001 mismatch-free.  In every pinned
+  condition the error is FLAT in dynamic noise to three decimals across 0–0.08 (e.g. 0.207,
+  0.207, …, 0.207), the interior minima are at the seed-noise level (4–6/10 seeds, p ≥ 0.75):
+  **0/5 U-shaped**.  So the earlier "no pinned regime" was a matter of mismatch level, and the
+  answer once pinning is there is that dynamic read / neuron noise up to 0.08 does not unpin a
+  bump held by a barrier of order 1: the noise optimum of the brief is a negative at every
+  mismatch tried, and the attractor's robustness (tiles within 10–30 % of float32 at 20 %
+  mismatch for the moderate cue) stays the positive result.
+* **E11 regularisation** (5 seeds, 110 runs, σ grid extended to the dial top + 0.3): the
+  hypothesis holds on tiles and the minimum is bracketed.  Tiles, clean-read val loss: 3.371 (σ 0)
+  → 3.005 / 2.635 / 2.420 / **2.277** (σ 0.1) / 2.294 / 2.364 (0.2) / 2.372 (0.3): **σ* = 0.1, CI
+  0.1..0.1, per-seed argmin {0.1 ×3, 0.15 ×2}**, a 32 % drop from σ = 0 and a shallow basin —
+  everything in 0.06–0.15 is within 6 % of the minimum, 0.2–0.3 within 4 %.  The float32 reference
+  with the same read noise on float weights falls more slowly (3.580 → 3.008 at 0.1 → 2.471 at 0.2
+  → 2.414 at 0.3): **σ* = 0.2 on the dial top** (CI 0.2..0.2), still improving beyond the dial, i.e.
+  the float32 minimum sits above 0.2.  The twin gap is therefore negative at every σ in the dial
+  (tiles −6 % at σ 0, −26 % at 0.06, −4 % at 0.2, −2 % at 0.3): the tiles carry variability of
+  their own even with the dial off (nearest-pulse quantisation, c2c on every read, 8-bit read-out),
+  which shifts the whole curve to the left by roughly 0.1 of σ — the substrate is already part
+  of the way to the optimum, and the dial finishes the job.  Train loss at σ = 0 is 0.58 (tiles) /
+  0.44 (float32) against val 3.4 / 3.6, so σ = 0 is the overfitting regime the protocol asked for;
+  at σ* train is 1.46 / 1.09.  Deployed (noise-on) val tracks clean val to within 2 % up to σ = 0.1
+  and 4.5 % at 0.2: a model trained at σ runs at σ.  **Shift gap** (Python − Shakespeare val, clean):
+  tiles 4.520 → 4.477 (0.1) → 4.150 (0.15) → **3.850 (0.2)**, slope −3.48 nats per unit σ, CI
+  −3.84..−3.19, **5/5 seeds narrowing** — supported, but the narrowing is all above σ*, where the
+  Python loss keeps falling (7.89 → 6.21) while val has turned up, so it is bought with in-
+  distribution loss; float32 gap flat (4.37 → 4.36, slope +0.12, CI −0.77..+1.03) — on the
+  reference the Python loss falls at the same rate as val.  **Dropout** (σ = 0): p* = 0.1 (CI
+  0.1..0.1) with val 2.43 on both substrates (≈ σ 0.06), p = 0.3 3.10, p = 0.5 4.96 (clean read;
+  deployed 2.32 / 2.46 / 2.58 — a net trained with dropout reads better WITH its dropout on, the
+  clean read is a different, over-scaled network); substrate-independent to 1–4 %.  Reading: a
+  per-read multiplicative noise of 10 % on every synapse is the best regulariser this model saw
+  at this data budget, and it lives inside the dial; synapse failure at 10 % matches noise at 6 %;
+  the two differ in deployment (noise-trained models read clean, dropout-trained models must
+  keep the dropout on).  The round-three "noise band" for training is 0.06–0.15 on tiles.
+* **E5 self-organisation, nearest-pulse writes** (5 seeds, 16×16 and 32×32, 12 000 development
+  steps, 800 sample points / 350 for H2, 8 nulls; the unit ran 11.5 h on the CPU pool): **0/5
+  self-organised sheets certify as a torus at either size**, 0/5 untrained controls, and the
+  programmed Burak–Fiete reference certifies **2/5 at 16×16 and 2/5 at 32×32** under the same
+  sampling (the failing reference seeds show 7–72 H1 bars and 8–91 H2 bars, i.e. the sampled
+  manifold is noisy, not a different shape).  The trained sheets all read β0 ≈ 85–99 with no H1:
+  the activity is fragmented into many isolated states rather than a sliding bump, the same
+  failure mode as the weekend and round-two self-organisation runs (`results/e5`,
+  `e5_selforg32`).  Reading: the write rule is not what stops the sheet from self-organising —
+  nearest-pulse writes change nothing against the level rule here — and at this sample size
+  the certifier's own pass rate on a programmed torus is 40 %, so "0/5 vs 2/5" is the honest
+  comparison; the programmed module remains the only grid torus the simulator has produced
+  (3/3 at 32×32 and 1/1 at 48×48 with the denser weekend protocol).  The self-organisation
+  claim stays a negative; it is not blocked by the substrate.
+* **E9 rerun, nearest-pulse default** (5 seeds, arms frozen / sgd_float32 / sgd / fa / dfa /
+  local): post-shift loss (Python segment, last 200 steps) float32 SGD 1.224; sgd on tiles
+  1.249 (+2.1 %, 18.1 writes/device = 0.0018 % of endurance); fa 2.404 (+96 %, 48 writes/device);
+  dfa 2.885 (+136 %, 64.7); layer-local 2.683 (+119 %, 28).  Criterion met by sgd (within 5 %
+  with < 1e4 writes/device), and the loss-vs-locality panel is monotone except that the local
+  rule beats DFA: each step from backprop towards a local rule costs roughly a doubling of the
+  post-shift loss at this budget, while the write cost stays four orders of magnitude inside
+  the endurance for every arm.  With the gate gone the round-two Pareto question is closed: the
+  ungated nearest-pulse writes are the default and the level-gated run is kept as history.
+* **E4, nearest-pulse, 20 seeds**: numbers in the rerun list above (13/20 certified, 4.06
+  writes/device); the round-two level rule is now the comparison arm, not the default.

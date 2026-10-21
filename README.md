@@ -36,6 +36,29 @@ pip install -e .                      # or run with PYTHONPATH=.
 pytest -q
 ```
 
+## Round three (2026-10-19/20): variability, used the way the brain uses it
+
+Four architecture changes (biological analogue in brackets, details in `DECISIONS.md`
+"Round three"): write rule default = **nearest_pulse** (16-bit accumulator flushed every
+step, no θ_flush gate; plasticity as a continuous process), **`tile.set_noise(σ_r)`** = the
+MODULATE primitive, dial range [0.005, 0.2] (neuromodulatory gain control of variability),
+**`tile.set_dropout(p)`** per-read synapse failure (probabilistic vesicle release), read-out
+default = **layer-accumulate 8-bit at FoM 10 fJ** (dendritic integration, one conversion per
+neuron).  E11–E14 ask whether the variability does work; every row has a float32 reference
+with the same noise injected on float weights.
+
+| Row | Result (5 seeds unless stated) | Status |
+|---|---|---|
+| E11 regularisation (nanoGPT 2.7M on 10 % of Shakespeare, σ_r ∈ {0, 0.02, 0.04, 0.06, 0.1} as the only noise; dropout {0.1, 0.3, 0.5}) | tiles: val 3.37 (σ 0) → **2.28 at σ* = 0.1** (CI 0.1..0.1, per-seed 0.1/0.15) → 2.36 at 0.2, 2.37 at 0.3 (beyond dial); float32 3.58 → 2.47 at 0.2 (σ* on the dial top, still falling: 2.41 at 0.3); tiles beat float32 by 4–26 % at every σ in the dial (substrate variability shifts the curve left); shift gap tiles 4.52 → 3.85, slope −3.5 (CI −3.8..−3.2, 5/5 seeds), float32 flat; dropout p* = 0.1 (val 2.43 both substrates), 0.3 / 0.5 hurt | **σ* > 0 with CI ✓** (minimum bracketed on tiles, on the dial top for float32); **shift gap narrows on tiles ✓**, but only above σ* and not on float32; training noise band 0.06–0.15 |
+| E12 exploration (node-perturbation RL, two renditions per context; bandit + grid; fixed / annealed / reward-gated σ) | bandit on tiles: fixed 0.1 reaches criterion 3/5 (median 7 042 decisions), annealed 4/5 (9 408), gated 3/5 (13 544); gated vs best fixed 2/5 seeds faster, p = 1; speed ∝ σ^0.07 (CI 0.00..0.17), not σ²; grid not learned in the budget by any arm (≤ 1/5); flip rate (the real exploration rate) 1–5 % of decisions, tiles explore more than float32 | **gated does not beat fixed; not σ²**; the dial's top (0.2) is an order of magnitude too low to be an exploration knob |
+| E13 stochastic resonance (LIF row, drive 0.8× threshold through a tile, σ_r 0–0.2; 10 seeds) | headline: **no spike at any dial setting** on tiles or float32; firing starts at σ ≈ 0.7 (SNR 17 dB) and still rises at 1.0 (27.5 dB); diagnostic grid drive × τ_m: 0/10 U-curves within the dial, onset moves into the dial only for τ_m ≤ 5 ms or drive ≥ 0.9 θ | **silent, as predicted before the run** (membrane low-passes read noise by √(dt/2τ_m) ≈ 0.16); the [0.02, 0.06] band is not anchored by SR |
+| E14 sampling (Hopfield attention, 8 patterns, cue = blend of two) | α = 0.5: σ = 0 deterministic (KL 2.29), the dial samples the posterior (KL 0.02 from σ = 0.02 on, σ* 0.06, CI 0.03..0.2; float32 the same); α = 0.55 / 0.6: deterministic throughout the dial (KL 0.75 / 0.17 flat), matched only at σ ≈ 0.5–1.0 | **σ = 0 deterministic ✓; KL minimum at σ > 0 at exact ambiguity only**; σ* depends on the cue margin |
+| E3-final (ring attractor, mismatch 0.2 / 0.3, cue 0.02 / 0.05, ω 0.5 / 0.1, 10 seeds) | pinned regime found: 5/8 mismatched conditions have σ-0 error > 1.5× float32 (barrier ΔU 0.88 / 1.35); in every pinned condition the error is flat in noise to three decimals, 0/5 U-shaped | **no noise optimum even where pinned**; attractor robustness is the result |
+| E6 (K grid 1..16, 10 seeds) | scaffold 3–5 pairs at every σ to 0.2, attention ≥ 16 (grid top), K = 1 exact | unchanged |
+| E9 (nearest-pulse default, 5 seeds; loss vs locality) | post-shift loss: float32 1.224; sgd 1.249 (+2.1 %, 18 writes/device); fa 2.404 (+96 %); dfa 2.885 (+136 %); local 2.683 (+119 %) | **met** (sgd within 5 % at 0.0018 % of endurance); every step away from backprop roughly doubles the loss |
+| E4 (nearest-pulse, 20 seeds) | **13/20 certified** (2/20 controls), 4.06 writes/device = 0.0004 % endurance, 208 writes/tile/s = 2.1 % bandwidth; vs θ = 1 level rule 3/10 at 0.52 writes/device | certifies 4× as often for 8× the writes, all inside the budgets |
+| E5 self-organisation (nearest-pulse, 5 seeds, 16×16 + 32×32) | 0/5 self-organised sheets certify at 16×16 and 0/5 at 32×32 (0/5 controls); programmed Burak–Fiete reference 2/5 at both sizes under the same sampling (800 points); trained sheets fragment into ~90 isolated states (β0 ≈ 99, no H1), the same failure as every earlier run | **not certified**; the write rule is not the blocker, and the certifier's own pass rate on a programmed torus is 40 % at this sample size |
+
 ## Round two (2026-10-19): endurance budget, θ_flush, FoM converters, 10-seed E7
 
 Budget redefined: **endurance** = total writes per device over the run against 1e6 cycles,

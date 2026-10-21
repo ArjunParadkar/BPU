@@ -1,0 +1,10 @@
+  E14 450 runs: 862.0 s
+  alpha0.5_tiles: KL 2.29 at 0 -> 0.018 at sigma* 0.06 (CI [0.03, 0.2]) -> 0.018 at 0.2 -> 0.02 at 1.0; deterministic at 0: True; beyond dial sigma* 0.5
+  alpha0.55_tiles: KL 0.75 at 0 -> 0.737 at sigma* 0.2 (CI [0.0, 0.2]) -> 0.737 at 0.2 -> 0.02 at 1.0; deterministic at 0: True; beyond dial sigma* 1.0
+  alpha0.6_tiles: KL 0.17 at 0 -> 0.167 at sigma* 0.0 (CI [0.0, 0.0]) -> 0.167 at 0.2 -> 0.02 at 1.0; deterministic at 0: True; beyond dial sigma* 1.0
+  alpha0.5_float32: KL 2.29 at 0 -> 0.009 at sigma* 0.1 (CI [0.06, 0.2]) -> 0.010 at 0.2 -> 0.01 at 1.0; deterministic at 0: True; beyond dial sigma* 1.0
+  alpha0.55_float32: KL 0.75 at 0 -> 0.737 at sigma* 0.2 (CI [0.0, 0.2]) -> 0.737 at 0.2 -> 0.01 at 1.0; deterministic at 0: True; beyond dial sigma* 1.0
+  alpha0.6_float32: KL 0.17 at 0 -> 0.167 at sigma* 0.0 (CI [0.0, 0.0]) -> 0.167 at 0.2 -> 0.01 at 1.0; deterministic at 0: True; beyond dial sigma* 1.0
+E14 verdict: 5 seeds, 400 trials per cue, beta 0.2: alpha 0.5: tiles KL 2.29 -> 0.018 at sigma* 0.06 (CI 0.03..0.2), float32 sigma* 0.1 (KL min 0.009); alpha 0.55: tiles KL 0.75 -> 0.737 at sigma* 0.2 (CI 0.0..0.2), float32 sigma* 0.2 (KL min 0.737); alpha 0.6: tiles KL 0.17 -> 0.167 at sigma* 0.0 (CI 0.0..0.0), float32 sigma* 0.0 (KL min 0.167). sigma = 0 deterministic: True; KL minimum at sigma > 0 with CI excluding 0 for every alpha: False; one sigma* serves every alpha (within 2x): False. Beyond the dial (0.3-1.0, diagnostic): alpha 0.5 sigma* 0.5, KL 0.016 -> 0.02 at 1.0; alpha 0.55 sigma* 1.0, KL 0.015 -> 0.02 at 1.0; alpha 0.6 sigma* 1.0, KL 0.016 -> 0.02 at 1.0.
+[e14] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e14/results.json
+[e14] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e14_sampling.png

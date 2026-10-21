@@ -1,0 +1,14 @@
+  E13 4500 runs: 4776.8 s
+  amp0.8_tau20ms_tiles: dial sigma* 0.0 (CI [0.0, 0.0]), SNR 0.0 -> 0.0 -> 0.0 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 0.00 Hz
+  amp0.8_tau20ms_float32: dial sigma* 0.0 (CI [0.0, 0.0]), SNR 0.0 -> 0.0 -> 0.0 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 0.00 Hz
+  amp0.8_tau5ms_tiles: dial sigma* 0.2 (CI [0.195, 0.2]), SNR -3.0 -> 7.0 -> 7.0 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 0.00 Hz
+  amp0.8_tau2ms_tiles: dial sigma* 0.2 (CI [0.195, 0.2]), SNR -3.0 -> 32.3 -> 32.3 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 1.34 Hz
+  amp0.9_tau20ms_tiles: dial sigma* 0.0 (CI [0.0, 0.0]), SNR 0.0 -> 0.0 -> 0.0 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 0.00 Hz
+  amp0.9_tau5ms_tiles: dial sigma* 0.2 (CI [0.195, 0.2]), SNR -3.0 -> 34.4 -> 34.4 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 1.54 Hz
+  amp0.9_tau2ms_tiles: dial sigma* 0.2 (CI [0.185, 0.2]), SNR -3.0 -> 44.0 -> 44.0 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 0.7 U-curve False; rate at sigma* 12.14 Hz
+  amp0.95_tau20ms_tiles: dial sigma* 0.195 (CI [0.195, 0.2]), SNR -3.0 -> -0.5 -> -1.3 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 0.00 Hz
+  amp0.95_tau5ms_tiles: dial sigma* 0.2 (CI [0.19, 0.2]), SNR -3.0 -> 41.2 -> 41.2 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 4.84 Hz
+  amp0.95_tau2ms_tiles: dial sigma* 0.2 (CI [0.195, 0.2]), SNR -3.0 -> 47.5 -> 47.5 dB, U-curve False, in band False; with the beyond-dial levels: sigma* 1.0 U-curve False; rate at sigma* 21.48 Hz
+E13 verdict: headline (drive 0.8 x threshold, tau_m 20 ms, 10 seeds): tiles sigma* = 0.0 (CI 0.0..0.0), SNR 0.0 dB at 0 -> 0.0 at sigma* -> 0.0 at 0.2; float32 reference sigma* = 0.0, SNR 0.0 -> 0.0 -> 0.0; no U-curve in the dial's range, peak NOT in [0.02, 0.06]. Diagnostic grid within the dial: U-curve in 0/10 cells (none); peak in band in 0 (none). With the beyond-dial levels (0.3-1.0, diagnostic): amp0.8_tau20ms_tiles: sigma* 1.0; amp0.8_tau20ms_float32: sigma* 1.0; amp0.8_tau5ms_tiles: sigma* 1.0; amp0.8_tau2ms_tiles: sigma* 1.0; amp0.9_tau20ms_tiles: sigma* 1.0; amp0.9_tau5ms_tiles: sigma* 1.0; amp0.9_tau2ms_tiles: sigma* 0.7; amp0.95_tau20ms_tiles: sigma* 1.0; amp0.95_tau5ms_tiles: sigma* 1.0; amp0.95_tau2ms_tiles: sigma* 1.0.
+[e13] wrote /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/results/e13/results.json
+[e13] figure /home/god/Desktop/Arenda_Projects/BrAInOS/bpusim/figures/e13_stochastic_resonance.png
