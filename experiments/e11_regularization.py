@@ -176,7 +176,14 @@ def main():
     ap.add_argument("--substrates", type=str, default="tiles,float32")
     ap.add_argument("--resummarize", action="store_true")
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--sigmas", type=str, default=None, help="comma list overriding SIGMAS (the tested grid; sigma* and the slope use it)")
+    ap.add_argument("--sigmas-beyond", type=str, default=None, help="comma list overriding SIGMAS_BEYOND (diagnostic only); '' for none")
     args = ap.parse_args()
+    global SIGMAS, SIGMAS_BEYOND
+    if args.sigmas is not None:
+        SIGMAS = [float(x) for x in args.sigmas.split(",")]
+    if args.sigmas_beyond is not None:
+        SIGMAS_BEYOND = [float(x) for x in args.sigmas_beyond.split(",") if x.strip()]
     torch.set_num_threads(args.threads)
     seeds = args.seeds
     if args.smoke:
