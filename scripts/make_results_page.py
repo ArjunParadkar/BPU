@@ -71,7 +71,8 @@ def main():
     ap.add_argument("--out", default=str(RES / "index.html"))
     args = ap.parse_args()
     names = ("e1", "e2", "e2_cifar", "e3", "e3_256", "e3_tracking", "e3_cue", "e3_final", "e4", "e4_capped", "e4_np", "e4_level_t1", "e4_level_t05", "e4_level_t025", "e4_level_capped", "e5", "e5_48", "e5_selforg32", "e5_selforg_np",
-             "e6", "e6_k32", "e7", "e7_ref", "e7_3seeds", "e7_ref_3seeds", "e8", "e8b", "e9", "e9_pareto", "e9_pulse", "e10", "e9_v1", "e10_v1", "e8b_v1", "e11", "e12", "e13", "e14")
+             "e6", "e6_k32", "e7", "e7_ref", "e7_3seeds", "e7_ref_3seeds", "e8", "e8b", "e9", "e9_pareto", "e9_pulse", "e10", "e9_v1", "e10_v1", "e8b_v1", "e11", "e12", "e13", "e14",
+             "e11_f32_bracket", "e11_full_tiles", "e11_full_f32", "e12_long", "e3_final50", "e5_ref20", "e5_selforg_np20", "e1_full")
     R = {k: load(k) for k in names}
     e9, e10, e8b, e3t, e3c, e6 = R["e9"], R["e10"], R["e8b"], R["e3_tracking"], R["e3_cue"], R["e6"]
     e3f, e9p, e4n, e5n, e11, e12, e13, e14 = R["e3_final"], R["e9_pareto"], R["e4_np"], R["e5_selforg_np"], R["e11"], R["e12"], R["e13"], R["e14"]
@@ -312,8 +313,45 @@ def main():
     other.append(("Grid module is a torus", "E5", e5["verdict"]["statement"] if e5 else "pending", chip("part", "programmed refs certify; self-org fails") if e5 else chip("pend", "pending")))
     other.append(("Local grow rule vs RigL", "E2", (e2["verdict"]["statement"] if e2 else "") + (" | CIFAR-10 3 %: " + e2c["verdict"]["statement"] if e2c else ""),
                   (chip("ok" if e2 and e2["verdict"].get("within_few_percent_of_rigl") else "nul", "MNIST") if e2 else "") + (" " + chip("nul", "CIFAR-10 refuted") if e2c and e2c["verdict"].get("clearly_worse_than_random") else "")))
-    other.append(("GPT-2 through noisy tiles", "E1", "queued for the GPU cluster (MONDAY.md); E8 is the laptop stand-in", chip("pend", "cluster")))
+    if R["e1_full"]:
+        other.append(("GPT-2 through noisy tiles", "E1", R["e1_full"]["verdict"]["statement"] if isinstance(R["e1_full"].get("verdict"), dict) else str(R["e1_full"].get("verdict", "")), chip("nul", "null (HPCC)")))
+    else:
+        other.append(("GPT-2 through noisy tiles", "E1", "queued for the GPU cluster (MONDAY.md); E8 is the laptop stand-in", chip("pend", "cluster")))
     otab = table_html(["Row", "Exp", "Measured", "Status"], [[esc(a), f"<span class='id'>{esc(b)}</span>", esc(c), d] for a, b, c, d in other])
+
+    # ------------------------------------------------------------------ HPCC (Pinnacle) runs, 2026-10-22/23
+    def e11_star(r, sub):
+        h = (r or {}).get("hypotheses", {}).get(sub, {})
+        if not h.get("complete"):
+            return None
+        a = h["sigma_star_val_clean"]; g = h["shift_gap_gap_clean"]
+        return (f"σ* = {a['star']:g} (CI {a['ci95'][0]:g}–{a['ci95'][1]:g}, per-seed {a['per_seed_argmin']}); shift-gap slope "
+                f"{g['slope_per_unit_sigma']:+.2f} (CI {g['ci95'][0]:+.2f}..{g['ci95'][1]:+.2f}, {g['seeds_negative']}/{r['seeds']} seeds narrowing)")
+    def vstate(r):
+        v = (r or {}).get("verdict", "")
+        return v["statement"] if isinstance(v, dict) else str(v)
+    hrows = []
+    if R["e11_full_tiles"]:
+        t = R["e11_full_tiles"]; ok = t["verdict"]["sigma_star_positive_with_ci"]
+        hrows.append(["E11 full data, tiles", f"{t['steps']} steps, 100 % of the text, {t['seeds']} seeds", esc(e11_star(t, "tiles") or "–"), chip("ok" if ok else "nul", "supported" if ok else "not supported")])
+    if R["e11_full_f32"]:
+        hrows.append(["E11 full data, float32", f"grid to {max(R['e11_full_f32']['sigmas']):g}, {R['e11_full_f32']['seeds']} seeds", esc(e11_star(R["e11_full_f32"], "float32") or "–"), chip("ok", "bracketed")])
+    if R["e11_f32_bracket"]:
+        hrows.append(["E11 small data, float32", f"grid to {max(R['e11_f32_bracket']['sigmas']):g}, {R['e11_f32_bracket']['seeds']} seeds", esc(e11_star(R["e11_f32_bracket"], "float32") or "–"), chip("ok", "bracketed")])
+    for key, lab, cls, txt in (("e3_final50", "E3-final, 50 seeds", "nul", "null"), ("e5_ref20", "E5 programmed reference, 20 seeds", "ok", "reference"),
+                               ("e5_selforg_np20", "E5 self-organisation 32×32, 20 seeds", "nul", "null"), ("e12_long", "E12, 50 000 trials", "part", "partial"),
+                               ("e1_full", "E1 GPT-2 124M", "nul", "null")):
+        if R[key]:
+            hrows.append([lab, "", esc(vstate(R[key])[:700]), chip(cls, txt)])
+    hpcc = ""
+    if hrows:
+        htab = table_html(["Run", "Budget", "Result", "Status"], [[esc(a), esc(b), c, d] for a, b, c, d in hrows])
+        figs = "".join(f'<figure><img src="figures/{f}.png" alt="{esc(f)}"><figcaption>figures/{f}.png</figcaption></figure>'
+                       for f in ("e11_full_tiles", "e11_full_f32", "e11_f32_bracket", "e12_long", "e3_final50", "e5_selforg_np20", "e1_full") if (FIG / f"{f}.png").exists())
+        hpcc = f'''<section id="hpcc"><div class="eyebrow">Arkansas HPCC (Pinnacle), 2026-10-22/23</div><h2>The MONDAY queue at cluster budgets</h2>
+<p>Ten jobs from MONDAY.md plus two bracket extensions, run on V100 GPUs and 32-core CPU nodes. The headline: the read-noise regulariser on tiles survives on the full training text (σ* = 0.04, against 0.1 on 10 % of the text), and in both regimes the float32 optimum sits about ten times higher (0.4 full, 1.0 small), so tiles reach the optimum with an order of magnitude less injected noise.</p>
+{htab}{figs}
+<p class="muted">Each row is read from results/&lt;run&gt;/results.json; the laptop runs above are kept unchanged as the record.</p></section>'''
 
     # ------------------------------------------------------------------ sections
     secs = []
@@ -452,6 +490,7 @@ footer{{padding-block:24px;font-family:var(--mono);font-size:12px;color:var(--fg
 <div class="meta">generated {time.strftime("%Y-%m-%d %H:%M")} · repo ~/Desktop/Arenda_Projects/BrAInOS/bpusim · DECISIONS.md has every choice · MONDAY.md has the HPCC queue</div></header>
 <section id="variability"><div class="eyebrow">Variability, used the way the brain uses it</div><h2>Four mechanisms, E11–E14: mechanism, brain analogue, hypothesis, result, status</h2>{vscore}
 <p class="muted">tiles carry the device model (nearest-pulse writes, d2d / c2c where stated, write-verify); the float32 reference runs the identical algorithm with the same read noise or dropout injected on float weights. The dial's range is 0.005–0.2; "beyond the dial" levels are diagnostics, not chip settings.</p></section>
+{hpcc}
 <section id="scoreboard"><div class="eyebrow">Substrate claims</div><h2>Six rows, reference first; budget = total writes per device against the 1e6 endurance</h2>{score}
 <p class="muted">tolerances are the ones written into each experiment's docstring and verdict block.</p></section>
 <section id="writes"><div class="eyebrow">Write budget</div><h2>Accumulate-and-flush: writes only on whole conductance levels</h2>{wbox}

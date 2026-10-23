@@ -36,6 +36,19 @@ pip install -e .                      # or run with PYTHONPATH=.
 pytest -q
 ```
 
+## HPCC runs (2026-10-22/23): the MONDAY queue on the Arkansas HPCC
+
+| Run | Result | Status |
+|---|---|---|
+| E11 full data, tiles (10 seeds) | σ* = 0.04 on 10/10 seeds, CI excludes 0; val 1.588 → 1.503; shift gap narrows on 10/10 | **supported** |
+| E11 float32 brackets | σ* = 1.0 (small data), 0.4 (full data): about 10x the tile optimum in both regimes | bracketed |
+| E3-final, 50 seeds | 0/8 conditions U-shaped (4 pinned, 0 of those U-shaped) | null (bound) |
+| E5 32×32, 20 seeds | self-organised 0/20; programmed reference 26/40 | null (sheet-limited) |
+| E12, 50 000 trials | bandit: annealed fastest on tiles; gated not better than fixed; grid task still unlearned | partial |
+| E1 GPT-2 124M | best perplexity at σ = 0 (23.38); noise only costs | null |
+
+Details and decisions: DECISIONS.md, "HPCC runs". Cluster layer: `scripts/hpcc/` (`submit.sh`, `build_env.sh`).
+
 ## Round three (2026-10-19/20): variability, used the way the brain uses it
 
 Four architecture changes (biological analogue in brackets, details in `DECISIONS.md`
@@ -49,7 +62,7 @@ with the same noise injected on float weights.
 
 | Row | Result (5 seeds unless stated) | Status |
 |---|---|---|
-| E11 regularisation (nanoGPT 2.7M on 10 % of Shakespeare, σ_r ∈ {0, 0.02, 0.04, 0.06, 0.1} as the only noise; dropout {0.1, 0.3, 0.5}) | tiles: val 3.37 (σ 0) → **2.28 at σ* = 0.1** (CI 0.1..0.1, per-seed 0.1/0.15) → 2.36 at 0.2, 2.37 at 0.3 (beyond dial); float32 3.58 → 2.47 at 0.2 (σ* on the dial top, still falling: 2.41 at 0.3); tiles beat float32 by 4–26 % at every σ in the dial (substrate variability shifts the curve left); shift gap tiles 4.52 → 3.85, slope −3.5 (CI −3.8..−3.2, 5/5 seeds), float32 flat; dropout p* = 0.1 (val 2.43 both substrates), 0.3 / 0.5 hurt | **σ* > 0 with CI ✓** (minimum bracketed on tiles, on the dial top for float32); **shift gap narrows on tiles ✓**, but only above σ* and not on float32; training noise band 0.06–0.15 |
+| E11 regularisation (nanoGPT 2.7M on 10 % of Shakespeare, σ_r ∈ {0, 0.02, 0.04, 0.06, 0.1} as the only noise; dropout {0.1, 0.3, 0.5}) | tiles: val 3.37 (σ 0) → **2.28 at σ* = 0.1** (CI 0.1..0.1, per-seed 0.1/0.15) → 2.36 at 0.2, 2.37 at 0.3 (beyond dial); float32 3.58 → 2.47 at 0.2 (σ* on the dial top, still falling: 2.41 at 0.3; HPCC bracket 2026-10-23: float32 σ* = 1.0, about 10x the tile optimum); tiles beat float32 by 4–26 % at every σ in the dial (substrate variability shifts the curve left); shift gap tiles 4.52 → 3.85, slope −3.5 (CI −3.8..−3.2, 5/5 seeds), float32 flat inside the dial (HPCC: narrows slowly above it, slope −0.16 to σ 3.0); dropout p* = 0.1 (val 2.43 both substrates), 0.3 / 0.5 hurt | **σ* > 0 with CI ✓** (minimum bracketed on tiles, on the dial top for float32); **shift gap narrows on tiles ✓**, but only above σ* and not on float32; training noise band 0.06–0.15 |
 | E12 exploration (node-perturbation RL, two renditions per context; bandit + grid; fixed / annealed / reward-gated σ) | bandit on tiles: fixed 0.1 reaches criterion 3/5 (median 7 042 decisions), annealed 4/5 (9 408), gated 3/5 (13 544); gated vs best fixed 2/5 seeds faster, p = 1; speed ∝ σ^0.07 (CI 0.00..0.17), not σ²; grid not learned in the budget by any arm (≤ 1/5); flip rate (the real exploration rate) 1–5 % of decisions, tiles explore more than float32 | **gated does not beat fixed; not σ²**; the dial's top (0.2) is an order of magnitude too low to be an exploration knob |
 | E13 stochastic resonance (LIF row, drive 0.8× threshold through a tile, σ_r 0–0.2; 10 seeds) | headline: **no spike at any dial setting** on tiles or float32; firing starts at σ ≈ 0.7 (SNR 17 dB) and still rises at 1.0 (27.5 dB); diagnostic grid drive × τ_m: 0/10 U-curves within the dial, onset moves into the dial only for τ_m ≤ 5 ms or drive ≥ 0.9 θ | **silent, as predicted before the run** (membrane low-passes read noise by √(dt/2τ_m) ≈ 0.16); the [0.02, 0.06] band is not anchored by SR |
 | E14 sampling (Hopfield attention, 8 patterns, cue = blend of two) | α = 0.5: σ = 0 deterministic (KL 2.29), the dial samples the posterior (KL 0.02 from σ = 0.02 on, σ* 0.06, CI 0.03..0.2; float32 the same); α = 0.55 / 0.6: deterministic throughout the dial (KL 0.75 / 0.17 flat), matched only at σ ≈ 0.5–1.0 | **σ = 0 deterministic ✓; KL minimum at σ > 0 at exact ambiguity only**; σ* depends on the cue margin |

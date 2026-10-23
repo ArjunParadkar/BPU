@@ -1,0 +1,107 @@
+== c1703 Fri 23 Oct 04:54:48 CDT 2026
+vocab 109, train 100385 chars (10% of the split), val 111540, python 1115394
+resuming with 50 runs on disk
+    float32 sigma=1.0 s0 step 500/1500 loss 2.363 (17s)
+    float32 sigma=1.0 s0 step 1000/1500 loss 1.764 (28s)
+    float32 sigma=1.0 s0 step 1500/1500 loss 1.531 (39s)
+  float32 sigma=1.0 seed 0: train 1.487 val 2.344 (clean 2.276) python 6.421 gap 4.077 | 92s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.4 s0 step 500/1500 loss 2.406 (11s)
+    float32 sigma=1.4 s0 step 1000/1500 loss 1.879 (22s)
+    float32 sigma=1.4 s0 step 1500/1500 loss 1.671 (33s)
+  float32 sigma=1.4 seed 0: train 1.632 val 2.384 (clean 2.316) python 6.507 gap 4.123 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=2.0 s0 step 500/1500 loss 2.467 (11s)
+    float32 sigma=2.0 s0 step 1000/1500 loss 2.015 (22s)
+    float32 sigma=2.0 s0 step 1500/1500 loss 1.845 (32s)
+  float32 sigma=2.0 seed 0: train 1.811 val 2.453 (clean 2.388) python 6.385 gap 3.932 | 32s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=3.0 s0 step 500/1500 loss 2.537 (11s)
+    float32 sigma=3.0 s0 step 1000/1500 loss 2.166 (23s)
+    float32 sigma=3.0 s0 step 1500/1500 loss 2.036 (34s)
+  float32 sigma=3.0 seed 0: train 2.010 val 2.543 (clean 2.491) python 6.332 gap 3.788 | 34s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.0 s1 step 500/1500 loss 2.368 (11s)
+    float32 sigma=1.0 s1 step 1000/1500 loss 1.776 (22s)
+    float32 sigma=1.0 s1 step 1500/1500 loss 1.549 (33s)
+  float32 sigma=1.0 seed 1: train 1.506 val 2.362 (clean 2.295) python 6.579 gap 4.218 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.4 s1 step 500/1500 loss 2.412 (11s)
+    float32 sigma=1.4 s1 step 1000/1500 loss 1.894 (22s)
+    float32 sigma=1.4 s1 step 1500/1500 loss 1.688 (33s)
+  float32 sigma=1.4 seed 1: train 1.650 val 2.384 (clean 2.323) python 6.506 gap 4.122 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=2.0 s1 step 500/1500 loss 2.472 (11s)
+    float32 sigma=2.0 s1 step 1000/1500 loss 2.030 (22s)
+    float32 sigma=2.0 s1 step 1500/1500 loss 1.865 (33s)
+  float32 sigma=2.0 seed 1: train 1.834 val 2.451 (clean 2.389) python 6.476 gap 4.025 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=3.0 s1 step 500/1500 loss 2.539 (11s)
+    float32 sigma=3.0 s1 step 1000/1500 loss 2.171 (23s)
+    float32 sigma=3.0 s1 step 1500/1500 loss 2.042 (34s)
+  float32 sigma=3.0 seed 1: train 2.019 val 2.541 (clean 2.491) python 6.247 gap 3.706 | 34s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.0 s2 step 500/1500 loss 2.360 (11s)
+    float32 sigma=1.0 s2 step 1000/1500 loss 1.766 (22s)
+    float32 sigma=1.0 s2 step 1500/1500 loss 1.541 (33s)
+  float32 sigma=1.0 seed 2: train 1.496 val 2.352 (clean 2.287) python 6.630 gap 4.277 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.4 s2 step 500/1500 loss 2.406 (11s)
+    float32 sigma=1.4 s2 step 1000/1500 loss 1.880 (23s)
+    float32 sigma=1.4 s2 step 1500/1500 loss 1.676 (33s)
+  float32 sigma=1.4 seed 2: train 1.636 val 2.387 (clean 2.321) python 6.551 gap 4.165 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=2.0 s2 step 500/1500 loss 2.471 (11s)
+    float32 sigma=2.0 s2 step 1000/1500 loss 2.021 (23s)
+    float32 sigma=2.0 s2 step 1500/1500 loss 1.851 (34s)
+  float32 sigma=2.0 seed 2: train 1.817 val 2.445 (clean 2.377) python 6.507 gap 4.062 | 34s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=3.0 s2 step 500/1500 loss 2.542 (12s)
+    float32 sigma=3.0 s2 step 1000/1500 loss 2.174 (23s)
+    float32 sigma=3.0 s2 step 1500/1500 loss 2.043 (33s)
+  float32 sigma=3.0 seed 2: train 2.017 val 2.531 (clean 2.478) python 6.435 gap 3.904 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.0 s3 step 500/1500 loss 2.361 (11s)
+    float32 sigma=1.0 s3 step 1000/1500 loss 1.758 (22s)
+    float32 sigma=1.0 s3 step 1500/1500 loss 1.524 (32s)
+  float32 sigma=1.0 seed 3: train 1.477 val 2.325 (clean 2.259) python 6.593 gap 4.268 | 32s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.4 s3 step 500/1500 loss 2.410 (11s)
+    float32 sigma=1.4 s3 step 1000/1500 loss 1.877 (22s)
+    float32 sigma=1.4 s3 step 1500/1500 loss 1.666 (33s)
+  float32 sigma=1.4 seed 3: train 1.624 val 2.369 (clean 2.298) python 6.496 gap 4.127 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=2.0 s3 step 500/1500 loss 2.470 (11s)
+    float32 sigma=2.0 s3 step 1000/1500 loss 2.017 (22s)
+    float32 sigma=2.0 s3 step 1500/1500 loss 1.842 (33s)
+  float32 sigma=2.0 seed 3: train 1.805 val 2.443 (clean 2.373) python 6.464 gap 4.021 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=3.0 s3 step 500/1500 loss 2.546 (11s)
+    float32 sigma=3.0 s3 step 1000/1500 loss 2.179 (22s)
+    float32 sigma=3.0 s3 step 1500/1500 loss 2.046 (33s)
+  float32 sigma=3.0 seed 3: train 2.019 val 2.549 (clean 2.498) python 6.556 gap 4.007 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.0 s4 step 500/1500 loss 2.366 (11s)
+    float32 sigma=1.0 s4 step 1000/1500 loss 1.765 (23s)
+    float32 sigma=1.0 s4 step 1500/1500 loss 1.530 (34s)
+  float32 sigma=1.0 seed 4: train 1.487 val 2.376 (clean 2.311) python 6.705 gap 4.329 | 34s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=1.4 s4 step 500/1500 loss 2.411 (11s)
+    float32 sigma=1.4 s4 step 1000/1500 loss 1.879 (23s)
+    float32 sigma=1.4 s4 step 1500/1500 loss 1.667 (33s)
+  float32 sigma=1.4 seed 4: train 1.629 val 2.380 (clean 2.317) python 6.622 gap 4.241 | 33s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=2.0 s4 step 500/1500 loss 2.470 (12s)
+    float32 sigma=2.0 s4 step 1000/1500 loss 2.020 (23s)
+    float32 sigma=2.0 s4 step 1500/1500 loss 1.845 (34s)
+  float32 sigma=2.0 seed 4: train 1.812 val 2.468 (clean 2.405) python 6.492 gap 4.024 | 34s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+    float32 sigma=3.0 s4 step 500/1500 loss 2.539 (11s)
+    float32 sigma=3.0 s4 step 1000/1500 loss 2.174 (23s)
+    float32 sigma=3.0 s4 step 1500/1500 loss 2.038 (34s)
+  float32 sigma=3.0 seed 4: train 2.017 val 2.557 (clean 2.507) python 6.313 gap 3.756 | 34s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+E11 verdict: 1500 steps on 10% of Shakespeare, 5 seeds. tiles: incomplete || float32: sigma* = 1 (clean read; 95% CI 1..1, per-seed [1.0, 0.7, 1.0, 1.0, 1.0]), 1 as deployed (CI 1..1); shift gap slope -0.16 nats per unit sigma (CI -0.19..-0.13), gap 4.303 -> 3.915, 5/5 seeds narrowing; dropout p* = 0.1 (clean, CI 0.1..0.1). Hypothesis 'optimal val loss at sigma > 0' on tiles: NOT supported (CI excludes 0: False); 'shift gap narrows with sigma': NOT supported (slope CI below 0: False).
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/e11_f32_bracket/results.json
+[e11] figure /scrfs/storage/paradkar/home/bpusim/figures/e11_regularization.png
+== done rc=0 Fri 23 Oct 05:08:45 CDT 2026

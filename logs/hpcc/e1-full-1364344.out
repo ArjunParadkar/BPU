@@ -1,0 +1,73 @@
+== c1703 Fri 23 Oct 04:29:04 CDT 2026
+Generating test split:   0%|          | 0/4358 [00:00<?, ? examples/s]Generating test split:  23%|██▎       | 1000/4358 [00:01<00:04, 831.29 examples/s]Generating test split: 100%|██████████| 4358/4358 [00:01<00:00, 3530.05 examples/s]
+Generating train split:   0%|          | 0/36718 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 36718/36718 [00:00<00:00, 468618.92 examples/s]
+Generating validation split:   0%|          | 0/3760 [00:00<?, ? examples/s]Generating validation split: 100%|██████████| 3760/3760 [00:00<00:00, 283730.33 examples/s]
+Token indices sequence length is longer than the specified maximum sequence length for this model (2415650 > 1024). Running this sequence through the model will result in indexing errors
+`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+      step 50/400 loss 3.563
+      step 100/400 loss 3.422
+      step 150/400 loss 3.363
+      step 200/400 loss 3.318
+      step 250/400 loss 3.137
+      step 300/400 loss 3.304
+      step 350/400 loss 3.027
+      step 400/400 loss 3.142
+  sigma=0.0: pretrained@noise 35.69  finetuned@noise 23.38  finetuned@clean 23.38  (168s)
+      step 50/400 loss 3.612
+      step 100/400 loss 3.458
+      step 150/400 loss 3.401
+      step 200/400 loss 3.360
+      step 250/400 loss 3.173
+      step 300/400 loss 3.326
+      step 350/400 loss 3.015
+      step 400/400 loss 3.159
+  sigma=0.01: pretrained@noise 40.93  finetuned@noise 23.46  finetuned@clean 23.34  (167s)
+      step 50/400 loss 3.639
+      step 100/400 loss 3.499
+      step 150/400 loss 3.429
+      step 200/400 loss 3.337
+      step 250/400 loss 3.172
+      step 300/400 loss 3.348
+      step 350/400 loss 3.022
+      step 400/400 loss 3.171
+  sigma=0.02: pretrained@noise 59.89  finetuned@noise 23.73  finetuned@clean 23.47  (167s)
+      step 50/400 loss 3.744
+      step 100/400 loss 3.562
+      step 150/400 loss 3.479
+      step 200/400 loss 3.398
+      step 250/400 loss 3.210
+      step 300/400 loss 3.390
+      step 350/400 loss 3.093
+      step 400/400 loss 3.213
+  sigma=0.04: pretrained@noise 246.25  finetuned@noise 24.42  finetuned@clean 23.72  (168s)
+      step 50/400 loss 3.852
+      step 100/400 loss 3.646
+      step 150/400 loss 3.543
+      step 200/400 loss 3.448
+      step 250/400 loss 3.268
+      step 300/400 loss 3.437
+      step 350/400 loss 3.133
+      step 400/400 loss 3.248
+  sigma=0.06: pretrained@noise 2190.81  finetuned@noise 25.32  finetuned@clean 24.02  (168s)
+      step 50/400 loss 4.045
+      step 100/400 loss 3.739
+      step 150/400 loss 3.654
+      step 200/400 loss 3.521
+      step 250/400 loss 3.336
+      step 300/400 loss 3.516
+      step 350/400 loss 3.185
+      step 400/400 loss 3.303
+  sigma=0.08: pretrained@noise 35834.21  finetuned@noise 26.32  finetuned@clean 24.40  (168s)
+      step 50/400 loss 4.350
+      step 100/400 loss 3.998
+      step 150/400 loss 3.821
+      step 200/400 loss 3.725
+      step 250/400 loss 3.488
+      step 300/400 loss 3.666
+      step 350/400 loss 3.313
+      step 400/400 loss 3.454
+  sigma=0.12: pretrained@noise 24021897.39  finetuned@noise 29.63  finetuned@clean 25.25  (168s)
+E1 verdict: lowest fine-tuned perplexity at sigma=0.0 (23.38); pretrained-at-noise rises from 35.69 to 24021897.39
+[e1] wrote /scrfs/storage/paradkar/home/bpusim/results/e1_full/results.json
+[e1] figure /scrfs/storage/paradkar/home/bpusim/figures/e1_gpt2_noise.png
+== done rc=0 Fri 23 Oct 04:54:36 CDT 2026

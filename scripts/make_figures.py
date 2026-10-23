@@ -20,7 +20,12 @@ MODULES = {"e1": ("e1_gpt2_noise", "e1_gpt2_noise"), "e2": ("e2_grow_vs_rigl", "
            # round three (2026-10-19): variability programme + nearest-pulse reruns
            "e9_pareto": ("e9_trainability", "e9_pareto"), "e4_np": ("e4_ring_selforg", "e4_np"), "e5_selforg_np": ("e5_grid_selforg", "e5_selforg_np"),
            "e6_k32": ("e6_memory", "e6_k32"), "e3_final": ("e3_tracking", "e3_final"), "e11": ("e11_regularization", "e11_regularization"),
-           "e12": ("e12_exploration", "e12_exploration"), "e13": ("e13_stochastic_resonance", "e13_stochastic_resonance"), "e14": ("e14_sampling", "e14_sampling")}
+           "e12": ("e12_exploration", "e12_exploration"), "e13": ("e13_stochastic_resonance", "e13_stochastic_resonance"), "e14": ("e14_sampling", "e14_sampling"),
+           # HPCC (Pinnacle) runs, 2026-10-22/23: the MONDAY queue and its bracket extensions
+           "e11_f32_bracket": ("e11_regularization", "e11_f32_bracket"), "e11_full_tiles": ("e11_regularization", "e11_full_tiles"),
+           "e11_full_f32": ("e11_regularization", "e11_full_f32"), "e12_long": ("e12_exploration", "e12_long"),
+           "e3_final50": ("e3_tracking", "e3_final50"), "e5_ref20": ("e5_grid_selforg", "e5_ref20"),
+           "e5_selforg_np20": ("e5_grid_selforg", "e5_selforg_np20"), "e1_full": ("e1_gpt2_noise", "e1_full")}
 
 if __name__ == "__main__":
     wanted = sys.argv[1:] or list(MODULES)

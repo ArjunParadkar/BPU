@@ -1003,7 +1003,8 @@ smoothing; σ_r ∈ {0 … 0.2} + beyond-dial {0.3, 0.5, 0.7, 1.0}; tiles vs flo
   the float32 minimum sits above 0.2.  The twin gap is therefore negative at every σ in the dial
   (tiles −6 % at σ 0, −26 % at 0.06, −4 % at 0.2, −2 % at 0.3): the tiles carry variability of
   their own even with the dial off (nearest-pulse quantisation, c2c on every read, 8-bit read-out),
-  which shifts the whole curve to the left by roughly 0.1 of σ — the substrate is already part
+  which shifts the whole curve to the left by roughly 0.1 of σ [HPCC 2026-10-23: the float32 bracket puts its
+  optimum at σ* = 1.0, so the shift is about 0.9 of σ, a factor of ~10; see "HPCC runs"] — the substrate is already part
   of the way to the optimum, and the dial finishes the job.  Train loss at σ = 0 is 0.58 (tiles) /
   0.44 (float32) against val 3.4 / 3.6, so σ = 0 is the overfitting regime the protocol asked for;
   at σ* train is 1.46 / 1.09.  Deployed (noise-on) val tracks clean val to within 2 % up to σ = 0.1
@@ -1045,3 +1046,47 @@ smoothing; σ_r ∈ {0 … 0.2} + beyond-dial {0.3, 0.5, 0.7, 1.0}; tiles vs flo
   ungated nearest-pulse writes are the default and the level-gated run is kept as history.
 * **E4, nearest-pulse, 20 seeds**: numbers in the rerun list above (13/20 certified, 4.06
   writes/device); the round-two level rule is now the comparison arm, not the default.
+
+## HPCC runs (2026-10-22/23, Arkansas HPCC "Pinnacle")
+
+The MONDAY.md queue ran on Pinnacle (`scripts/hpcc/`, submit with `bash scripts/hpcc/submit.sh queue`): CentOS 7
+compute nodes, so the env is conda-forge at glibc 2.17 with torch 2.5.1+cu124, transformers < 5 and datasets < 4
+(`scripts/hpcc/build_env.sh`). GPU jobs ran on V100 32 GB. Every run is in its own results directory; the laptop runs
+are untouched. Jobs ran 3–10x faster than the laptop-based estimates. Every log was read (no tracebacks).
+
+Decisions taken while running:
+* The E11 full-data run was split by substrate (`results/e11_full_tiles`, `results/e11_full_f32`) so the two halves
+  could run on two GPUs. They are kept as two directories, each with its own summary, not merged.
+* Both float32 grids put σ* on their top edge (0.7 on the small-data bracket, 0.2 on full data), so each was extended
+  upward in the same results directory (finished arms are skipped): small data to 3.0 (`--sigmas
+  0,0.1,0.2,0.3,0.4,0.5,0.7,1.0,1.4,2.0,3.0`), full data to 1.4. Extending a grid until the optimum is interior is not a
+  threshold change: σ* is defined as the argmin over the grid, and an edge argmin is only a bound.
+* E8 has no `--device` and runs on CPU only; MONDAY.md had listed it as a GPU job (corrected).
+
+### Outcomes
+* **E11, full data, tiles (`results/e11_full_tiles`, 5000 steps, 100 % of the text, 10 seeds): SUPPORTED.** σ* = 0.04
+  on 10/10 seeds (bootstrap CI 0.04..0.04, excludes 0); val loss (clean read) 1.588 at σ = 0 → 1.503 at σ = 0.04.
+  The shift gap narrows on 10/10 seeds, slope −12.52 nats per unit σ (CI −12.76..−12.31). The regulariser survives
+  outside the small-data regime, with a smaller optimum than on 10 % of the text (0.04 vs 0.1), as expected when the
+  model overfits less. Dropout p* = 0.1 (CI 0..0.1).
+* **E11, float32 brackets.** Small data: σ* = 1.0 (CI 1..1; per-seed [1.0, 0.7, 1.0, 1.0, 1.0]); full data: σ* = 0.4
+  (CI 0.3..0.5). In both regimes the float32 optimum sits about 10x above the tile optimum (1.0 vs 0.1; 0.4 vs 0.04).
+  The round-three wording "tiles reach the optimum at half the injected noise" was a lower bound and is replaced by
+  "about an order of magnitude less injected noise". Mechanism (not tested here): the tile path already carries
+  quantisation and write noise, so less injected read noise is needed to reach the same effective regularisation.
+* **E3-final, 50 seeds (`results/e3_final50`): null, now a bound.** 0/8 mismatched conditions show a significant U in
+  tracking error vs dynamic noise; 4/8 conditions are pinned (σ = 0 error > 1.5x the float32 reference) and 0 of those
+  are U-shaped.
+* **E5, 20 seeds at 32×32 (`results/e5_ref20`, `results/e5_selforg_np20`): null; the sheet is the limit.** The
+  programmed DoG reference certifies 15/20 and 11/20 in two independent draws (26/40 = 65 %); self-organised sheets
+  0/20; untrained control 0/20. MONDAY's rule ("if the reference stays near 40 % the certifier is the limit") is not met.
+* **E12, 50 000 trials, 10 seeds (`results/e12_long`): partial.** Bandit on tiles: annealed reaches criterion fastest
+  (median 6 427 trials, 10/10 seeds) against fixed 0.1 (16 217, 7/10) and gated (12 440, 9/10); gated vs fixed 0.1:
+  5/10 seeds faster, p = 1, so the gated schedule is not supported. Speed ∝ σ^1.08 (CI 0.79..1.41) on tiles, σ^0.71
+  (CI 0.44..1.02) on float32, where annealed (13 360) is no faster than fixed 0.1 (13 341). The grid task is still not
+  learned by any arm at 5x the budget (≤ 10 % of seeds reach criterion).
+* **E1, GPT-2 124M on WikiText-2, 1 seed (`results/e1_full`): null.** Fine-tuned perplexity is best with no read noise
+  (23.38 at σ = 0; 24.42 at 0.04; 29.63 at 0.12); pretrained-at-noise collapses beyond σ = 0.06 (2 191 at 0.06).
+  The expected accelerator-parity null: noise only costs on a pretrained model.
+* Queued on idle nodes: E9 with 2000-step segments (GPU, `results/e9_seg2000`) and E8 at full size (CPU,
+  `results/e8_full`).

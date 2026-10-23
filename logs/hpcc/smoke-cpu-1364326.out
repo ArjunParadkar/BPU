@@ -1,0 +1,28 @@
+== c1407 Thu 22 Oct 23:41:14 CDT 2026
+........................................................................ [100%]
+72 passed, 1 deselected in 342.13s (0:05:42)
+  E12 24 runs: 7.7 s
+E12 verdict: SMOKE RUN. trials to criterion (median over 1 seeds, budget 600): bandit/tiles: fixed0.01 1200 (0% reached, final 0.35, flips 0.008), fixed0.02 1200 (0% reached, final 0.17, flips 0.017), fixed0.04 1200 (0% reached, final 0.26, flips 0.023), fixed0.1 1200 (0% reached, final 0.49, flips 0.082), annealed 1200 (0% reached, final 0.27, flips 0.030), gated 1200 (0% reached, final 0.30, flips 0.022); gated vs fixed0.01: 1200 vs 1200, 0/1 seeds faster, p=1; speed ∝ σ^0.00 (CI 0.00..0.00) || bandit/float32: fixed0.01 1200 (0% reached, final 0.10, flips 0.005), fixed0.02 1200 (0% reached, final 0.19, flips 0.015), fixed0.04 1200 (0% reached, final 0.26, flips 0.048), fixed0.1 1200 (0% reached, final 0.40, flips 0.009), annealed 1200 (0% reached, final 0.27, flips 0.009), gated 1200 (0% reached, final 0.18, flips 0.027); gated vs fixed0.01: 1200 vs 1200, 0/1 seeds faster, p=1; speed ∝ σ^0.00 (CI 0.00..0.00) || grid/tiles: fixed0.01 1200 (0% reached, final 16.00, flips 0.000), fixed0.02 1200 (0% reached, final 16.00, flips 0.018), fixed0.04 1200 (0% reached, final 13.16, flips 0.030), fixed0.1 1200 (0% reached, final 11.00, flips 0.060), annealed 1200 (0% reached, final 13.28, flips 0.007), gated 1200 (0% reached, final 16.00, flips 0.016); gated vs fixed0.01: 1200 vs 1200, 0/1 seeds faster, p=1; speed ∝ σ^0.00 (CI 0.00..0.00) || grid/float32: fixed0.01 1200 (0% reached, final 16.00, flips 0.013), fixed0.02 1200 (0% reached, final 16.00, flips 0.003), fixed0.04 1200 (0% reached, final 16.00, flips 0.000), fixed0.1 1200 (0% reached, final 11.92, flips 0.000), annealed 1200 (0% reached, final 16.00, flips 0.109), gated 1200 (0% reached, final 13.16, flips 0.000); gated vs fixed0.01: 1200 vs 1200, 0/1 seeds faster, p=1; speed ∝ σ^0.00 (CI 0.00..0.00)
+[e12] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e12/results.json
+[e12] figure /scrfs/storage/paradkar/home/bpusim/figures/e12_exploration.png
+  mismatch 0.2: Delta U = 0.422
+  mismatch 0.0: Delta U = 0.00102
+  pinning landscapes: 4.5 s
+    amp0.05_omega0.5_float32 (8 x 2): 1.3 s
+    err: 0.0:0.310 0.001:0.310 0.002:0.309 0.005:0.310 0.01:0.310 0.02:0.308 0.04:0.311 0.08:0.319 | NOT U-shaped: interior minimum at sigma=0.02 not significant (2/2 seeds, p=0.5)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e3/results.json
+    amp0.05_omega0.5_bpu_mismatch0.2 (8 x 2): 26.7 s
+    err: 0.0:0.266 0.001:0.266 0.002:0.266 0.005:0.267 0.01:0.265 0.02:0.264 0.04:0.273 0.08:0.251 | NOT U-shaped: interior minimum at sigma=0.08 not significant (2/2 seeds, p=0.5)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e3/results.json
+    amp0.05_omega0.5_bpu_mismatch0.0 (8 x 2): 27.0 s
+    err: 0.0:0.305 0.001:0.305 0.002:0.305 0.005:0.305 0.01:0.305 0.02:0.304 0.04:0.312 0.08:0.297 | NOT U-shaped: interior minimum at sigma=0.08 not significant (2/2 seeds, p=0.5)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e3/results.json
+E3 verdict: 0/1 mismatched BPU conditions (cue amp x omega x sigma_d2d) show a significant U in tracking error vs dynamic noise; pinned regime (sigma = 0 error > 1.5x the float32 reference): 0/1 conditions, of which 0 U-shaped; sigma = 0 error per condition: amp0.05_omega0.5_bpu_mismatch0.2: 0.266 vs ref 0.310
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e3/results.json
+[e3_tracking] figure /scrfs/storage/paradkar/home/bpusim/figures/e3.png
+  5x6 seed 0: 21.7 s
+  5x6 seed 0: trained none betti={0: 0, 1: 0, 2: 0} | control none {0: 0, 1: 0, 2: 0} | programmed reference none {0: 0, 1: 4, 2: 1} | persists 1.00
+E5 verdict: 5x6: programmed DoG reference 0/1; 0/1 self-organised sheets certified (1,2,1); untrained control 0/1
+[e5] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e5/results.json
+[e5] figure /scrfs/storage/paradkar/home/bpusim/figures/e5_grid_selforg.png
+== done rc=0 Thu 22 Oct 23:51:24 CDT 2026

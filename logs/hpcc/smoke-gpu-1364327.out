@@ -1,0 +1,72 @@
+== c1615 Thu 22 Oct 23:41:12 CDT 2026
+name, memory.total [MiB]
+Tesla V100-PCIE-32GB, 32768 MiB
+2.5.1+cu124 True Tesla V100-PCIE-32GB
+vocab 109, train 100385 chars (10% of the split), val 111540, python 1115394
+  tiles sigma=0.0 seed 0: train 4.488 val 4.337 (clean 4.337) python 4.330 gap -0.008 | 96s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.0 seed 0: train 3.814 val 3.419 (clean 3.419) python 3.995 gap 0.576 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.02 seed 0: train 4.489 val 4.338 (clean 4.338) python 4.331 gap -0.007 | 4s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.02 seed 0: train 3.815 val 3.420 (clean 3.420) python 3.990 gap 0.570 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.04 seed 0: train 4.490 val 4.341 (clean 4.339) python 4.334 gap -0.007 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.04 seed 0: train 3.820 val 3.424 (clean 3.425) python 3.990 gap 0.566 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.06 seed 0: train 4.493 val 4.345 (clean 4.342) python 4.338 gap -0.008 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.06 seed 0: train 3.827 val 3.433 (clean 3.434) python 3.995 gap 0.561 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.1 seed 0: train 4.500 val 4.358 (clean 4.348) python 4.350 gap -0.008 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.1 seed 0: train 3.847 val 3.461 (clean 3.460) python 4.007 gap 0.546 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.15 seed 0: train 4.513 val 4.377 (clean 4.358) python 4.370 gap -0.007 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.15 seed 0: train 3.877 val 3.503 (clean 3.498) python 4.030 gap 0.527 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.2 seed 0: train 4.529 val 4.400 (clean 4.369) python 4.395 gap -0.005 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.2 seed 0: train 3.909 val 3.556 (clean 3.548) python 4.040 gap 0.484 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles sigma=0.3 seed 0: train 4.529 val 4.401 (clean 4.368) python 4.397 gap -0.004 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 sigma=0.3 seed 0: train 3.910 val 3.560 (clean 3.551) python 4.038 gap 0.479 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles dropout=0.1 seed 0: train 4.578 val 4.457 (clean 4.401) python 4.481 gap 0.024 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 dropout=0.1 seed 0: train 4.054 val 3.779 (clean 3.682) python 3.934 gap 0.155 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles dropout=0.3 seed 0: train 4.646 val 4.591 (clean 4.505) python 4.607 gap 0.016 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 dropout=0.3 seed 0: train 4.345 val 4.078 (clean 3.840) python 4.137 gap 0.059 | 1s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  tiles dropout=0.5 seed 0: train 4.671 val 4.655 (clean 4.591) python 4.623 gap -0.033 | 3s
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+  float32 dropout=0.5 seed 0: train 4.573 val 4.395 (clean 4.011) python 4.470 gap 0.075 | 1s
+Matplotlib is building the font cache; this may take a moment.
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+E11 verdict: SMOKE RUN. 40 steps on 10% of Shakespeare, 1 seeds. tiles: sigma* = 0 (clean read; 95% CI 0..0, per-seed [0.0]), 0 as deployed (CI 0..0); shift gap slope -0.02 nats per unit sigma (CI -0.02..-0.02), gap -0.008 -> -0.012, 1/1 seeds narrowing; dropout p* = 0 (clean, CI 0..0); beyond the dial sigma = 0.3: val 4.368 clean / 4.401 deployed || float32: sigma* = 0 (clean read; 95% CI 0..0, per-seed [0.0]), 0 as deployed (CI 0..0); shift gap slope -0.39 nats per unit sigma (CI -0.39..-0.39), gap 0.576 -> 0.493, 1/1 seeds narrowing; dropout p* = 0 (clean, CI 0..0); beyond the dial sigma = 0.3: val 3.551 clean / 3.560 deployed. Hypothesis 'optimal val loss at sigma > 0' on tiles: NOT supported (CI excludes 0: False); 'shift gap narrows with sigma': SUPPORTED (slope CI below 0: True).
+[e11] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e11/results.json
+[e11] figure /scrfs/storage/paradkar/home/bpusim/figures/e11_regularization.png
+`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+      step 20/20 loss 6.245
+  sigma=0.0: pretrained@noise 518.94  finetuned@noise 514.03  finetuned@clean 514.03  (2s)
+      step 20/20 loss 6.239
+  sigma=0.01: pretrained@noise 518.90  finetuned@noise 513.88  finetuned@clean 513.93  (1s)
+      step 20/20 loss 6.238
+  sigma=0.02: pretrained@noise 518.85  finetuned@noise 513.75  finetuned@clean 513.91  (0s)
+      step 20/20 loss 6.239
+  sigma=0.04: pretrained@noise 518.81  finetuned@noise 513.54  finetuned@clean 513.99  (0s)
+      step 20/20 loss 6.237
+  sigma=0.06: pretrained@noise 518.57  finetuned@noise 513.17  finetuned@clean 513.93  (0s)
+      step 20/20 loss 6.233
+  sigma=0.08: pretrained@noise 518.54  finetuned@noise 513.64  finetuned@clean 513.93  (0s)
+      step 20/20 loss 6.238
+  sigma=0.12: pretrained@noise 518.18  finetuned@noise 514.01  finetuned@clean 513.89  (0s)
+E1 verdict: SMOKE RUN (random tiny model): numbers are meaningless. lowest fine-tuned perplexity at sigma=0.06 (513.17); pretrained-at-noise rises from 518.94 to 518.18
+[e1] wrote /scrfs/storage/paradkar/home/bpusim/results/hpcc_smoke/e1/results.json
+[e1] figure /scrfs/storage/paradkar/home/bpusim/figures/e1_gpt2_noise.png
+== done rc=0 Thu 22 Oct 23:50:19 CDT 2026

@@ -1,0 +1,25 @@
+== c1412 Fri 23 Oct 02:14:08 CDT 2026
+  32x32 seed 0: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.7  2.67 1.07] H2=[1.73 0.14] thr={0: 1.24, 1: 0.53, 2: 0.13}
+  32x32 seed 1: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.2  1.6  1.06] H2=[1.22 0.24] thr={0: 1.35, 1: 0.47, 2: 0.13}
+  32x32 seed 2: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.75 2.5  1.12] H2=[1.53 0.23] thr={0: 1.24, 1: 0.53, 2: 0.16}
+  32x32 seed 3: programmed reference none betti={0: 0, 1: 12, 2: 1} H1=[1.61 1.53 1.25] H2=[0.91 0.38] thr={0: 1.19, 1: 0.54, 2: 0.13}
+  32x32 seed 4: programmed reference none betti={0: 0, 1: 6, 2: 1} H1=[1.86 1.63 1.14] H2=[1.02 0.29] thr={0: 1.17, 1: 0.5, 2: 0.15}
+  32x32 seed 5: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.52 2.17 1.12] H2=[1.53 0.18] thr={0: 1.21, 1: 0.52, 2: 0.14}
+  32x32 seed 6: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[3.28 3.25 0.98] H2=[2.21 0.02] thr={0: 1.24, 1: 0.49, 2: 0.13}
+  32x32 seed 7: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[3.39 3.25 1.03] H2=[2.13 0.04] thr={0: 1.25, 1: 0.62, 2: 0.12}
+  32x32 seed 8: programmed reference none betti={0: 0, 1: 26, 2: 4} H1=[1.31 1.23 1.09] H2=[0.5  0.32] thr={0: 1.19, 1: 0.51, 2: 0.16}
+  32x32 seed 9: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[3.47 3.46 1.01] H2=[2.24 0.05] thr={0: 1.2, 1: 0.49, 2: 0.13}
+  32x32 seed 10: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[3.46 3.44 1.  ] H2=[2.11 0.05] thr={0: 1.22, 1: 0.47, 2: 0.13}
+  32x32 seed 11: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.72 2.67 1.05] H2=[1.37 0.2 ] thr={0: 1.15, 1: 0.42, 2: 0.15}
+  32x32 seed 12: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.24 2.13 0.88] H2=[1.29 0.25] thr={0: 1.22, 1: 0.57, 2: 0.14}
+  32x32 seed 13: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.54 2.06 1.06] H2=[1.   0.24] thr={0: 1.18, 1: 0.54, 2: 0.12}
+  32x32 seed 14: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[1.87 1.74 0.84] H2=[1.2  0.29] thr={0: 1.13, 1: 0.56, 2: 0.15}
+  32x32 seed 15: programmed reference none betti={0: 0, 1: 29, 2: 14} H1=[1.1  1.08 0.88] H2=[0.38 0.35] thr={0: 1.2, 1: 0.48, 2: 0.17}
+  32x32 seed 16: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[3.41 3.36 1.23] H2=[2.24 0.05] thr={0: 1.2, 1: 0.5, 2: 0.14}
+  32x32 seed 17: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[2.92 2.61 0.99] H2=[1.95 0.13] thr={0: 1.17, 1: 0.5, 2: 0.15}
+  32x32 seed 18: programmed reference torus betti={0: 0, 1: 2, 2: 1} H1=[3.36 3.19 1.07] H2=[2.04 0.05] thr={0: 1.27, 1: 0.54, 2: 0.15}
+  32x32 seed 19: programmed reference none betti={0: 0, 1: 3, 2: 1} H1=[2.06 2.02 1.12] H2=[0.9  0.16] thr={0: 1.27, 1: 0.53, 2: 0.13}
+E5 verdict: 32x32: programmed DoG reference 15/20
+[e5] wrote /scrfs/storage/paradkar/home/bpusim/results/e5_ref20/results.json
+[e5] figure /scrfs/storage/paradkar/home/bpusim/figures/e5_grid_selforg.png
+== done rc=0 Fri 23 Oct 03:57:28 CDT 2026

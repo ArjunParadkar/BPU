@@ -1,0 +1,57 @@
+== c1508 Fri 23 Oct 02:03:57 CDT 2026
+  mismatch 0.2: Delta U = 0.876
+  mismatch 0.3: Delta U = 1.35
+  mismatch 0.0: Delta U = 0.00102
+  pinning landscapes: 11.2 s
+    amp0.05_omega0.5_float32 (8 x 50): 18.7 s
+    err: 0.0:0.346 0.001:0.346 0.002:0.346 0.005:0.346 0.01:0.346 0.02:0.346 0.04:0.347 0.08:0.347 | NOT U-shaped: interior minimum at sigma=0.02 not significant (30/50 seeds, p=0.203)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.5_bpu_mismatch0.2 (8 x 50): 367.6 s
+    err: 0.0:0.393 0.001:0.393 0.002:0.393 0.005:0.393 0.01:0.393 0.02:0.393 0.04:0.394 0.08:0.395 | NOT U-shaped: interior minimum at sigma=0.02 not significant (28/50 seeds, p=0.48)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.5_bpu_mismatch0.3 (8 x 50): 357.9 s
+    err: 0.0:0.486 0.001:0.486 0.002:0.487 0.005:0.486 0.01:0.489 0.02:0.482 0.04:0.484 0.08:0.488 | NOT U-shaped: interior minimum at sigma=0.02 not significant (28/50 seeds, p=0.48)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.5_bpu_mismatch0.0 (8 x 50): 344.6 s
+    err: 0.0:0.346 0.001:0.346 0.002:0.346 0.005:0.345 0.01:0.345 0.02:0.345 0.04:0.346 0.08:0.346 | NOT U-shaped: interior minimum at sigma=0.02 not significant (28/50 seeds, p=0.48)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.1_float32 (8 x 50): 18.9 s
+    err: 0.0:0.068 0.001:0.068 0.002:0.068 0.005:0.068 0.01:0.068 0.02:0.067 0.04:0.068 0.08:0.070 | NOT U-shaped: interior minimum at sigma=0.02 not significant (27/50 seeds, p=0.672)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.1_bpu_mismatch0.2 (8 x 50): 326.6 s
+    err: 0.0:0.177 0.001:0.177 0.002:0.177 0.005:0.177 0.01:0.177 0.02:0.176 0.04:0.177 0.08:0.176 | NOT U-shaped: interior minimum at sigma=0.08 not significant (27/50 seeds, p=0.672)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.1_bpu_mismatch0.3 (8 x 50): 326.1 s
+    err: 0.0:0.222 0.001:0.222 0.002:0.222 0.005:0.222 0.01:0.222 0.02:0.222 0.04:0.222 0.08:0.223 | NOT U-shaped: interior minimum at sigma=0.04 not significant (25/50 seeds, p=1)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.05_omega0.1_bpu_mismatch0.0 (8 x 50): 303.5 s
+    err: 0.0:0.068 0.001:0.068 0.002:0.068 0.005:0.068 0.01:0.068 0.02:0.068 0.04:0.068 0.08:0.066 | NOT U-shaped: interior minimum at sigma=0.08 not significant (31/50 seeds, p=0.119)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.5_float32 (8 x 50): 18.3 s
+    err: 0.0:0.944 0.001:0.944 0.002:0.944 0.005:0.944 0.01:0.943 0.02:0.945 0.04:0.947 0.08:0.949 | NOT U-shaped: interior minimum at sigma=0.01 not significant (28/50 seeds, p=0.48)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.5_bpu_mismatch0.2 (8 x 50): 298.9 s
+    err: 0.0:1.179 0.001:1.179 0.002:1.179 0.005:1.179 0.01:1.180 0.02:1.173 0.04:1.191 0.08:1.161 | NOT U-shaped: no rise at high noise
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.5_bpu_mismatch0.3 (8 x 50): 292.1 s
+    err: 0.0:1.232 0.001:1.232 0.002:1.232 0.005:1.232 0.01:1.232 0.02:1.236 0.04:1.232 0.08:1.235 | NOT U-shaped: interior minimum at sigma=0.005 not significant (25/50 seeds, p=1)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.5_bpu_mismatch0.0 (8 x 50): 295.5 s
+    err: 0.0:0.941 0.001:0.941 0.002:0.941 0.005:0.941 0.01:0.940 0.02:0.940 0.04:0.946 0.08:0.941 | NOT U-shaped: interior minimum at sigma=0.01 not significant (28/50 seeds, p=0.48)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.1_float32 (8 x 50): 18.7 s
+    err: 0.0:0.154 0.001:0.154 0.002:0.154 0.005:0.154 0.01:0.154 0.02:0.153 0.04:0.154 0.08:0.154 | NOT U-shaped: interior minimum at sigma=0.02 not significant (28/50 seeds, p=0.48)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.1_bpu_mismatch0.2 (8 x 50): 294.1 s
+    err: 0.0:0.454 0.001:0.454 0.002:0.454 0.005:0.454 0.01:0.455 0.02:0.453 0.04:0.452 0.08:0.415 | NOT U-shaped: interior minimum at sigma=0.08 not significant (29/50 seeds, p=0.322)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.1_bpu_mismatch0.3 (8 x 50): 280.7 s
+    err: 0.0:0.613 0.001:0.613 0.002:0.613 0.005:0.613 0.01:0.614 0.02:0.614 0.04:0.611 0.08:0.615 | NOT U-shaped: interior minimum at sigma=0.04 not significant (25/50 seeds, p=1)
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+    amp0.02_omega0.1_bpu_mismatch0.0 (8 x 50): 282.0 s
+    err: 0.0:0.154 0.001:0.154 0.002:0.154 0.005:0.155 0.01:0.154 0.02:0.155 0.04:0.154 0.08:0.150 | NOT U-shaped: no rise at high noise
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+E3 verdict: 0/8 mismatched BPU conditions (cue amp x omega x sigma_d2d) show a significant U in tracking error vs dynamic noise; pinned regime (sigma = 0 error > 1.5x the float32 reference): 4/8 conditions, of which 0 U-shaped; sigma = 0 error per condition: amp0.05_omega0.5_bpu_mismatch0.2: 0.393 vs ref 0.346; amp0.05_omega0.5_bpu_mismatch0.3: 0.486 vs ref 0.346; amp0.05_omega0.1_bpu_mismatch0.2: 0.177 vs ref 0.068 PINNED; amp0.05_omega0.1_bpu_mismatch0.3: 0.222 vs ref 0.068 PINNED; amp0.02_omega0.5_bpu_mismatch0.2: 1.179 vs ref 0.944; amp0.02_omega0.5_bpu_mismatch0.3: 1.232 vs ref 0.944; amp0.02_omega0.1_bpu_mismatch0.2: 0.454 vs ref 0.154 PINNED; amp0.02_omega0.1_bpu_mismatch0.3: 0.613 vs ref 0.154 PINNED
+[e3_tracking] wrote /scrfs/storage/paradkar/home/bpusim/results/e3_final50/results.json
+[e3_tracking] figure /scrfs/storage/paradkar/home/bpusim/figures/e3_final50.png
+== done rc=0 Fri 23 Oct 03:09:19 CDT 2026
