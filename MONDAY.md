@@ -1,5 +1,9 @@
 # MONDAY — HPCC queue
 
+On Pinnacle (AHPCC) the queue is `bash scripts/hpcc/submit.sh queue` (env: `scripts/hpcc/build_env.sh`;
+cluster quirks in its header).  Submitted 2026-10-22 23:5x CDT as jobs 1364337-1364344 (E11 tiles/float32 split
+into results/e11_full_tiles + results/e11_full_f32: merge the two `runs` lists, then `--resummarize`).
+
 Everything below is launched from a clone of this repo with the same venv
 (`pip install -r requirements.txt`).  Results land in `results/<e>/results.json`
 and are merged into the page with `python scripts/make_figures.py && python
