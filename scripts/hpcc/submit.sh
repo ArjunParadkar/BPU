@@ -48,6 +48,20 @@ queue)
   # 6. E1 full (GPT-2 124M + WikiText-2 download on first run)
   sub e1-full gpu 24:00:00 -- "python e1_gpt2_noise.py --device cuda --steps 400 --batch 8 --block 512 --out results/e1_full"
   ;;
-*) echo "usage: bash scripts/hpcc/submit.sh smoke|queue"; exit 2 ;;
+e11-bracket2)
+  # 2026-10-23: the first bracket (to 0.7) put float32 sigma* on its top edge in 5/5 seeds; extend it (finished arms are skipped)
+  sub e11-f32-bracket2 gpu 24:00:00 -- "python e11_regularization.py --device cuda --threads 8 --substrates float32 --sigmas 0,0.1,0.2,0.3,0.4,0.5,0.7,1.0,1.4,2.0,3.0 --sigmas-beyond '' --seeds 5 --out results/e11_f32_bracket"
+  ;;
+e11-full-bracket)
+  # 2026-10-23: full-data float32 sigma* = 0.2 sat on the grid top in 10/10 seeds; extend the same runs upward
+  sub e11-full-f32-bracket gpu 48:00:00 -- "python e11_regularization.py --device cuda --threads 8 --substrates float32 --sigmas 0,0.02,0.04,0.06,0.1,0.15,0.2,0.3,0.4,0.5,0.7,1.0,1.4 --sigmas-beyond '' --seeds 10 --train-frac 1.0 --steps 5000 --out results/e11_full_f32"
+  ;;
+extras)
+  # MONDAY.md "also useful if a node is free" (2026-10-23, GPUs idle after the main queue)
+  sub e9-seg2000 gpu 48:00:00 -- "python e9_trainability.py --seeds 5 --seg 2000 --device cuda --threads 8 --out results/e9_seg2000"
+  # E8 has no --device (CPU only; MONDAY.md said 1 GPU, corrected): a whole comp72 node
+  sub e8-full cpu 72:00:00 -- "python e8_nanogpt_tiles.py --d 384 --layers 6 --heads 6 --steps 5000 --ft-steps 1000 --seeds 3 --threads 32 --out results/e8_full"
+  ;;
+*) echo "usage: bash scripts/hpcc/submit.sh smoke|queue|e11-bracket2|e11-full-bracket|extras"; exit 2 ;;
 esac
 squeue -u "$USER" -o "%.10i %.16j %.8P %.8T %.10M %R"

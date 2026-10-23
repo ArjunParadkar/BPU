@@ -34,7 +34,7 @@ Also useful if a node is free
 | Job | Command | Resources | What it settles |
 |---|---|---|---|
 | E9 5 seeds, 2000-step segments | `python experiments/e9_trainability.py --seeds 5 --seg 2000 --device cuda` | 1 GPU, ~8 h | recovery times with longer segments under the nearest-pulse default; the laptop ran `--seg 1000` |
-| E8 full size | `python experiments/e8_nanogpt_tiles.py --d 384 --layers 6 --heads 6 --steps 5000 --ft-steps 1000 --seeds 3` | 1 GPU | the 10.6M-parameter version of E8 (the tile layer now runs on CUDA) |
+| E8 full size | `python experiments/e8_nanogpt_tiles.py --d 384 --layers 6 --heads 6 --steps 5000 --ft-steps 1000 --seeds 3 --threads 32` | CPU node, 32 cores (E8 has no `--device`; it is CPU-only) | the 10.6M-parameter version of E8 |
 | E8b on a data-centre GPU | `python experiments/e8b_energy_model.py --skip-train --measure-batch 512` after copying `results/e8b/checkpoint.pt` | 1 GPU, idle, 5 min | a measured INT8 control on a GPU that the 2.7M model does not leave idle; needs `nvidia-smi` power readings |
 
 Notes
