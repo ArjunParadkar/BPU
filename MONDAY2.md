@@ -135,3 +135,12 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
   segments per lane are expected (~44 GPU-h each). Fastest wall time is ~2 days of compute after the data job (~1 h),
   plus agpu06 queue waits between segments. If a segment fails twice: stop and report.
 * E17 (optional) after E15: `bash scripts/hpcc/submit.sh e17`.
+* **Chains queued (2026-10-24, coordinator's decision: the cap counts jobs that can RUN at once).** Each lane got 7 more
+  6 h segments, each `afterany` on the previous one, so a timed-out segment still starts the next. gpu-QOS cores running
+  at submission: 168.
+  * lane 1, after 1367499: 1367505 → 1367506 → 1367507 → 1367508 → 1367509 → 1367510 → 1367511
+  * lane 2, after 1367500: 1367512 → 1367513 → 1367514 → 1367515 → 1367516 → 1367517 → 1367518
+  * The lane-2 chain jobs are named `bpu-e15-l1` (an artefact of submitting one lane at a time); their logs are
+    `logs/hpcc/e15-l1-<id>.out`, told apart by job ID.
+  * At most 2 BPU GPU jobs ever run at once. The resubmission recipe above is only needed if a lane's chain runs out
+    before E15 finishes. E17 is not started.
