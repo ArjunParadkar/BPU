@@ -80,6 +80,36 @@ e1fix)
   b1=$(sub e1fix-b gpu6 5:55:00 -- "python e1fix_gpt2_deploy.py --device cuda --arms $B"); echo "e1fix-b $b1"
   b2=$(sub e1fix-b2 gpu6 5:55:00 --dependency=afterany:$b1 -- "python e1fix_gpt2_deploy.py --device cuda --arms $B"); echo "e1fix-b2 $b2"
   ;;
+e15-data)
+  # MONDAY2 #3a: tokenise OpenWebText (fallback FineWeb-Edu) + val + TinyStories + Python into data/e15 (one comp06 node)
+  sub e15-data cpu6 5:50:00 -- "TOKENIZERS_PARALLELISM=true python e15_data.py --train-tokens 850000000"
+  ;;
+e15-timing)
+  # MONDAY2 #3b: throughput on synthetic tokens, one V100 and one A100 job (results/e15_timing/<gpu>/results.json)
+  sub e15-timing-v100 gpu6 1:00:00 -- "python e15_scratch_lm.py --timing"
+  sub e15-timing-a100 agpu6 1:00:00 -- "python e15_scratch_lm.py --timing"
+  ;;
+e15)
+  # MONDAY2 #3c: E15 worker chains.  Required: E15_TOKENS (matched per run), E15_SEEDS; optional E15_LANES (default 2),
+  # E15_CHAIN (jobs per lane, default 8), E15_PART (gpu6 | agpu6, default gpu6), E15_AFTER (job id, e.g. the data job),
+  # E15_LONG=1 adds one gpu72 lane in parallel.  Lanes share the run list through per-run locks, so no work is duplicated;
+  # each 6 h job checkpoints and exits before its walltime and the next job of the lane resumes (afterany).
+  T=${E15_TOKENS:?set E15_TOKENS}; S=${E15_SEEDS:?set E15_SEEDS}; L=${E15_LANES:-2}; K=${E15_CHAIN:-8}; P=${E15_PART:-gpu6}
+  CMD="python e15_scratch_lm.py --worker --tokens $T --seeds $S --segment-minutes 360 --margin-minutes 25"
+  for lane in $(seq 1 $L); do
+    dep=${E15_AFTER:+--dependency=afterok:$E15_AFTER}
+    for k in $(seq 1 $K); do
+      j=$(sub e15-l$lane $P 6:00:00 $dep -- "$CMD"); echo "e15 lane $lane job $k: $j"; dep=--dependency=afterany:$j
+    done
+  done
+  if [ "${E15_LONG:-0}" = 1 ]; then
+    sub e15-long gpu 72:00:00 ${E15_AFTER:+--dependency=afterok:$E15_AFTER} -- "python e15_scratch_lm.py --worker --tokens $T --seeds $S --segment-minutes 4320 --margin-minutes 30"
+  fi
+  ;;
+e17)
+  # MONDAY2 #4 (optional, after E15): representation comparison of the float32 sigma 0 and tiles sigma* models
+  sub e17 gpu6 3:00:00 -- "python e17_representations.py"
+  ;;
 *) echo "usage: bash scripts/hpcc/submit.sh smoke|queue|e11-bracket2|e11-full-bracket|extras|e11cal|e1fix|e15-data|e15-timing|e15"; exit 2 ;;
 esac
 squeue -u "$USER" -o "%.10i %.16j %.8P %.8T %.10M %R"

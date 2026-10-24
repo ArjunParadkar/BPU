@@ -74,13 +74,45 @@ def main():
     args = ap.parse_args()
     names = ("e1", "e2", "e2_cifar", "e3", "e3_256", "e3_tracking", "e3_cue", "e3_final", "e4", "e4_capped", "e4_np", "e4_level_t1", "e4_level_t05", "e4_level_t025", "e4_level_capped", "e5", "e5_48", "e5_selforg32", "e5_selforg_np",
              "e6", "e6_k32", "e7", "e7_ref", "e7_3seeds", "e7_ref_3seeds", "e8", "e8b", "e9", "e9_pareto", "e9_pulse", "e10", "e9_v1", "e10_v1", "e8b_v1", "e11", "e12", "e13", "e14",
-             "e11_f32_bracket", "e11_full_tiles", "e11_full_f32", "e12_long", "e3_final50", "e5_ref20", "e5_selforg_np20", "e1_full")
+             "e11_f32_bracket", "e11_full_tiles", "e11_full_f32", "e12_long", "e3_final50", "e5_ref20", "e5_selforg_np20", "e1_full",
+             "e11cal", "e1fix", "e15", "e17", "e11_f32_unclipped", "e11_full_f32_unclipped")
     R = {k: load(k) for k in names}
-    e9, e10, e8b, e3t, e3c, e6 = R["e9"], R["e10"], R["e8b"], R["e3_tracking"], R["e3_cue"], R["e6"]
-    e3f, e9p, e4n, e5n, e11, e12, e13, e14 = R["e3_final"], R["e9_pareto"], R["e4_np"], R["e5_selforg_np"], R["e11"], R["e12"], R["e13"], R["e14"]
+    e9, e10, e8b, e3t, e3c, e6 = R["e9"], R["e10"], R["e8b"], R["e3_tracking"], R["e3_cue"], (R["e6_k32"] or R["e6"])
+    # 2026-10-23 (round four): E6 reads results/e6_k32 (K grid to 32; the results/e6 grid stopped at 16 and capped the
+    # attention capacity at the grid top); E3-final reads the 50-seed run (results/e3_final50: 4/8 pinned) instead of 10 seeds (5/8)
+    E6_SRC = "e6_k32" if R["e6_k32"] else "e6"; E3F_SRC = "e3_final50" if R["e3_final50"] else "e3_final"
+    e3f, e9p, e4n, e5n, e11, e12, e13, e14 = R[E3F_SRC], R["e9_pareto"], R["e4_np"], R["e5_selforg_np"], R["e11"], R["e12"], R["e13"], R["e14"]
     if e9 and e9.get("partial"):
         e9 = None
 
+    # ------------------------------------------------------------------ learning vs knowing (round four, 2026-10-23)
+    def lv_state(r, key_ok=None):
+        if not r:
+            return "queued on Pinnacle; MONDAY2.md has the job IDs and the hold", chip("pend", "pending")
+        v = r.get("verdict", {})
+        st = v.get("statement", "") if isinstance(v, dict) else str(v)
+        if key_ok is None:
+            return st, chip("part", "exploratory")
+        ok = key_ok(v)
+        partial = st.startswith("PARTIAL") or (isinstance(v, dict) and v.get("complete") is False)
+        return st, chip("pend", "partial") if partial else (chip("ok", "supported") if ok else chip("nul", "not supported"))
+    lv_rows = []
+    st, ch = lv_state(R["e11cal"], lambda v: v.get("lines_up"))
+    lv_rows.append(["E11-cal", "Is the ~10× gap in σ between the tile and float32 optima only an axis effect? Each E11 arm is placed at the layer perturbation it actually had (rel_pert).",
+                    "The optima line up in rel_pert in both regimes: the ratio R has a 95 % CI containing 1 and 0.5 ≤ R ≤ 2", st, ch])
+    st, ch = lv_state(R["e1fix"], lambda v: v.get("criterion_met"))
+    lv_rows.append(["E1-fix + E16", "Knowing: deploy an already-trained GPT-2 124M on tiles. Arms: deploy-only, noise-aware fine-tune, dial-low read, read averaging.",
+                    "Some arm at σ_device = 0.04 lands within 3 % of its float32 perplexity; above 2× counts as diverged", st, ch])
+    if R["e15"]:
+        v = R["e15"]["verdict"]; st = v.get("statement", "")
+        ch = " ".join(chip("pend", f"{k} untested") if v.get(k) is None else chip("ok" if v.get(k) else "nul", f"{k} {'yes' if v.get(k) else 'no'}") for k in ("H1", "H2", "H3", "H4"))
+    else:
+        st, ch = "not submitted yet (MONDAY2.md: data prep, throughput timing, then 6 h checkpointed chains)", chip("pend", "pending")
+    lv_rows.append(["E15", "Learning: train a ~50M-parameter GPT from scratch on tiles (0.8B web tokens, shift sets TinyStories and Python).",
+                    "H1: tiles σ* > 0 with a CI excluding 0. H2: σ* in [0.02, 0.06]. H3: tiles at σ* ≤ float32 at σ 0. H4: learn high / deploy low ≥ fixed σ*", st, ch])
+    st, ch = lv_state(R["e17"])
+    lv_rows.append(["E17", "Does the knowledge survive the noise? Compares the representations of the float32 σ 0 model and the tiles σ* model.", "Exploratory, no pass/fail: CKA > 0.8 at matched layers", st if R["e17"] else "optional, after E15", ch if R["e17"] else chip("pend", "optional")])
+    lvbox = table_html(["Exp", "Question", "Pre-registered criterion", "Result", "Status"], [[f"<span class='id'>{esc(a)}</span>", esc(b), esc(c), esc(d), e] for a, b, c, d, e in lv_rows])
     # ------------------------------------------------------------------ variability scoreboard (E11-E14): mechanism, brain analogue, hypothesis, result, status
     vrows = []
     def vrow(mech, exp, analogue, hyp, result, status):
@@ -213,8 +245,9 @@ def main():
         extra = f"σ = 0 pinned fraction {n_p}/{len(pr)}; U-shaped among pinned: {n_u}" + ("" if n_p else "; no pinning up to 30 % mismatch: attractor robustness is the result") + \
                 (f"; cue sweep at ω 0.5 (results/e3_cue): {e3c['verdict']['n_pinned']}/{len(e3c['pinned_regime'])} pinned" if e3c and "pinned_regime" in e3c else "") + \
                 (f"; ω sweep at cue 0.1 (results/e3_tracking): {e3t['verdict']['n_u_shaped']}/{e3t['verdict']['n_conditions']} U-shaped" if e3t and "n_u_shaped" in e3t.get("verdict", {}) else "")
+        e3_note = (" " + chip("pend", f"{e3f['seeds']} seeds (results/{E3F_SRC}); the 10-seed run had 5/8 pinned")) if E3F_SRC == "e3_final50" else ""
         rows.append(("Attractor noise optimum (moving cue, E3-final)", "E3", ref, bpu, "no writes (read noise only)", "σ = 0 pinned fraction; U-test only where pinned", extra,
-                     chip("nul" if n_p == 0 else "part", "no pinning up to 30 % mismatch" if n_p == 0 else f"{n_p} pinned, {n_u} U-shaped")))
+                     chip("nul" if n_p == 0 else "part", "no pinning up to 30 % mismatch" if n_p == 0 else f"{n_p} pinned, {n_u} U-shaped") + e3_note))
     elif e3c and "pinned_regime" in e3c:
         pr = e3c["pinned_regime"]; sw = e3c["sweeps"]
         ref = "; ".join(f"cue {a:g}: {fmt(sw[f'amp{a:g}_omega{e3c['omegas'][0]:g}_float32']['0.0']['track_err']['mean'])} rad" for a in e3c["cue_amps"] if f"amp{a:g}_omega{e3c['omegas'][0]:g}_float32" in sw)
@@ -234,7 +267,7 @@ def main():
         bpu = "; ".join(f"{m}: " + "/".join(str(caps[m][str(s)]) for s in e6["sigmas"][1:]) for m in e6["methods"])
         same = all(caps["attention"][str(s)] >= caps["attention"]["0.0"] for s in e6["sigmas"] if s <= 0.04)
         rows.append(("Memory + attention under noise", "E6", ref + " pairs @90 %", bpu + f" (σ = {', '.join(str(s) for s in e6['sigmas'][1:])})", "programmed once (write-verify)", "capacity on tiles matches σ = 0 up to σ = 0.04; K = 1 unit test",
-                     f"K grid {min(e6['counts'])}..{max(e6['counts'])}, {100 * e6.get('flip_fraction', 0):.0f} % flipped cues, {e6['seeds']} seeds, sign ties random, test_hopfield_k1 passes" + (f"; earlier grid to 32 in results/e6_k32" if R["e6_k32"] else ""), chip("ok" if same else "nul", "attention holds" if same else "attention drops")))
+                     f"K grid {min(e6['counts'])}..{max(e6['counts'])}, {100 * e6.get('flip_fraction', 0):.0f} % flipped cues, {e6['seeds']} seeds, sign ties random, test_hopfield_k1 passes" + (f"; reads results/{E6_SRC} since 2026-10-23 (the 1..16 grid of results/e6 capped attention at its top, 16; its finer grid gives scaffold 3–5 pairs)" if E6_SRC == "e6_k32" else ""), chip("ok" if same else "nul", "attention holds" if same else "attention drops")))
     # 6. E7 with the noise-assisted-growth test
     if e7 and "summary" in e7:
         s = e7["summary"]
@@ -392,8 +425,9 @@ def main():
     if e3f and "pinned_regime" in e3f:
         pr = e3f["pinned_regime"]
         facts = [(k.replace("amp", "cue ").replace("_omega", " ω").replace("_bpu_mismatch", " mm "), f"σ=0: {fmt(v['err_sigma0'])} vs ref {fmt(v['ref_err_sigma0'])}" + (" PINNED" if v["fails"] else "")) for k, v in pr.items()]
-        secs.append(section("e3f", "E3-final · mismatch 0.2 / 0.3, cue 0.02 / 0.05", f"ω = {e3f['omegas']}, {e3f['seeds']} seeds; U-test only where σ = 0 is pinned", "e3_final.png", facts[:12], e3f["verdict"]["statement"],
-                            ["U-test per pinned condition: " + "; ".join(f"{k}: {e3f['verdicts'][k]['statement']}" for k, v in pr.items() if v["fails"]) if any(v["fails"] for v in pr.values()) else "No condition is pinned at σ = 0 (every tile error within 1.5× the float32 reference): no pinning up to 30 % mismatch; attractor robustness is the result."], src="e3_final"))
+        secs.append(section("e3f", "E3-final · mismatch 0.2 / 0.3, cue 0.02 / 0.05", f"ω = {e3f['omegas']}, {e3f['seeds']} seeds; U-test only where σ = 0 is pinned", "e3_final50.png" if E3F_SRC == "e3_final50" else "e3_final.png", facts[:12], e3f["verdict"]["statement"],
+                            ["U-test per pinned condition: " + "; ".join(f"{k}: {e3f['verdicts'][k]['statement']}" for k, v in pr.items() if v["fails"]) if any(v["fails"] for v in pr.values()) else "No condition is pinned at σ = 0 (every tile error within 1.5× the float32 reference): no pinning up to 30 % mismatch; attractor robustness is the result."]
+                            + (["2026-10-23: 50-seed numbers (results/e3_final50, 4/8 pinned); the 10-seed run (results/e3_final, 5/8 pinned) is kept as the record."] if E3F_SRC == "e3_final50" else []), src=E3F_SRC))
     if e10 and "twins" in e10:
         S = e10["summary"]; tw = e10["twins"]; HL = e10.get("headline_arms", e10["arms"] + ["joint"])
         facts = [(f"{a} float32 / BPU", f"{fmt(tw[a]['float32'])} / {fmt(tw[a]['bpu'])}") for a in HL] + \
@@ -442,8 +476,9 @@ def main():
                             ["Pinning barrier ΔU at zero dynamic noise: " + "; ".join(f"{k}: {fmt(v['delta_U']['mean'], 3)} ± {fmt(v['delta_U']['sem'], 3)}" for k, v in e3t["landscape"].items())], src="e3_tracking"))
     if e6:
         caps = e6["capacity_at_90pct"]
-        secs.append(section("e6", "E6 · memory and attention", f"{100 * e6.get('flip_fraction', 0):.0f} % flipped bits, sign ties random, {e6['seeds']} seeds", "e6_memory.png",
-                            [(f"{m} capacity @90 %, σ=0 / 0.04 / 0.2", f"{caps[m]['0.0']} / {caps[m]['0.04']} / {caps[m]['0.2']}") for m in e6["methods"]], e6["verdict"]["statement"]))
+        secs.append(section("e6", "E6 · memory and attention", f"{100 * e6.get('flip_fraction', 0):.0f} % flipped bits, sign ties random, {e6['seeds']} seeds, K grid {min(e6['counts'])}..{max(e6['counts'])}", "e6_memory.png",
+                            [(f"{m} capacity @90 %, σ=0 / 0.04 / 0.2", f"{caps[m]['0.0']} / {caps[m]['0.04']} / {caps[m]['0.2']}") for m in e6["methods"]], e6["verdict"]["statement"],
+                            [f"2026-10-23: this section reads results/{E6_SRC}. The results/e6 grid (K 1..16) capped the attention capacity at its top (16 at every σ); on the grid to 32 attention holds 20–28 pairs. The scaffold numbers here sit on a coarse grid (1, 2, 4, 8, ...); the fine 1..16 grid of results/e6 gives 3–5 pairs."] if E6_SRC == "e6_k32" else [], src=E6_SRC))
     if e7 and "summary" in e7:
         for lab, r, eid in (("BPU tiles", e7, "e7"), ("noise-free reference tiles", e7r, "e7_ref")):
             if not r:
@@ -493,6 +528,9 @@ footer{{padding-block:24px;font-family:var(--mono);font-size:12px;color:var(--fg
 <p>The first scoreboard asks whether device variability does work for the computation (regularisation, exploration, stochastic resonance, sampling), each row with its brain analogue, the pre-registered hypothesis and the measured result; the read-noise dial (MODULATE), per-read dropout, nearest-pulse writes and the layer-accumulate 8-bit read-out are the four architecture changes of 2026-10-19. The second scoreboard keeps the substrate framing: the same algorithm on a float32 reference and on noisy tiles. Every number is read from <code>results/&lt;e&gt;/results.json</code>; BPU energy numbers are projections from the device model, the GPU control is measured.</p>
 <p class="chip nul" style="white-space:normal">Correction 2026-10-23: the float32 E11 optima above the dial (σ* 1.0 small data, 0.4 full data) and the "~10x the tile optimum" claim are WITHDRAWN. Every float32 arm above 0.2 was clipped to 0.2 on its Linear layers by the dial; unclipped reruns are queued. Details are in the HPCC section.</p>
 <div class="meta">generated {time.strftime("%Y-%m-%d %H:%M")} · repo ~/Desktop/Arenda_Projects/BrAInOS/bpusim · DECISIONS.md has every choice · MONDAY.md has the HPCC queue</div></header>
+<section id="learning-vs-knowing"><div class="eyebrow">Round four, 2026-10-23</div><h2>Learning vs knowing</h2>
+<p>Variability should help while structure is forming (training from scratch) and be suppressed once it has formed (deploying a trained model). The MODULATE dial is the neuromodulation analogue: high to learn, low to deploy. Prior art: dropout (Srivastava et al. 2014), weight-noise injection, noise-aware analog training (Joshi et al. 2020). The claim tested is that native MoS2 variability (2–6 %) sits at the regularisation optimum, together with the substrate results. It is not a claim that noise regularises in general.</p>
+{lvbox}</section>
 <section id="variability"><div class="eyebrow">Variability, used the way the brain uses it</div><h2>Four mechanisms, E11–E14: mechanism, brain analogue, hypothesis, result, status</h2>{vscore}
 <p class="muted">tiles carry the device model (nearest-pulse writes, d2d / c2c where stated, write-verify); the float32 reference runs the identical algorithm with the same read noise or dropout injected on float weights. The dial's range is 0.005–0.2; "beyond the dial" levels are diagnostics, not chip settings.</p></section>
 {hpcc}

@@ -5,6 +5,56 @@ choice was forced by something measured during the build, the measurement is
 given.  Numbers quoted here come from the diagnostic runs in this session;
 the experiment results proper are in `results/<e>/results.json`.
 
+## Round four (2026-10-23): learning vs knowing
+
+**Framing.** "Learning vs knowing." Variability should help while structure is forming (training from scratch)
+and be suppressed once it is formed (deployment of a trained model). The MODULATE dial is the neuromodulation
+analogue: high to learn, low to deploy. Prior art: dropout (Srivastava et al. 2014), weight-noise injection, and
+noise-aware analog training (Joshi et al. 2020). The claim here is that native MoS2 variability (2–6 %) sits at the
+regularisation optimum, together with the substrate results. We do NOT claim that noise regularises in general.
+
+Rules kept from earlier rounds: the same algorithm on float32 and on tiles; every hypothesis and threshold
+pre-registered in the experiment docstring before any run; nearest-pulse writes, layer-accumulate 8-bit read-out
+and the MODULATE dial; every number read from `results/<e>/results.json`; negatives reported as negatives. The job
+list and IDs are in `MONDAY2.md`.
+
+* **E11-cal** (`experiments/e11cal_noise_calibration.py`, `experiments/relpert.py`). rel_pert(σ) = ||y_noisy − y_ideal|| /
+  ||y_ideal||. It is measured per read site (31 sites), locally (clean input) and cumulatively, against the exact
+  float product of the same stored weights. The primary scalar is the mean local value. E11 kept no checkpoints, so
+  the σ = 0 arms are retrained with the E11 code (seeds 0–4, both regimes, both substrates; reproduction is checked
+  against E11's own runs), and seed 0 is also trained at each σ* as a robustness check. Measurements are taken "as
+  run" (with the old dial clip) and unclipped. Pre-registered: the optima line up if, in both regimes, R =
+  rel_pert*_f32 / rel_pert*_tiles has a CI containing 1 and 0.5 ≤ R ≤ 2. It runs on a V100 rather than a CPU because
+  of the retraining. Building it found the dial clip ("Correction 2026-10-23" at the end of this file).
+* **E1-fix + E16** (`experiments/e1fix_gpt2_deploy.py`). GPT-2 124M on the actual tile path; E1 used a float noise
+  model. Each column is programmed by write-verify with its own scale (max |W| of the column: a periphery gain, so no
+  weight is clipped). σ_device is split equally over d2d, c2c and read. The attention products stay digital (as in
+  E1). The noise-aware fine-tune is off-chip and hardware-aware (Joshi et al. 2020): a float32 master is
+  re-programmed every step, the forward runs through the tiles, a straight-through gradient reaches the master, and
+  the tiles are programmed once at the end. The reason it is not on-chip: lr 2e-5 updates are below the 16-bit
+  accumulator's resolution relative to one pulse (~0.02 × scale), so on-chip nearest-pulse writes would hardly move
+  the weights; that arm is kept as a diagnostic at 0.04 × 2000 steps. Criterion: some arm at σ_device = 0.04 within
+  3 % of its matched float32 reference (deploy arms: pretrained float32; fine-tuned arms: float32 σ 0 fine-tuned for
+  the same number of steps). A perplexity above 2× its reference is reported as "diverged". Read averaging costs k×
+  the array-read energy of the E8b model (one conversion, since the reads integrate in analog); the bound with k×
+  conversions is reported too.
+* **E15** (`experiments/e15_scratch_lm.py`, `experiments/e15_data.py`). The E8 GPT at 8 layers × 512 × 8 heads,
+  context 512, vocab 50257: 25.2M block parameters plus an untied 25.7M head on tiles, and a 25.7M digital embedding.
+  The brief's "about 40M" counts it one way; 51M sit on tiles. The brief's dial arm ("σ = 0.04 during training, then
+  0.005 at eval") trains identically to the tiles σ = 0.04 arm with the same seed, so it is that run evaluated at the
+  dial minimum: 9 trainings per seed, not 10. The float32 reference computes attention with fused SDPA on the noisy
+  K / V reads (the same product without a converter, and the memory it saves is needed at batch 64 × 512). Weight
+  decay is 0 so the noise is the only regulariser, as in E11. Batch draws depend only on (seed, step, micro-batch), so
+  the data are matched across arms. Checkpoints come at every 10 % of tokens and at the end of each 6 h segment; a
+  resumed run reproduces the uninterrupted run exactly (checked on the smoke model: same val loss to 1e-15, same
+  writes). Hypotheses H1–H4 are in the docstring. Budget rule: measure throughput first; 3 seeds if they fit,
+  otherwise 2; if 2 do not fit, cut the tokens for every arm alike, never the arms.
+  The rule is fixed before any timing number exists (MONDAY2.md step 3): hours per seed h = 4 × 0.8e9 / tps_f32 + 5 × 0.8e9 /
+  tps_tiles, budget 120 GPU-h; 3 seeds if 3h fits, else 2 if 2h fits, else 2 seeds at 0.8e9 × 120 / (2h) tokens.
+* **E17** (`experiments/e17_representations.py`). Exploratory, with no pass/fail: per-layer CKA, a next-token probe
+  (within-model, raw transfer, Procrustes-aligned transfer) and 10-NN graph overlap between the float32 σ 0 and tiles
+  σ* E15 models of the same seed.
+
 ## Conventions
 
 * **Units.** Conductance in siemens, `G_min = 1 µS`, `G_max = 100 µS`; a

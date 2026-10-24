@@ -36,6 +36,24 @@ pip install -e .                      # or run with PYTHONPATH=.
 pytest -q
 ```
 
+## Round four (2026-10-23): learning vs knowing
+
+Variability should help while structure is forming (training from scratch) and be suppressed once it is formed
+(deploying a trained model); the MODULATE dial is the neuromodulation analogue, high to learn and low to deploy.
+Prior art: dropout (Srivastava, Hinton, Krizhevsky, Sutskever & Salakhutdinov 2014, JMLR 15), weight-noise injection
+during training (e.g. Murray & Edwards 1994; Graves 2011), and noise-aware training for analog in-memory computing
+(Joshi et al. 2020, Nature Communications 11, 2473). The claim here is narrower: native MoS2 variability (2–6 %) sits
+at the regularisation optimum, plus the substrate results. It is not a claim that noise regularises in general.
+
+| Exp | Question | Status |
+|---|---|---|
+| E11-cal | do the tile and float32 E11 optima line up once each run is placed at its measured layer perturbation (rel_pert)? | queued (MONDAY2.md) |
+| E1-fix + E16 | GPT-2 124M deployed on tiles: deploy-only, noise-aware fine-tune, dial-low, read averaging; some arm at σ 0.04 within 3 % of float32? | queued |
+| E15 | ~50M-parameter GPT trained from scratch on tiles (0.8B tokens): σ* > 0, in [0.02, 0.06], ≤ float32, learn high / deploy low ≥ fixed σ* | code ready, not submitted |
+| E17 | representations of the float32 and tiles E15 models (CKA, probe transfer, kNN overlap), exploratory | code ready, after E15 |
+
+Pre-registrations are in each experiment's docstring; design decisions in DECISIONS.md "Round four".
+
 ## HPCC runs (2026-10-22/23): the MONDAY queue on the Arkansas HPCC
 
 | Run | Result | Status |
