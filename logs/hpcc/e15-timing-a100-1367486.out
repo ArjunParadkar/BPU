@@ -1,0 +1,7 @@
+== c2005 Sat 24 Oct 14:19:35 CDT 2026
+{'substrate': 'float32', 'sigma': 0.1, 'micro': 8, 's_per_step': 0.32292187213897705, 'tokens_per_s': 101473.46100451665, 'peak_mem_GiB': 5.7533111572265625, 'hours_per_run_at_0.8B': 2.1899541025049984, 'n_params': 76945408}
+{'substrate': 'float32', 'sigma': 0.1, 'micro': 16, 's_per_step': 0.2931709289550781, 'tokens_per_s': 111770.97305245078, 'peak_mem_GiB': 10.307144165039062, 'hours_per_run_at_0.8B': 1.988192606303427, 'n_params': 76945408}
+{'substrate': 'tiles', 'sigma': 0.04, 'micro': 8, 's_per_step': 0.6831107139587402, 'tokens_per_s': 47968.79822028261, 'peak_mem_GiB': 8.547823905944824, 'hours_per_run_at_0.8B': 4.632641018057863, 'n_params': 76945408}
+{'substrate': 'tiles', 'sigma': 0.04, 'micro': 16, 's_per_step': 0.6294981241226196, 'tokens_per_s': 52054.16623865449, 'peak_mem_GiB': 13.538926601409912, 'hours_per_run_at_0.8B': 4.269057373878443, 'n_params': 76945408}
+[e15_timing] wrote /scrfs/storage/paradkar/home/bpusim/results/e15_timing/NVIDIA_A100-PCIE-40GB/results.json
+== done rc=0 Sat 24 Oct 14:23:24 CDT 2026

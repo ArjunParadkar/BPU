@@ -1,0 +1,7 @@
+== c1704 Sat 24 Oct 14:28:07 CDT 2026
+{'substrate': 'float32', 'sigma': 0.1, 'micro': 8, 's_per_step': 1.2149524688720703, 'tokens_per_s': 26970.602422349035, 'peak_mem_GiB': 5.7533111572265625, 'hours_per_run_at_0.8B': 8.239423752658897, 'n_params': 76945408}
+{'substrate': 'float32', 'sigma': 0.1, 'micro': 16, 's_per_step': 1.1087992191314697, 'tokens_per_s': 29552.690365048602, 'peak_mem_GiB': 10.307144165039062, 'hours_per_run_at_0.8B': 7.519525954396361, 'n_params': 76945408}
+{'substrate': 'tiles', 'sigma': 0.04, 'micro': 8, 's_per_step': 1.708556056022644, 'tokens_per_s': 19178.76787506802, 'peak_mem_GiB': 8.571261405944824, 'hours_per_run_at_0.8B': 11.586887315691758, 'n_params': 76945408}
+{'substrate': 'tiles', 'sigma': 0.04, 'micro': 16, 's_per_step': 1.6726402044296265, 'tokens_per_s': 19590.584940635188, 'peak_mem_GiB': 13.54452657699585, 'hours_per_run_at_0.8B': 11.343317358599355, 'n_params': 76945408}
+[e15_timing] wrote /scrfs/storage/paradkar/home/bpusim/results/e15_timing/Tesla_V100-PCIE-32GB/results.json
+== done rc=0 Sat 24 Oct 14:31:07 CDT 2026

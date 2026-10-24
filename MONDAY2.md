@@ -113,3 +113,25 @@ Local analysis changes (reporting only): the E11-cal reproduction lookup now wor
   https://claude.ai/artifact/RHXMs9bjcVxud9PdZVXZpn.
 * Open, not submitted: decompose the E1-fix zero-noise tile floor (programming residual vs 8-bit converter); measure
   write quantisation, the remaining E11-cal candidate.
+
+## HOLD LIFTED (2026-10-24, Arjun via coordinator): BPU is research only (papers being written)
+
+Session GPU rule: before each GPU submission, running gpu-QOS cores for the account must be ≤ 168; at most 2 BPU GPU jobs
+queued or running at once; job names start with bpu-. Code re-synced (E15 files identical to local, md5 checked).
+* `e15-data` → **1367484** (comp06). gpu-QOS cores running at submission: 120.
+* `e15-timing` → **1367485** (V100, gpu06) and **1367486** (A100, agpu06). That is 2 BPU GPU jobs, the cap, so the E15
+  training lanes go in only after timing finishes.
+* Timing (synthetic tokens, best micro-batch, `results/e15_timing/`): A100 (agpu06, 1367486, 4 min) float32 111 771 tok/s,
+  tiles 52 054 tok/s; V100 (gpu06, 1367485, 6 min) 29 553 / 19 591 tok/s. Both logs are clean.
+* **E15 budget decision (step 3 rule, recorded before submission):** h per seed = 4 × 0.8e9 / tps_f32 + 5 × 0.8e9 / tps_tiles
+  = **29.3 GPU-h on A100** (86.8 on V100). 3h = 87.9 ≤ 120, so **3 seeds at the full 0.8e9 tokens on A100 (agpu06)** for
+  every lane. agpu06 started the timing job within ~10 min. On V100 even 2 seeds (173.6) would not fit.
+  Expected total: 87.9 GPU-h, about 44 h per lane with 2 lanes, i.e. ~8 six-hour segments per lane.
+* `e15` (E15_TOKENS=800000000 E15_SEEDS=3 E15_LANES=2 **E15_CHAIN=1** E15_PART=agpu6 E15_AFTER=1367484) → lane 1
+  **1367499**, lane 2 **1367500** (agpu06, 6 h, afterok on the data job). gpu-QOS cores running at submission: 144.
+  Under the 2-BPU-GPU-job cap only ONE segment per lane can be queued, so the chain is not pre-submitted. When a lane's
+  segment ends and E15 is not finished, check the cap and the core count, then resubmit that lane with the same command
+  and `E15_LANES=1 E15_CHAIN=1` without E15_AFTER (the worker resumes from its per-run checkpoint and locks). About 8
+  segments per lane are expected (~44 GPU-h each). Fastest wall time is ~2 days of compute after the data job (~1 h),
+  plus agpu06 queue waits between segments. If a segment fails twice: stop and report.
+* E17 (optional) after E15: `bash scripts/hpcc/submit.sh e17`.

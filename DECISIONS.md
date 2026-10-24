@@ -51,6 +51,8 @@ list and IDs are in `MONDAY2.md`.
   otherwise 2; if 2 do not fit, cut the tokens for every arm alike, never the arms.
   The rule is fixed before any timing number exists (MONDAY2.md step 3): hours per seed h = 4 × 0.8e9 / tps_f32 + 5 × 0.8e9 /
   tps_tiles, budget 120 GPU-h; 3 seeds if 3h fits, else 2 if 2h fits, else 2 seeds at 0.8e9 × 120 / (2h) tokens.
+  *2026-10-24 (hold lifted, Arjun: research only):* timing A100 111 771 / 52 054 tok/s (float32 / tiles), V100 29 553 /
+  19 591; h = 29.3 GPU-h per seed on A100 (86.8 on V100), so 3 seeds × 0.8e9 tokens on A100 (87.9 GPU-h ≤ 120).
 * **E17** (`experiments/e17_representations.py`). Exploratory, with no pass/fail: per-layer CKA, a next-token probe
   (within-model, raw transfer, Procrustes-aligned transfer) and 10-NN graph overlap between the float32 σ 0 and tiles
   σ* E15 models of the same seed.
