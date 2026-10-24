@@ -43,9 +43,16 @@ SIGMAS_BEYOND = [0.3]                              # beyond-dial diagnostic, exc
 DROPOUTS = [0.1, 0.3, 0.5]        # p = 0 is the sigma = 0 arm
 
 
-def set_all_noise(model, sigma, dropout):
+def set_all_noise(model, sigma, dropout, clip=True):
+    """clip=True: the MODULATE dial (set_noise clips to [0.005, 0.2], on the float32 reference too: every
+    arm above 0.2 before 2026-10-23 ran its Linear layers at 0.2, only the attention cache at sigma).
+    clip=False (--float-unclipped, float32 reference only): sigma_r set directly."""
     for t in tile_modules(model):
-        t.set_noise(sigma); t.set_dropout(dropout)
+        if clip:
+            t.set_noise(sigma)
+        else:
+            t.sigma_r = float(sigma)
+        t.set_dropout(dropout)
     for b in model.blocks:
         b.attn_sigma_r = sigma
 
@@ -55,14 +62,15 @@ def arm_list():
     return arms
 
 
-def run_one(kind, value, substrate, seed, vocab, train_ids, val_ids, code_ids, args):
+def run_one(kind, value, substrate, seed, vocab, train_ids, val_ids, code_ids, args, keep_model=False):
     sigma = value if kind == "sigma" else 0.0
     p_drop = value if kind == "dropout" else 0.0
     torch.manual_seed(seed); gen = torch.Generator().manual_seed(seed)
     tile_kw = dict(split=(0.0, 0.0, 1.0), write_mode="float" if substrate == "float32" else "nearest_pulse")
     # sigma = 0 on tiles still needs a device model: TileLinear treats sigma=0 as devices without noise
     model = GPT(vocab, 192, 6, 6, args.block, sigma, None, seed=seed, tile_kw=tile_kw).to(args.device)
-    set_all_noise(model, sigma, p_drop)
+    clip = not (substrate == "float32" and getattr(args, "float_unclipped", False))
+    set_all_noise(model, sigma, p_drop, clip=clip)
     t0 = time.time()
     losses = train(model, train_ids, args.steps, args.block, args.batch, args.lr, gen, tiled=True, log_every=500, warmup=100, label=f"{substrate} {kind}={value} s{seed}")
     wall = time.time() - t0
@@ -76,8 +84,11 @@ def run_one(kind, value, substrate, seed, vocab, train_ids, val_ids, code_ids, a
            "train_loss_last100": float(np.mean(losses[-100:])), "train_curve": losses[::max(1, len(losses) // 150)],
            "val_noisy": val_noisy, "val_clean": val_clean, "python_noisy": py_noisy, "python_clean": py_clean,
            "gap_noisy": py_noisy - val_noisy, "gap_clean": py_clean - val_clean,
-           "writes_per_device_total": rep.get("writes_per_device_total", 0.0), "n_modulate": rep.get("n_modulate", 0), "wall_s": wall}
+           "writes_per_device_total": rep.get("writes_per_device_total", 0.0), "n_modulate": rep.get("n_modulate", 0), "wall_s": wall,
+           "dial_clip": clip, "linear_sigma_r": float(tiles[0].primitive_log[0]["sigma_r"]) if (clip and tiles and tiles[0].primitive_log) else sigma}
     print(f"  {substrate} {kind}={value} seed {seed}: train {out['train_loss_last100']:.3f} val {val_noisy:.3f} (clean {val_clean:.3f}) python {py_noisy:.3f} gap {out['gap_noisy']:.3f} | {wall:.0f}s", flush=True)
+    if keep_model:
+        return out, model
     del model
     return out
 
@@ -125,7 +136,7 @@ def summarize_runs(runs, seeds, args):
             H[f"sigma_star_{key}"] = bootstrap_argmin(get(key), SIGMAS)
         for key in ("gap_noisy", "gap_clean"):
             H[f"shift_gap_{key}"] = bootstrap_slope(get(key), SIGMAS)
-        dp = all(any(r["substrate"] == sub and r["kind"] == "dropout" and r["value"] == p and r["seed"] == sd for r in runs) for p in DROPOUTS for sd in range(seeds))
+        dp = bool(DROPOUTS) and all(any(r["substrate"] == sub and r["kind"] == "dropout" and r["value"] == p and r["seed"] == sd for r in runs) for p in DROPOUTS for sd in range(seeds))
         if dp:
             P = [0.0] + DROPOUTS
             getp = lambda key: [[next(r[key] for r in runs if r["substrate"] == sub and r["seed"] == sd and ((r["kind"] == "sigma" and r["value"] == 0.0) if p == 0.0 else (r["kind"] == "dropout" and r["value"] == p))) for p in P] for sd in range(seeds)]
@@ -177,9 +188,13 @@ def main():
     ap.add_argument("--resummarize", action="store_true")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--sigmas", type=str, default=None, help="comma list overriding SIGMAS (the tested grid; sigma* and the slope use it)")
+    ap.add_argument("--dropouts", type=str, default=None, help="comma list overriding DROPOUTS; '' for none")
+    ap.add_argument("--float-unclipped", action="store_true", help="float32 reference: set sigma_r directly instead of through the clipped dial (2026-10-23 fix)")
     ap.add_argument("--sigmas-beyond", type=str, default=None, help="comma list overriding SIGMAS_BEYOND (diagnostic only); '' for none")
     args = ap.parse_args()
-    global SIGMAS, SIGMAS_BEYOND
+    global SIGMAS, SIGMAS_BEYOND, DROPOUTS
+    if args.dropouts is not None:
+        DROPOUTS = [float(x) for x in args.dropouts.split(",") if x.strip()]
     if args.sigmas is not None:
         SIGMAS = [float(x) for x in args.sigmas.split(",")]
     if args.sigmas_beyond is not None:

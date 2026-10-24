@@ -21,6 +21,8 @@ sub() {
     cpu1h) opts+=(-p comp01 -q comp -c 32) ;;
     gpu) opts+=(-p gpu72 -q gpu -c 24 --gres=gpu:1) ;;
     gpu6) opts+=(-p gpu06 -q gpu -c 24 --gres=gpu:1) ;;
+    agpu6) opts+=(-p agpu06 -q gpu -c 24 --gres=gpu:1) ;;
+    cpu6) opts+=(-p comp06 -q comp -c 32) ;;
   esac
   sbatch --parsable --export=NONE -N1 -n1 -t "$t" -J "bpu-$name" -o "logs/hpcc/$name-%j.out" "${opts[@]}" \
     --wrap "$PRE; echo \"== \$(hostname) \$(date)\"; $*; echo \"== done rc=\$? \$(date)\""
@@ -62,6 +64,22 @@ extras)
   # E8 has no --device (CPU only; MONDAY.md said 1 GPU, corrected): a whole comp72 node
   sub e8-full cpu 72:00:00 -- "python e8_nanogpt_tiles.py --d 384 --layers 6 --heads 6 --steps 5000 --ft-steps 1000 --seeds 3 --threads 32 --out results/e8_full"
   ;;
-*) echo "usage: bash scripts/hpcc/submit.sh smoke|queue|e11-bracket2|e11-full-bracket|extras"; exit 2 ;;
+e11cal)
+  # MONDAY2 #1 (2026-10-23): E11-cal on a V100 (E11 kept no checkpoints, so the sigma = 0 arms are retrained; ~2 h), then the
+  # unclipped float32 reruns above the dial top (the dial clipped every float32 arm > 0.2 to 0.2 on the Linear layers)
+  cal=$(sub e11cal gpu6 5:50:00 -- "python e11cal_noise_calibration.py --device cuda --threads 8"); echo "e11cal $cal"
+  u1=$(sub e11-unclip-small gpu6 5:50:00 --dependency=afterany:$cal -- "python e11_regularization.py --device cuda --threads 8 --substrates float32 --sigmas 0.3,0.4,0.5,0.7,1.0,1.4,2.0,3.0 --sigmas-beyond '' --dropouts '' --seeds 5 --float-unclipped --out results/e11_f32_unclipped"); echo "unclip-small $u1"
+  u2=$(sub e11-unclip-full gpu6 5:50:00 --dependency=afterany:$u1 -- "python e11_regularization.py --device cuda --threads 8 --substrates float32 --sigmas 0.3,0.4,0.5,0.7,1.0,1.4 --sigmas-beyond '' --dropouts '' --seeds 10 --train-frac 1.0 --steps 5000 --float-unclipped --out results/e11_full_f32_unclipped; python e11cal_noise_calibration.py --analyze"); echo "unclip-full $u2"
+  ;;
+e1fix)
+  # MONDAY2 #2 (2026-10-23): E1-fix + E16, two V100 lanes of 6 h, each followed by one resume job (finished arms are skipped)
+  A="deploy,ft_float32_s0_n1200,ft_float32_s0.02_n1200,ft_float32_s0.04_n1200,ft_float32_s0.06_n1200,ft_float32_s0_n2000,ft_float32_s0.02_n2000,ft_float32_s0.04_n2000,ft_float32_s0.06_n2000,onchip_s0.04_n2000"
+  B="ft_tiles_s0.04_n2000,ft_tiles_s0.04_n1200,ft_tiles_s0.02_n1200,ft_tiles_s0.06_n1200,ft_tiles_s0.02_n2000,ft_tiles_s0.06_n2000"
+  a1=$(sub e1fix-a gpu6 5:55:00 -- "python e1fix_gpt2_deploy.py --device cuda --arms $A"); echo "e1fix-a $a1"
+  a2=$(sub e1fix-a2 gpu6 5:55:00 --dependency=afterany:$a1 -- "python e1fix_gpt2_deploy.py --device cuda --arms $A"); echo "e1fix-a2 $a2"
+  b1=$(sub e1fix-b gpu6 5:55:00 -- "python e1fix_gpt2_deploy.py --device cuda --arms $B"); echo "e1fix-b $b1"
+  b2=$(sub e1fix-b2 gpu6 5:55:00 --dependency=afterany:$b1 -- "python e1fix_gpt2_deploy.py --device cuda --arms $B"); echo "e1fix-b2 $b2"
+  ;;
+*) echo "usage: bash scripts/hpcc/submit.sh smoke|queue|e11-bracket2|e11-full-bracket|extras|e11cal|e1fix|e15-data|e15-timing|e15"; exit 2 ;;
 esac
 squeue -u "$USER" -o "%.10i %.16j %.8P %.8T %.10M %R"
