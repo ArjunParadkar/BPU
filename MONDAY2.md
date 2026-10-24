@@ -50,3 +50,10 @@ cancelled). Nothing else is submitted. Ready or being prepared locally, not subm
 If the answer is no, the queued jobs 1366759–1366764 can be cancelled by Arjun (`scancel` by ID only).
 
 ## E15 (next): see the section below once the timing job reports
+
+## Correction published (2026-10-23 ~23:45 CDT)
+Dated corrections beside the old text in DECISIONS.md (round-three E11 protocol and outcome, HPCC decisions and
+outcomes, new section "Correction 2026-10-23"), README (HPCC table, round-three row) and the page generator (header
+banner, HPCC section box, float32 rows chipped WITHDRAWN, E11 section note); code fix + test in f1260d0, synced to
+~/bpusim on Pinnacle before any queued job started (the queued reruns use the fixed path; E11-cal reproduces the old
+clip explicitly with --legacy-dial-clip). Results page v10, status page v4.
