@@ -98,7 +98,7 @@ def measure_part(regime, substrate, seed, train_sigma, args, data):
     shakes, code, vocab = data
     R = REGIMES[regime]
     a = argparse.Namespace(steps=R["steps"], batch=32, block=128, lr=1e-3, train_frac=R["train_frac"], eval_batches=40, step_seconds=0.01,
-                           device=args.device, smoke=args.smoke)
+                           device=args.device, smoke=args.smoke, legacy_dial_clip=True)   # retrain exactly as E11 ran
     if args.smoke:
         a.steps, a.eval_batches = 20, 2
     n = int(0.9 * len(shakes)); train_ids = shakes[:int(n * a.train_frac)]; val_ids = shakes[n:]

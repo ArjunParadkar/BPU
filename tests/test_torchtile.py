@@ -130,3 +130,25 @@ def test_default_readout_is_layer_8bit_auto():
     y = t(x); y_ideal = x @ t.W
     assert (y - y_ideal).abs().max() <= float(y_ideal.abs().max()) / 128 + 1e-6   # within one 8-bit step
     assert t.site in t.readout.ranges
+
+
+def test_float_reference_noise_is_not_clipped_by_the_dial():
+    """2026-10-23: the MODULATE dial clips device tiles to [0.005, 0.2]; the float32 reference has no dial.
+    Before the fix the reference was clipped too, so every E11 float32 arm above 0.2 ran at 0.2."""
+    import sys, pathlib
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "experiments"))
+    from e11_regularization import set_all_noise
+    from e8_nanogpt_tiles import GPT
+    f = TileLinear(8, 8, sigma=0.0, split=(0, 0, 1), write_mode="float")
+    assert f.set_noise(1.0) == 1.0 and f.sigma_r == 1.0 and not f.primitive_log[-1]["clipped"]
+    d = TileLinear(8, 8, sigma=0.0, split=(0, 0, 1))
+    assert d.set_noise(1.0) == 0.2 and d.primitive_log[-1]["clipped"]
+    for wm, legacy, expect in (("float", False, 0.7), ("nearest_pulse", False, 0.7), ("float", True, 0.2), ("nearest_pulse", True, 0.2)):
+        m = GPT(11, 16, 1, 2, 8, 0.0, None, seed=0, tile_kw=dict(split=(0.0, 0.0, 1.0), write_mode=wm))
+        set_all_noise(m, 0.7, 0.0, legacy_clip=legacy)
+        assert all(abs(t.sigma_r - expect) < 1e-12 for t in m.modules() if isinstance(t, TileLinear)), (wm, legacy)
+        assert all(b.attn_sigma_r == 0.7 for b in m.blocks)
+    from bpusim.tile import FloatTile
+    import numpy as np
+    ft = FloatTile(4, 4, np.random.default_rng(0))
+    assert ft.set_noise(0.9) == 0.9

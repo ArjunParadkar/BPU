@@ -33,7 +33,7 @@ import numpy as np
 import torch
 
 from common import base_parser, save_results, figure_path, Timer, load_results
-from bpusim.torchtile import tile_modules, write_budget_report
+from bpusim.torchtile import TileLinear, tile_modules, write_budget_report
 from bpusim.noise import summarize
 from e8_nanogpt_tiles import GPT, get_batch, train, evaluate, load_text
 from e9_trainability import load_corpora
@@ -43,15 +43,25 @@ SIGMAS_BEYOND = [0.3]                              # beyond-dial diagnostic, exc
 DROPOUTS = [0.1, 0.3, 0.5]        # p = 0 is the sigma = 0 arm
 
 
-def set_all_noise(model, sigma, dropout, clip=True):
-    """clip=True: the MODULATE dial (set_noise clips to [0.005, 0.2], on the float32 reference too: every
-    arm above 0.2 before 2026-10-23 ran its Linear layers at 0.2, only the attention cache at sigma).
-    clip=False (--float-unclipped, float32 reference only): sigma_r set directly."""
+def set_all_noise(model, sigma, dropout, legacy_clip=False):
+    """Read noise sigma on every tile and on the attention cache, dropout p on every tile.
+
+    Since 2026-10-23: inside the dial (sigma <= 0.2) device tiles are set through the MODULATE primitive
+    (set_noise); above it (the beyond-dial diagnostic) sigma_r is set directly, and the float32 reference is
+    never clipped (TileLinear.set_noise fix).  legacy_clip=True reproduces what E11 ran before the fix: the
+    dial clipped EVERY Linear layer, float32 reference included, to [0.005, 0.2], while the attention cache
+    followed sigma (used by E11-cal to calibrate the arms as run)."""
+    lo, hi = TileLinear.MODULATE_RANGE
     for t in tile_modules(model):
-        if clip:
+        if legacy_clip:
+            t.set_noise(sigma)
+            if t.float_weights and sigma != 0.0:
+                t.sigma_r = float(min(max(sigma, lo), hi))
+        elif sigma <= hi:
             t.set_noise(sigma)
         else:
             t.sigma_r = float(sigma)
+            t.primitive_log.append({"primitive": "BEYOND_DIAL", "call": t.n_acc_calls, "sigma_r": float(sigma)})
         t.set_dropout(dropout)
     for b in model.blocks:
         b.attn_sigma_r = sigma
@@ -69,8 +79,9 @@ def run_one(kind, value, substrate, seed, vocab, train_ids, val_ids, code_ids, a
     tile_kw = dict(split=(0.0, 0.0, 1.0), write_mode="float" if substrate == "float32" else "nearest_pulse")
     # sigma = 0 on tiles still needs a device model: TileLinear treats sigma=0 as devices without noise
     model = GPT(vocab, 192, 6, 6, args.block, sigma, None, seed=seed, tile_kw=tile_kw).to(args.device)
-    clip = not (substrate == "float32" and getattr(args, "float_unclipped", False))
-    set_all_noise(model, sigma, p_drop, clip=clip)
+    legacy = bool(getattr(args, "legacy_dial_clip", False))
+    set_all_noise(model, sigma, p_drop, legacy_clip=legacy)
+    lin_sr = float(tile_modules(model)[0].sigma_r)          # what the Linear layers actually ran at
     t0 = time.time()
     losses = train(model, train_ids, args.steps, args.block, args.batch, args.lr, gen, tiled=True, log_every=500, warmup=100, label=f"{substrate} {kind}={value} s{seed}")
     wall = time.time() - t0
@@ -85,7 +96,7 @@ def run_one(kind, value, substrate, seed, vocab, train_ids, val_ids, code_ids, a
            "val_noisy": val_noisy, "val_clean": val_clean, "python_noisy": py_noisy, "python_clean": py_clean,
            "gap_noisy": py_noisy - val_noisy, "gap_clean": py_clean - val_clean,
            "writes_per_device_total": rep.get("writes_per_device_total", 0.0), "n_modulate": rep.get("n_modulate", 0), "wall_s": wall,
-           "dial_clip": clip, "linear_sigma_r": float(tiles[0].primitive_log[0]["sigma_r"]) if (clip and tiles and tiles[0].primitive_log) else sigma}
+           "legacy_dial_clip": legacy, "linear_sigma_r": lin_sr}
     print(f"  {substrate} {kind}={value} seed {seed}: train {out['train_loss_last100']:.3f} val {val_noisy:.3f} (clean {val_clean:.3f}) python {py_noisy:.3f} gap {out['gap_noisy']:.3f} | {wall:.0f}s", flush=True)
     if keep_model:
         return out, model
@@ -189,7 +200,8 @@ def main():
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--sigmas", type=str, default=None, help="comma list overriding SIGMAS (the tested grid; sigma* and the slope use it)")
     ap.add_argument("--dropouts", type=str, default=None, help="comma list overriding DROPOUTS; '' for none")
-    ap.add_argument("--float-unclipped", action="store_true", help="float32 reference: set sigma_r directly instead of through the clipped dial (2026-10-23 fix)")
+    ap.add_argument("--float-unclipped", action="store_true", help="kept for the queued 2026-10-23 command lines; since the set_noise fix the float32 reference is never clipped (no-op)")
+    ap.add_argument("--legacy-dial-clip", action="store_true", help="reproduce the pre-2026-10-23 behaviour (every Linear clipped to the dial, float32 too)")
     ap.add_argument("--sigmas-beyond", type=str, default=None, help="comma list overriding SIGMAS_BEYOND (diagnostic only); '' for none")
     args = ap.parse_args()
     global SIGMAS, SIGMAS_BEYOND, DROPOUTS

@@ -336,7 +336,11 @@ class TileLinear(nn.Module):
         assert not self.ideal, "an ideal layer has no read noise to modulate"
         lo, hi = self.MODULATE_RANGE
         v = float(sigma_r); clipped = v != 0.0 and (v < lo or v > hi)
-        if v != 0.0:
+        if self.float_weights:
+            # 2026-10-23 fix: the float32 REFERENCE has no dial, so its injected noise is not clipped (until this
+            # date it was, and every E11 float32 arm above 0.2 ran its Linear layers at 0.2; DECISIONS.md)
+            clipped = False
+        elif v != 0.0:
             v = float(min(max(v, lo), hi))
         self.sigma_r = v
         self.primitive_log.append({"primitive": "MODULATE", "call": self.n_acc_calls, "sigma_r": v, "clipped": clipped})

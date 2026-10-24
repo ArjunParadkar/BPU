@@ -20,6 +20,8 @@ import pathlib
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+# dated correction, 2026-10-23 (round four); shown beside the old text, never instead of it
+CLIP_CORRECTION = ('Correction 2026-10-23 (round four): the MODULATE dial clipped the float32 reference. TileLinear.set_noise clips to the dial range [0.005, 0.2], and E11 set the float32 reference through it as well, so every E11 arm with σ > 0.2 ran its Linear layers (qkv, proj, fc, fc2, head) at σ_r = 0.2 and only the attention-cache read noise followed σ. Affected arms: every float32 arm above 0.2, i.e. results/e11 (0.3, the beyond-dial point), results/e11_f32_bracket (0.3, 0.4, 0.5, 0.7, 1.0, 1.4, 2.0, 3.0) and results/e11_full_f32 (0.3, 0.4, 0.5, 0.7, 1.0, 1.4); and the tiles\' beyond-dial 0.3 point (results/e11, results/e11_full_tiles), a diagnostic that was already excluded from σ* and the slope. WITHDRAWN pending the unclipped reruns (jobs 1366759 / 1366760, results/e11_f32_unclipped, results/e11_full_f32_unclipped): the float32 optima σ* = 1.0 (small data) and 0.4 (full data), the claim that the float32 optimum sits about 10x above the tile optimum ("an order of magnitude less injected noise"), the float32 shift-gap slopes over the extended grids (−0.16 to σ 3.0, −0.66 to 1.4) and every float32 or tiles value quoted at σ ≥ 0.3. Unaffected: every arm at σ ≤ 0.2 on both substrates. The tiles σ* = 0.1 (small data) and σ* = 0.04 (full data) stand: both were taken over the dial grid 0–0.2, which contains no clipped point; the 0.3 point was not in the grid, and the full-data bootstrap put all its mass on 0.04 (CI 0.04..0.04). The tiles shift-gap slopes, the twin gaps inside the dial and the dropout arms stand, and so does the round-three statement that the float32 minimum is not reached inside the dial (σ* = 0.2 on the dial top, small and full data). Code fixed the same day: the float32 reference is never clipped (TileLinear.set_noise, FloatTile.set_noise), device values beyond the dial are set directly as a diagnostic (e11_regularization.set_all_noise), --legacy-dial-clip reproduces the old behaviour for E11-cal, and tests/test_torchtile.py::test_float_reference_noise_is_not_clipped_by_the_dial checks both. No other experiment was affected: E12 stays inside the dial, E13 and E14 set beyond-dial values directly.')
 RES = ROOT / "results"
 FIG = ROOT / "figures"
 
@@ -90,7 +92,7 @@ def main():
         res = (f"tiles: σ* = {a['star']:g} (CI {a['ci95'][0]:g}..{a['ci95'][1]:g}; per-seed {a['per_seed_argmin']}), val loss " + ", ".join(f"σ {sg:g}: {fmt(S['tiles'][f'sigma={sg:g}']['val_clean']['mean'])}" for sg in e11["sigmas"]) +
                f"; shift gap {g['gap_at_zero']:.3f} → {g['gap_at_max']:.3f} (slope {g['slope_per_unit_sigma']:+.2f}, CI {g['ci95'][0]:+.2f}..{g['ci95'][1]:+.2f}, {g['seeds_negative']}/{e11['seeds']} seeds narrowing)" +
                (f"; dropout p* = {t['p_star_val_clean']['star']:g}" if "p_star_val_clean" in t else "") +
-               (f" | float32: σ* = {f['sigma_star_val_clean']['star']:g} (CI {f['sigma_star_val_clean']['ci95'][0]:g}..{f['sigma_star_val_clean']['ci95'][1]:g}), gap slope {f['shift_gap_gap_clean']['slope_per_unit_sigma']:+.2f}" if f.get("complete") else ""))
+               (f" | float32: σ* = {f['sigma_star_val_clean']['star']:g} (CI {f['sigma_star_val_clean']['ci95'][0]:g}..{f['sigma_star_val_clean']['ci95'][1]:g}), gap slope {f['shift_gap_gap_clean']['slope_per_unit_sigma']:+.2f}" if f.get("complete") else "") + " [2026-10-23: the beyond-dial 0.3 arms ran their Linear layers at 0.2 (dial clip); the σ* and slopes above use only the dial grid and stand]")
         ok1, ok2 = e11["verdict"]["sigma_star_positive_with_ci"], e11["verdict"]["shift_gap_narrows_with_ci"]
         st = chip("ok" if ok1 else "nul", "σ* > 0" if ok1 else "σ* = 0 / CI includes 0") + " " + chip("ok" if ok2 else "nul", "gap narrows" if ok2 else "gap not narrowing")
         vrow("Regularisation: read noise / synapse dropout during training", "E11", "synaptic unreliability (release probability 0.1–0.9) as a built-in regulariser; dropout",
@@ -335,9 +337,9 @@ def main():
         t = R["e11_full_tiles"]; ok = t["verdict"]["sigma_star_positive_with_ci"]
         hrows.append(["E11 full data, tiles", f"{t['steps']} steps, 100 % of the text, {t['seeds']} seeds", esc(e11_star(t, "tiles") or "–"), chip("ok" if ok else "nul", "supported" if ok else "not supported")])
     if R["e11_full_f32"]:
-        hrows.append(["E11 full data, float32", f"grid to {max(R['e11_full_f32']['sigmas']):g}, {R['e11_full_f32']['seeds']} seeds", esc(e11_star(R["e11_full_f32"], "float32") or "–"), chip("ok", "bracketed")])
+        hrows.append(["E11 full data, float32", f"grid to {max(R['e11_full_f32']['sigmas']):g}, {R['e11_full_f32']['seeds']} seeds", esc(e11_star(R["e11_full_f32"], "float32") or "–"), chip("ok", "bracketed") + " " + chip("nul", "WITHDRAWN 2026-10-23: dial clip")])
     if R["e11_f32_bracket"]:
-        hrows.append(["E11 small data, float32", f"grid to {max(R['e11_f32_bracket']['sigmas']):g}, {R['e11_f32_bracket']['seeds']} seeds", esc(e11_star(R["e11_f32_bracket"], "float32") or "–"), chip("ok", "bracketed")])
+        hrows.append(["E11 small data, float32", f"grid to {max(R['e11_f32_bracket']['sigmas']):g}, {R['e11_f32_bracket']['seeds']} seeds", esc(e11_star(R["e11_f32_bracket"], "float32") or "–"), chip("ok", "bracketed") + " " + chip("nul", "WITHDRAWN 2026-10-23: dial clip")])
     for key, lab, cls, txt in (("e3_final50", "E3-final, 50 seeds", "nul", "null"), ("e5_ref20", "E5 programmed reference, 20 seeds", "ok", "reference"),
                                ("e5_selforg_np20", "E5 self-organisation 32×32, 20 seeds", "nul", "null"), ("e12_long", "E12, 50 000 trials", "part", "partial"),
                                ("e1_full", "E1 GPT-2 124M", "nul", "null")):
@@ -350,6 +352,7 @@ def main():
                        for f in ("e11_full_tiles", "e11_full_f32", "e11_f32_bracket", "e12_long", "e3_final50", "e5_selforg_np20", "e1_full") if (FIG / f"{f}.png").exists())
         hpcc = f'''<section id="hpcc"><div class="eyebrow">Arkansas HPCC (Pinnacle), 2026-10-22/23</div><h2>The MONDAY queue at cluster budgets</h2>
 <p>Ten jobs from MONDAY.md plus two bracket extensions, run on V100 GPUs and 32-core CPU nodes. The headline: the read-noise regulariser on tiles survives on the full training text (σ* = 0.04, against 0.1 on 10 % of the text), and in both regimes the float32 optimum sits about ten times higher (0.4 full, 1.0 small), so tiles reach the optimum with an order of magnitude less injected noise.</p>
+<div class="verdict">{esc(CLIP_CORRECTION)}<small>dated correction · DECISIONS.md "Correction 2026-10-23"</small></div>
 {htab}{figs}
 <p class="muted">Each row is read from results/&lt;run&gt;/results.json; the laptop runs above are kept unchanged as the record.</p></section>'''
 
@@ -364,6 +367,7 @@ def main():
         if H.get("tiles", {}).get("complete"):
             t = H["tiles"]
             notes.append(f"σ* on tiles: clean {t['sigma_star_val_clean']['star']:g} (bootstrap distribution {t['sigma_star_val_clean']['boot_distribution']}), as deployed {t['sigma_star_val_noisy']['star']:g}; shift-gap slope (clean) {t['shift_gap_gap_clean']['slope_per_unit_sigma']:+.2f} (CI {t['shift_gap_gap_clean']['ci95'][0]:+.2f}..{t['shift_gap_gap_clean']['ci95'][1]:+.2f}).")
+        notes.append(esc(CLIP_CORRECTION))
         if e11.get("twin_gap"):
             notes.append("Twin gap tiles vs float32 (val, clean read): " + ", ".join(f"{k} {pct(v['val_clean_gap_pct'])}" for k, v in e11["twin_gap"].items()))
         secs.append(section("e11", "E11 · regularisation", "Read noise and synapse dropout as regularisers, tiles vs float32", "e11_regularization.png", facts, e11["verdict"]["statement"], notes))
@@ -487,6 +491,7 @@ footer{{padding-block:24px;font-family:var(--mono);font-size:12px;color:var(--fg
 </style>
 <div class="wrap"><header><div class="eyebrow">BrAIn Processing Unit · simulator results · variability + substrate framing</div><h1>Variability, used the way the brain uses it — on a substrate that matches float32</h1>
 <p>The first scoreboard asks whether device variability does work for the computation (regularisation, exploration, stochastic resonance, sampling), each row with its brain analogue, the pre-registered hypothesis and the measured result; the read-noise dial (MODULATE), per-read dropout, nearest-pulse writes and the layer-accumulate 8-bit read-out are the four architecture changes of 2026-10-19. The second scoreboard keeps the substrate framing: the same algorithm on a float32 reference and on noisy tiles. Every number is read from <code>results/&lt;e&gt;/results.json</code>; BPU energy numbers are projections from the device model, the GPU control is measured.</p>
+<p class="chip nul" style="white-space:normal">Correction 2026-10-23: the float32 E11 optima above the dial (σ* 1.0 small data, 0.4 full data) and the "~10x the tile optimum" claim are WITHDRAWN. Every float32 arm above 0.2 was clipped to 0.2 on its Linear layers by the dial; unclipped reruns are queued. Details are in the HPCC section.</p>
 <div class="meta">generated {time.strftime("%Y-%m-%d %H:%M")} · repo ~/Desktop/Arenda_Projects/BrAInOS/bpusim · DECISIONS.md has every choice · MONDAY.md has the HPCC queue</div></header>
 <section id="variability"><div class="eyebrow">Variability, used the way the brain uses it</div><h2>Four mechanisms, E11–E14: mechanism, brain analogue, hypothesis, result, status</h2>{vscore}
 <p class="muted">tiles carry the device model (nearest-pulse writes, d2d / c2c where stated, write-verify); the float32 reference runs the identical algorithm with the same read noise or dropout injected on float weights. The dial's range is 0.005–0.2; "beyond the dial" levels are diagnostics, not chip settings.</p></section>

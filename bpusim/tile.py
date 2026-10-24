@@ -413,10 +413,9 @@ class FloatTile:
         self.W = np.clip(np.asarray(W_target, float), -1.0, 1.0).copy(); return 0
 
     def set_noise(self, sigma_r: float) -> float:
-        lo, hi = self.MODULATE_RANGE
-        v = float(sigma_r); clipped = v != 0.0 and (v < lo or v > hi)
-        if v != 0.0:
-            v = float(min(max(v, lo), hi))
+        """The float32 reference has no dial: the value is set as given (2026-10-23; before, it was clipped to
+        MODULATE_RANGE like a device tile; E13 / E14 set beyond-dial values directly and were not affected)."""
+        v = float(sigma_r); clipped = False
         self.sigma_r = v; self.n_modulate += 1
         self.primitive_log.append({"primitive": "MODULATE", "read_index": self.n_reads, "sigma_r": v, "clipped": clipped})
         return v

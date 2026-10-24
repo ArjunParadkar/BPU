@@ -862,7 +862,7 @@ seeds whose own slope is negative.
 *Grid extended 2026-10-20:* the first sweep (σ ≤ 0.1) put σ* = 0.1 on the edge of the grid for
 every seed on both substrates (val loss 3.37 → 2.28 on tiles, 3.58 → 3.01 float32, still falling),
 i.e. the minimum was not bracketed, so the sweep was extended to the top of the dial (0.15, 0.2)
-plus one beyond-dial diagnostic point (0.3, excluded from the σ* and slope tests); the 80 runs
+plus one beyond-dial diagnostic point (0.3, excluded from the σ* and slope tests) [2026-10-23: that point ran its Linear layers at 0.2, clipped by the dial, on both substrates; see "Correction 2026-10-23" at the end of this file]; the 80 runs
 on disk were kept and only the new arms were run (`bpu-e11b`).
 
 ### E12 exploration (`experiments/e12_exploration.py`)
@@ -1000,11 +1000,11 @@ smoothing; σ_r ∈ {0 … 0.2} + beyond-dial {0.3, 0.5, 0.7, 1.0}; tiles vs flo
   everything in 0.06–0.15 is within 6 % of the minimum, 0.2–0.3 within 4 %.  The float32 reference
   with the same read noise on float weights falls more slowly (3.580 → 3.008 at 0.1 → 2.471 at 0.2
   → 2.414 at 0.3): **σ* = 0.2 on the dial top** (CI 0.2..0.2), still improving beyond the dial, i.e.
-  the float32 minimum sits above 0.2.  The twin gap is therefore negative at every σ in the dial
+  the float32 minimum sits above 0.2 [2026-10-23: the 0.3 values, here and for tiles, ran the Linear layers at 0.2 (dial clip); "above 0.2" rests on the attention-cache noise alone until the unclipped rerun reports].  The twin gap is therefore negative at every σ in the dial
   (tiles −6 % at σ 0, −26 % at 0.06, −4 % at 0.2, −2 % at 0.3): the tiles carry variability of
   their own even with the dial off (nearest-pulse quantisation, c2c on every read, 8-bit read-out),
   which shifts the whole curve to the left by roughly 0.1 of σ [HPCC 2026-10-23: the float32 bracket puts its
-  optimum at σ* = 1.0, so the shift is about 0.9 of σ, a factor of ~10; see "HPCC runs"] — the substrate is already part
+  optimum at σ* = 1.0, so the shift is about 0.9 of σ, a factor of ~10; see "HPCC runs"] [2026-10-23: WITHDRAWN, the bracket arms above 0.2 were clipped to 0.2 on the Linear layers; see "Correction 2026-10-23"] — the substrate is already part
   of the way to the optimum, and the dial finishes the job.  Train loss at σ = 0 is 0.58 (tiles) /
   0.44 (float32) against val 3.4 / 3.6, so σ = 0 is the overfitting regime the protocol asked for;
   at σ* train is 1.46 / 1.09.  Deployed (noise-on) val tracks clean val to within 2 % up to σ = 0.1
@@ -1062,6 +1062,7 @@ Decisions taken while running:
   0,0.1,0.2,0.3,0.4,0.5,0.7,1.0,1.4,2.0,3.0`), full data to 1.4. Extending a grid until the optimum is interior is not a
   threshold change: σ* is defined as the argmin over the grid, and an edge argmin is only a bound.
 * E8 has no `--device` and runs on CPU only; MONDAY.md had listed it as a GPU job (corrected).
+* [2026-10-23] Both extensions above 0.2 were clipped to 0.2 on the Linear layers by the dial; see "Correction 2026-10-23" below.
 
 ### Outcomes
 * **E11, full data, tiles (`results/e11_full_tiles`, 5000 steps, 100 % of the text, 10 seeds): SUPPORTED.** σ* = 0.04
@@ -1069,11 +1070,15 @@ Decisions taken while running:
   The shift gap narrows on 10/10 seeds, slope −12.52 nats per unit σ (CI −12.76..−12.31). The regulariser survives
   outside the small-data regime, with a smaller optimum than on 10 % of the text (0.04 vs 0.1), as expected when the
   model overfits less. Dropout p* = 0.1 (CI 0..0.1).
+  [2026-10-23: unaffected by the dial clip: the σ* grid is 0–0.2 and contains no clipped point; only the excluded
+  beyond-dial 0.3 diagnostic was clipped.]
 * **E11, float32 brackets.** Small data: σ* = 1.0 (CI 1..1; per-seed [1.0, 0.7, 1.0, 1.0, 1.0]); full data: σ* = 0.4
   (CI 0.3..0.5). In both regimes the float32 optimum sits about 10x above the tile optimum (1.0 vs 0.1; 0.4 vs 0.04).
   The round-three wording "tiles reach the optimum at half the injected noise" was a lower bound and is replaced by
   "about an order of magnitude less injected noise". Mechanism (not tested here): the tile path already carries
   quantisation and write noise, so less injected read noise is needed to reach the same effective regularisation.
+  **[2026-10-23: WITHDRAWN. Every arm of both brackets above 0.2 ran its Linear layers at 0.2 (dial clip); the optima
+  1.0 and 0.4 and the ~10x are optima over attention-cache noise only. See "Correction 2026-10-23".]**
 * **E3-final, 50 seeds (`results/e3_final50`): null, now a bound.** 0/8 mismatched conditions show a significant U in
   tracking error vs dynamic noise; 4/8 conditions are pinned (σ = 0 error > 1.5x the float32 reference) and 0 of those
   are U-shaped.
@@ -1094,3 +1099,7 @@ Decisions taken while running:
   segments sgd_bpu met the criterion (+2.1 %), so the round-three E9 "met" holds only at that segment length; the gap
   grows when each segment is trained longer. Reported as a negative beside the laptop result, not replacing it.
 * E8 at full size (CPU, `results/e8_full`) is running.
+
+## Correction 2026-10-23
+
+**Correction 2026-10-23 (round four): the MODULATE dial clipped the float32 reference.** `TileLinear.set_noise` clips to the dial range [0.005, 0.2], and E11 set the float32 reference through it as well, so every E11 arm with σ > 0.2 ran its Linear layers (qkv, proj, fc, fc2, head) at σ_r = 0.2 and only the attention-cache read noise followed σ. Affected arms: every float32 arm above 0.2, i.e. `results/e11` (0.3, the beyond-dial point), `results/e11_f32_bracket` (0.3, 0.4, 0.5, 0.7, 1.0, 1.4, 2.0, 3.0) and `results/e11_full_f32` (0.3, 0.4, 0.5, 0.7, 1.0, 1.4); and the tiles' beyond-dial 0.3 point (`results/e11`, `results/e11_full_tiles`), a diagnostic that was already excluded from σ* and the slope. **WITHDRAWN pending the unclipped reruns** (jobs 1366759 / 1366760, `results/e11_f32_unclipped`, `results/e11_full_f32_unclipped`): the float32 optima σ* = 1.0 (small data) and 0.4 (full data), the claim that the float32 optimum sits about 10x above the tile optimum ("an order of magnitude less injected noise"), the float32 shift-gap slopes over the extended grids (−0.16 to σ 3.0, −0.66 to 1.4) and every float32 or tiles value quoted at σ ≥ 0.3. **Unaffected:** every arm at σ ≤ 0.2 on both substrates. The tiles σ* = 0.1 (small data) and σ* = 0.04 (full data) stand: both were taken over the dial grid 0–0.2, which contains no clipped point; the 0.3 point was not in the grid, and the full-data bootstrap put all its mass on 0.04 (CI 0.04..0.04). The tiles shift-gap slopes, the twin gaps inside the dial and the dropout arms stand, and so does the round-three statement that the float32 minimum is not reached inside the dial (σ* = 0.2 on the dial top, small and full data). Code fixed the same day: the float32 reference is never clipped (`TileLinear.set_noise`, `FloatTile.set_noise`), device values beyond the dial are set directly as a diagnostic (`e11_regularization.set_all_noise`), `--legacy-dial-clip` reproduces the old behaviour for E11-cal, and `tests/test_torchtile.py::test_float_reference_noise_is_not_clipped_by_the_dial` checks both. No other experiment was affected: E12 stays inside the dial, E13 and E14 set beyond-dial values directly.

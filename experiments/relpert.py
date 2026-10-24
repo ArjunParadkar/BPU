@@ -31,10 +31,12 @@ from bpusim.torchtile import TileLinear, tile_modules
 
 
 def set_noise_as_run(model, sigma):
-    """What E11 did (``e11_regularization.set_all_noise``): the MODULATE dial on every tile (clipped to
-    [0.005, 0.2], on the float32 reference too) and the attention cache at sigma (not clipped)."""
+    """What E11 ran before the 2026-10-23 fix: every Linear layer at sigma clipped to the dial [0.005, 0.2]
+    (the float32 reference too) and the attention cache at sigma (not clipped).  Set directly, so it does not
+    depend on set_noise's current behaviour."""
+    lo, hi = TileLinear.MODULATE_RANGE
     for t in tile_modules(model):
-        t.set_noise(sigma); t.set_dropout(0.0)
+        t.sigma_r = float(min(max(sigma, lo), hi)) if sigma != 0.0 else 0.0; t.dropout = 0.0
     for b in model.blocks:
         b.attn_sigma_r = sigma
 
