@@ -88,3 +88,28 @@ outcomes, new section "Correction 2026-10-23"), README (HPCC table, round-three 
 banner, HPCC section box, float32 rows chipped WITHDRAWN, E11 section note); code fix + test in f1260d0, synced to
 ~/bpusim on Pinnacle before any queued job started (the queued reruns use the fixed path; E11-cal reproduces the old
 clip explicitly with --legacy-dial-clip). Results page v10, status page v4.
+
+## Results (2026-10-24): all seven round-four jobs COMPLETED, logs clean
+
+Elapsed times: e11cal 56 min, unclip-small 25 min, unclip-full 1 h 49 min, e1fix-a 2 h 04 min (+ resume 5 min),
+e1fix-b 1 h 30 min (+ resume 7 min). Every log was read: no tracebacks, NaN or OOM. The full write-up is in DECISIONS.md
+"Round four outcomes (2026-10-24)".
+
+| Exp | Pre-registered criterion | Outcome |
+|---|---|---|
+| E11 float32, corrected (unclipped above 0.2) | σ* = argmin of the seed-mean clean val loss, bootstrap CI | small data σ* **0.4** (CI 0.4–0.4), full data σ* **0.2** (CI 0.2–0.2): **4× and 5×** the tiles' σ* 0.1 / 0.04, not ~10× (the CIs are over coarse grid points; neighbouring points allow ~2–8× / ~2.5–15×). The withdrawn 1.0 / 0.4 / ~10x are replaced |
+| E11-cal | R CI contains 1 and 0.5 ≤ R ≤ 2, in both regimes (as run) | **does NOT line up**: small R 1.15 (1.13–1.16) fails, full R 1.03 (0.88–1.17) passes. With the corrected curve (secondary): small 1.01 (0.995–1.02), full 0.755 (0.74–0.77), still not both |
+| E1-fix + E16 | some arm at σ_device 0.04 within 3 % of its float32 reference | **NOT met**: every tile arm at 0.04 diverged; the best (fine-tune 2000 + dial-low + k 8) is +212 %. Tiles at σ 0 are already 156.6 vs 35.69 (zero-noise floor); float32 with the same noise fine-tunes to +0.4 % |
+
+Local analysis changes (reporting only): the E11-cal reproduction lookup now works on the laptop (the cluster had no
+`results/e11`), plus secondary blocks `ratio_unclipped` and `sigma_space_unclipped` and a fourth figure panel.
+
+## HANDOFF (2026-10-24)
+
+* Round four is finished except E15 / E17, which are still HELD (AHPCC "commercial usage is not allowed": Arjun decides).
+  Nothing new was submitted and nothing was cancelled. bpu-e8-full 1364798 (comp72) is still running; copy back
+  `results/e8_full` when it ends.
+* Pages: results page v12 at https://claude.ai/artifact/9C4QR3DKLAnQQkuxpKyHnc; status page updated at
+  https://claude.ai/artifact/RHXMs9bjcVxud9PdZVXZpn.
+* Open, not submitted: decompose the E1-fix zero-noise tile floor (programming residual vs 8-bit converter); measure
+  write quantisation, the remaining E11-cal candidate.

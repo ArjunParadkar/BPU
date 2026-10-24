@@ -112,7 +112,35 @@ def main():
                     "H1: tiles σ* > 0 with a CI excluding 0. H2: σ* in [0.02, 0.06]. H3: tiles at σ* ≤ float32 at σ 0. H4: learn high / deploy low ≥ fixed σ*", st, ch])
     st, ch = lv_state(R["e17"])
     lv_rows.append(["E17", "Does the knowledge survive the noise? Compares the representations of the float32 σ 0 model and the tiles σ* model.", "Exploratory, no pass/fail: CKA > 0.8 at matched layers", st if R["e17"] else "optional, after E15", ch if R["e17"] else chip("pend", "optional")])
+    # 2026-10-24: round-four results in; one-paragraph readings beside the verdict statements (numbers from the JSON)
+    RESOLVED = ""
+    c = R["e11cal"]
+    if c and c.get("sigma_space_unclipped"):
+        su = c["sigma_space_unclipped"]; ru = c.get("ratio_unclipped", {}); ra = c["ratio"]
+        def one(g):
+            o = su[g]; f, t, q = o["float32"], o["tiles"], o["ratio"]
+            return (f"{g} data: float32 σ* {f['star']:g} (CI {f['ci95'][0]:g}–{f['ci95'][1]:g}, per-seed {f['per_seed_argmin']}) vs tiles σ* {t['star']:g} "
+                    f"(CI {t['ci95'][0]:g}–{t['ci95'][1]:g}): ratio {q['point']:.1f}× (CI {q['ci95'][0]:.1f}–{q['ci95'][1]:.1f}); corrected float32 shift-gap slope "
+                    f"{f['shift_gap_clean']['slope_per_unit_sigma']:+.2f} (CI {f['shift_gap_clean']['ci95'][0]:+.2f}..{f['shift_gap_clean']['ci95'][1]:+.2f}, {f['shift_gap_clean']['seeds_negative']}/{f['n_seeds']} seeds narrowing)")
+        RESOLVED = ("Resolved 2026-10-24 (unclipped reruns 1366759 / 1366760; corrected float32 curve = original arms at σ ≤ 0.2 plus the unclipped arms above 0.2, same seeds, E11's own σ* rule): "
+                    + "; ".join(one(g) for g in ("small", "full") if g in su)
+                    + ". The float32 optimum is higher than the tiles' σ* by 4× (small data) and 5× (full data), not ~10×; on full data it sits at the dial top (0.2), not beyond it. "
+                    "The CIs are over grid points and the grids are coarse: neighbouring grid points would allow roughly 2–8× (small) and 2.5–15× (full). The withdrawn values (1.0 / 0.4, ~10×, slopes −0.16 / −0.66) stay withdrawn and are replaced by these.")
+        lv_rows[0][3] = (lv_rows[0][3] + f" || Secondary, with the corrected float32 curve: R = {ru['small']['R']:.2f} (CI {ru['small']['ci95'][0]:.2f}..{ru['small']['ci95'][1]:.2f}) small data, lines up; "
+                         f"R = {ru['full']['R']:.2f} (CI {ru['full']['ci95'][0]:.2f}..{ru['full']['ci95'][1]:.2f}) full data, does not. Neither the as-run (primary) nor the corrected analysis lines up in both regimes. "
+                         "Reproduction: retrained σ = 0 arms match E11 bit-for-bit (float32) or within 0.0013 (full-data tiles); the small-data tiles E11 arms ran on the laptop GPU and the V100 retrains differ by −0.21..+0.08 nats. " + RESOLVED)
+    f1 = R["e1fix"]
+    if f1 and f1.get("table"):
+        T = {t["arm"]: t for t in f1["table"]}
+        def g(a): return T.get(a, {}).get("ppl", float("nan"))
+        lv_rows[1][3] = (f"NOT met by the letter: every tile arm at σ_device 0.04 is above 2× its reference (diverged); the pre-registered combined arm (fine-tune 2000 + dial-low + k = 8) reaches {g('E16 fine-tune 2000 + dial-low k=8 (the pre-registered combined arm)'):.1f} against float32 {g('fine-tune float32 sigma=0 2000 steps'):.2f} (+{T['E16 fine-tune 2000 + dial-low k=8 (the pre-registered combined arm)']['gap_pct']:.0f} %). "
+                         f"The tile path is already diverged at σ = 0: deploy tiles σ 0 = {g('deploy tiles sigma=0'):.1f} vs float32 {f1['float32_pretrained_clean']:.2f} (programming residual + 8-bit read-out, no noise). "
+                         f"The same noise on float32 is handled: deploy σ 0.04 {g('deploy float32 sigma=0.04'):.1f} (+94 %), noise-aware fine-tune σ 0.04 × 2000 {g('fine-tune float32 sigma=0.04 2000 steps'):.2f} (+0.4 %). "
+                         f"E16: dial-low cuts the tile deploy at 0.04 from {g('E16 deploy averaging k=1'):.0f} to {g('E16 deploy dial-low k=1'):.0f} (k = 1), averaging k = 8 to {g('E16 deploy averaging k=8'):.0f} at 5.1× the read energy; after fine-tuning neither moves perplexity by more than 2 %. "
+                         "Reading: the limit is the zero-noise tile floor, not variability; decomposing it (programming residual vs converter) is the next step and is not submitted (hold). || " + lv_rows[1][3])
     lvbox = table_html(["Exp", "Question", "Pre-registered criterion", "Result", "Status"], [[f"<span class='id'>{esc(a)}</span>", esc(b), esc(c), esc(d), e] for a, b, c, d, e in lv_rows])
+    lvbox += "".join(f'<figure><img src="figures/{f}.png" alt="{esc(f)}"><figcaption>figures/{f}.png</figcaption></figure>'
+                     for f in ("e11cal_relpert", "e1fix_gpt2_deploy") if (FIG / f"{f}.png").exists())
     # ------------------------------------------------------------------ variability scoreboard (E11-E14): mechanism, brain analogue, hypothesis, result, status
     vrows = []
     def vrow(mech, exp, analogue, hyp, result, status):
@@ -373,6 +401,13 @@ def main():
         hrows.append(["E11 full data, float32", f"grid to {max(R['e11_full_f32']['sigmas']):g}, {R['e11_full_f32']['seeds']} seeds", esc(e11_star(R["e11_full_f32"], "float32") or "–"), chip("ok", "bracketed") + " " + chip("nul", "WITHDRAWN 2026-10-23: dial clip")])
     if R["e11_f32_bracket"]:
         hrows.append(["E11 small data, float32", f"grid to {max(R['e11_f32_bracket']['sigmas']):g}, {R['e11_f32_bracket']['seeds']} seeds", esc(e11_star(R["e11_f32_bracket"], "float32") or "–"), chip("ok", "bracketed") + " " + chip("nul", "WITHDRAWN 2026-10-23: dial clip")])
+    if R["e11cal"] and R["e11cal"].get("sigma_space_unclipped"):
+        for g, lab in (("small", "E11 small data, float32 corrected (unclipped above 0.2)"), ("full", "E11 full data, float32 corrected (unclipped above 0.2)")):
+            o = R["e11cal"]["sigma_space_unclipped"].get(g)
+            if o:
+                f = o["float32"]; sg = f["shift_gap_clean"]
+                hrows.append([lab, f"grid to {max(f['sigmas']):g}, {f['n_seeds']} seeds", esc(f"σ* = {f['star']:g} (CI {f['ci95'][0]:g}–{f['ci95'][1]:g}, per-seed {f['per_seed_argmin']}); {o['ratio']['point']:.1f}× the tiles σ* {o['tiles']['star']:g}; shift-gap slope {sg['slope_per_unit_sigma']:+.2f} (CI {sg['ci95'][0]:+.2f}..{sg['ci95'][1]:+.2f}, {sg['seeds_negative']}/{f['n_seeds']} seeds narrowing)"),
+                              chip("ok", "bracketed") + " " + chip("part", "replaces the withdrawn value")])
     for key, lab, cls, txt in (("e3_final50", "E3-final, 50 seeds", "nul", "null"), ("e5_ref20", "E5 programmed reference, 20 seeds", "ok", "reference"),
                                ("e5_selforg_np20", "E5 self-organisation 32×32, 20 seeds", "nul", "null"), ("e12_long", "E12, 50 000 trials", "part", "partial"),
                                ("e1_full", "E1 GPT-2 124M", "nul", "null")):
@@ -384,8 +419,9 @@ def main():
         figs = "".join(f'<figure><img src="figures/{f}.png" alt="{esc(f)}"><figcaption>figures/{f}.png</figcaption></figure>'
                        for f in ("e11_full_tiles", "e11_full_f32", "e11_f32_bracket", "e12_long", "e3_final50", "e5_selforg_np20", "e1_full") if (FIG / f"{f}.png").exists())
         hpcc = f'''<section id="hpcc"><div class="eyebrow">Arkansas HPCC (Pinnacle), 2026-10-22/23</div><h2>The MONDAY queue at cluster budgets</h2>
-<p>Ten jobs from MONDAY.md plus two bracket extensions, run on V100 GPUs and 32-core CPU nodes. The headline: the read-noise regulariser on tiles survives on the full training text (σ* = 0.04, against 0.1 on 10 % of the text), and in both regimes the float32 optimum sits about ten times higher (0.4 full, 1.0 small), so tiles reach the optimum with an order of magnitude less injected noise.</p>
+<p>Ten jobs from MONDAY.md plus two bracket extensions, run on V100 GPUs and 32-core CPU nodes. The headline: the read-noise regulariser on tiles survives on the full training text (σ* = 0.04, against 0.1 on 10 % of the text), and in both regimes the float32 optimum sits about ten times higher (0.4 full, 1.0 small), so tiles reach the optimum with an order of magnitude less injected noise. [2026-10-23: withdrawn, dial clip. 2026-10-24: corrected, 4× (small data, float32 σ* 0.4) and 5× (full data, float32 σ* 0.2); see the two boxes below.]</p>
 <div class="verdict">{esc(CLIP_CORRECTION)}<small>dated correction · DECISIONS.md "Correction 2026-10-23"</small></div>
+{('<div class="verdict">' + esc(RESOLVED) + '<small>resolution · DECISIONS.md "Round four outcomes (2026-10-24)"</small></div>') if RESOLVED else ''}
 {htab}{figs}
 <p class="muted">Each row is read from results/&lt;run&gt;/results.json; the laptop runs above are kept unchanged as the record.</p></section>'''
 
@@ -526,7 +562,8 @@ footer{{padding-block:24px;font-family:var(--mono);font-size:12px;color:var(--fg
 </style>
 <div class="wrap"><header><div class="eyebrow">BrAIn Processing Unit · simulator results · variability + substrate framing</div><h1>Variability, used the way the brain uses it — on a substrate that matches float32</h1>
 <p>The first scoreboard asks whether device variability does work for the computation (regularisation, exploration, stochastic resonance, sampling), each row with its brain analogue, the pre-registered hypothesis and the measured result; the read-noise dial (MODULATE), per-read dropout, nearest-pulse writes and the layer-accumulate 8-bit read-out are the four architecture changes of 2026-10-19. The second scoreboard keeps the substrate framing: the same algorithm on a float32 reference and on noisy tiles. Every number is read from <code>results/&lt;e&gt;/results.json</code>; BPU energy numbers are projections from the device model, the GPU control is measured.</p>
-<p class="chip nul" style="white-space:normal">Correction 2026-10-23: the float32 E11 optima above the dial (σ* 1.0 small data, 0.4 full data) and the "~10x the tile optimum" claim are WITHDRAWN. Every float32 arm above 0.2 was clipped to 0.2 on its Linear layers by the dial; unclipped reruns are queued. Details are in the HPCC section.</p>
+<p class="chip nul" style="white-space:normal">Correction 2026-10-23: the float32 E11 optima above the dial (σ* 1.0 small data, 0.4 full data) and the "~10x the tile optimum" claim are WITHDRAWN. Every float32 arm above 0.2 was clipped to 0.2 on its Linear layers by the dial. Details are in the HPCC section.</p>
+<p class="chip part" style="white-space:normal">Resolved 2026-10-24: the unclipped reruns put the float32 optimum at σ* 0.4 (small data) and 0.2 (full data), 4× and 5× the tiles' σ* (0.1 / 0.04), not ~10×. Round four: E11-cal does not line up (small R 1.15, full 1.03 as run), E1-fix + E16 not met (every tile arm at 0.04 diverged; the tile path is already at 4.4× float32 perplexity with no noise).</p>
 <div class="meta">generated {time.strftime("%Y-%m-%d %H:%M")} · repo ~/Desktop/Arenda_Projects/BrAInOS/bpusim · DECISIONS.md has every choice · MONDAY.md has the HPCC queue</div></header>
 <section id="learning-vs-knowing"><div class="eyebrow">Round four, 2026-10-23</div><h2>Learning vs knowing</h2>
 <p>Variability should help while structure is forming (training from scratch) and be suppressed once it has formed (deploying a trained model). The MODULATE dial is the neuromodulation analogue: high to learn, low to deploy. Prior art: dropout (Srivastava et al. 2014), weight-noise injection, noise-aware analog training (Joshi et al. 2020). The claim tested is that native MoS2 variability (2–6 %) sits at the regularisation optimum, together with the substrate results. It is not a claim that noise regularises in general.</p>

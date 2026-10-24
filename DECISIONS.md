@@ -1128,7 +1128,7 @@ Decisions taken while running:
   "about an order of magnitude less injected noise". Mechanism (not tested here): the tile path already carries
   quantisation and write noise, so less injected read noise is needed to reach the same effective regularisation.
   **[2026-10-23: WITHDRAWN. Every arm of both brackets above 0.2 ran its Linear layers at 0.2 (dial clip); the optima
-  1.0 and 0.4 and the ~10x are optima over attention-cache noise only. See "Correction 2026-10-23".]**
+  1.0 and 0.4 and the ~10x are optima over attention-cache noise only. See "Correction 2026-10-23".]** **[2026-10-24: corrected float32 σ* = 0.4 (small) and 0.2 (full), 4× and 5× the tile optimum; see "Round four outcomes (2026-10-24)".]**
 * **E3-final, 50 seeds (`results/e3_final50`): null, now a bound.** 0/8 mismatched conditions show a significant U in
   tracking error vs dynamic noise; 4/8 conditions are pinned (σ = 0 error > 1.5x the float32 reference) and 0 of those
   are U-shaped.
@@ -1148,8 +1148,91 @@ Decisions taken while running:
   dfa_bpu +201.7 %; local_bpu +181.9 %. No nearest-pulse arm is within 5 % of float32. With the laptop's 1000-step
   segments sgd_bpu met the criterion (+2.1 %), so the round-three E9 "met" holds only at that segment length; the gap
   grows when each segment is trained longer. Reported as a negative beside the laptop result, not replacing it.
-* E8 at full size (CPU, `results/e8_full`) is running.
+* E8 at full size (CPU, `results/e8_full`) is running. [2026-10-24: still running, job 1364798.]
 
 ## Correction 2026-10-23
 
 **Correction 2026-10-23 (round four): the MODULATE dial clipped the float32 reference.** `TileLinear.set_noise` clips to the dial range [0.005, 0.2], and E11 set the float32 reference through it as well, so every E11 arm with σ > 0.2 ran its Linear layers (qkv, proj, fc, fc2, head) at σ_r = 0.2 and only the attention-cache read noise followed σ. Affected arms: every float32 arm above 0.2, i.e. `results/e11` (0.3, the beyond-dial point), `results/e11_f32_bracket` (0.3, 0.4, 0.5, 0.7, 1.0, 1.4, 2.0, 3.0) and `results/e11_full_f32` (0.3, 0.4, 0.5, 0.7, 1.0, 1.4); and the tiles' beyond-dial 0.3 point (`results/e11`, `results/e11_full_tiles`), a diagnostic that was already excluded from σ* and the slope. **WITHDRAWN pending the unclipped reruns** (jobs 1366759 / 1366760, `results/e11_f32_unclipped`, `results/e11_full_f32_unclipped`): the float32 optima σ* = 1.0 (small data) and 0.4 (full data), the claim that the float32 optimum sits about 10x above the tile optimum ("an order of magnitude less injected noise"), the float32 shift-gap slopes over the extended grids (−0.16 to σ 3.0, −0.66 to 1.4) and every float32 or tiles value quoted at σ ≥ 0.3. **Unaffected:** every arm at σ ≤ 0.2 on both substrates. The tiles σ* = 0.1 (small data) and σ* = 0.04 (full data) stand: both were taken over the dial grid 0–0.2, which contains no clipped point; the 0.3 point was not in the grid, and the full-data bootstrap put all its mass on 0.04 (CI 0.04..0.04). The tiles shift-gap slopes, the twin gaps inside the dial and the dropout arms stand, and so does the round-three statement that the float32 minimum is not reached inside the dial (σ* = 0.2 on the dial top, small and full data). Code fixed the same day: the float32 reference is never clipped (`TileLinear.set_noise`, `FloatTile.set_noise`), device values beyond the dial are set directly as a diagnostic (`e11_regularization.set_all_noise`), `--legacy-dial-clip` reproduces the old behaviour for E11-cal, and `tests/test_torchtile.py::test_float_reference_noise_is_not_clipped_by_the_dial` checks both. No other experiment was affected: E12 stays inside the dial, E13 and E14 set beyond-dial values directly.
+
+**Resolved 2026-10-24** (unclipped reruns 1366759 / 1366760; corrected float32 curve = the original arms at σ ≤ 0.2 plus the unclipped arms above 0.2, same seeds, E11's own σ* rule): float32 σ* = 0.4 on small data (CI 0.4–0.4) and 0.2 on full data (CI 0.2–0.2), i.e. 4× and 5× the tiles' σ* (0.1 / 0.04), not ~10×; corrected float32 shift-gap slopes −1.15 (to σ 3.0) and −2.66 (to 1.4). The withdrawn values stay withdrawn; details in "Round four outcomes (2026-10-24)".
+
+
+## Round four outcomes (2026-10-24)
+
+All seven round-four jobs (1366758–1366764, V100, gpu06) COMPLETED with exit 0. Every log was read: no tracebacks, no
+NaN, no OOM. The only warnings are the tokenizer's "sequence longer than 1024" notice (the WikiText-2 validation text is
+tokenised in one piece and then cut into 512-token blocks, so it is harmless) and the transformers `loss_type=None` notice.
+The E1-fix lanes resumed cleanly: the resume jobs found every arm on disk, and lane A's summary, written last, is complete
+(16/16 arm groups). Results were copied back to `results/e11cal`, `results/e11_f32_unclipped`, `results/e11_full_f32_unclipped`
+and `results/e1fix`, and `--analyze` / `--summarize` were rerun locally (JSON only).
+
+Changes to the analysis made after the runs (reporting only; no criterion was touched):
+* `e11cal --analyze` looks up E11's own σ = 0 val loss locally when the cluster had no copy. The laptop `results/e11` was
+  never synced, so the job logged "E11 nan" for the small regime. The analysis now records the source directory and the
+  difference.
+* Secondary blocks were added to `results/e11cal/results.json`. `ratio_unclipped` is R with the corrected float32 curve,
+  using the same bootstrap as the primary. `sigma_space_unclipped` holds σ* of the corrected float32 curve by E11's own
+  rule, the tiles' σ* over their dial grid, the ratio with independent bootstrap resamples, and the corrected shift-gap
+  slopes. A fourth figure panel plots the corrected curves in σ.
+
+* **E11 float32, corrected (this resolves the WITHDRAWN σ* and the "~10x").** The corrected curve is the original arms at
+  σ ≤ 0.2 (`results/e11_f32_bracket`, `results/e11_full_f32`) plus the unclipped arms above 0.2 (`results/e11_f32_unclipped`,
+  `results/e11_full_f32_unclipped`), same seeds.
+  * Small data (5 seeds): σ* = 0.4 (CI 0.4–0.4; per-seed [0.4, 0.3, 0.4, 0.4, 0.4]). Val (clean) 3.502 at 0 → 2.262 at 0.4,
+    2.302 at 0.5, 3.370 at 3.0.
+  * Full data (10 seeds): σ* = 0.2 (CI 0.2–0.2; 7/10 seeds at 0.2, 3/10 at 0.3). Val 1.603 at 0 → 1.495 at 0.2, 1.501 at 0.3,
+    2.452 at 1.4.
+  * **The float32 optimum is higher than the tiles' σ*: 4× on small data (0.4 vs 0.1; bootstrap ratio CI 4.0–4.0, with
+    97.8 % of resamples at 4 and the rest at 2.7–3) and 5× on full data (0.2 vs 0.04; CI 5.0–5.0, 99.5 % at 5, 0.5 % at 7.5).
+    It is not ~10×.** These CIs are over grid points, and the grids are coarse: the neighbouring grid points would allow
+    roughly 2–8× (small data) and 2.5–15× (full data).
+  * On full data the float32 optimum is at the dial top (0.2), not beyond it. The round-three statement "the float32
+    minimum is not reached inside the dial" therefore holds for small data only.
+  * At its own optimum float32 is slightly lower than tiles at theirs: 2.262 vs 2.277 (small data), 1.495 vs 1.503 (full data).
+  * Corrected float32 shift-gap slopes (clean): −1.15 nats per unit σ to σ 3.0 (CI −1.17..−1.12, 5/5 seeds narrowing) and
+    −2.66 to 1.4 (CI −2.70..−2.61, 10/10). They replace the withdrawn −0.16 / −0.66.
+  * The ~10x claim and the wording "an order of magnitude less injected noise" are replaced by "4–5× less injected noise".
+* **E11-cal (`results/e11cal`): does NOT line up (pre-registered primary, as run).**
+  * Small data: tiles σ* 0.1 → rel_pert 0.271 (CI 0.268–0.273); float32 σ* 1.0 (as run) → 0.312 (0.309–0.314). R = 1.15
+    (CI 1.13–1.16). The CI excludes 1, so this regime fails.
+  * Full data: tiles 0.04 → 0.189 (0.185–0.192); float32 0.4 (as run) → 0.194 (0.168–0.219). R = 1.03 (CI 0.88–1.17), so
+    this regime passes.
+  * The hypothesis needs both regimes, so it is not supported. Tile intrinsic rel_pert at σ = 0: 0.023 (small) / 0.026 (full).
+  * Secondary, with the corrected float32 curve: R = 1.01 (CI 0.995–1.02) on small data, which lines up; R = 0.755 (CI
+    0.74–0.77) on full data, which does not (the float32 optimum sits at three quarters of the tiles' layer perturbation).
+    Neither analysis lines up in both regimes.
+  * What the calibration does show: per unit σ, the tile read perturbs each layer about 4× (small) to 7× (full) more than
+    the float32 reference (rel_pert 0.27 vs 0.068 at σ 0.1 on small data; 0.19 vs 0.029 at σ 0.04 on full data). That is the
+    same order as the corrected 4–5× gap in σ. On small data it accounts for the whole gap; on full data it accounts for
+    more than the whole gap.
+  * By the pre-registered wording, the 4–5× is "not an axis artefact of the forward perturbation". Write quantisation is
+    the named remaining candidate (not measured).
+  * Reproduction: the retrained σ = 0 arms match E11 bit-for-bit for float32 (both regimes) and within 0.0013 nats for
+    full-data tiles. The small-data tiles E11 arms ran on the laptop GPU (2026-10-20), and the V100 retrains differ from
+    them by −0.21 to +0.08 nats per seed (mean −0.08). The small-data tiles calibration therefore measures V100 retrains,
+    not E11's own weights.
+  * Robustness: models trained at σ* are perturbed 10–20 % less than σ = 0 models at the same σ (small tiles at 0.1: 0.224
+    vs 0.274; full tiles at 0.04: 0.164 vs 0.189). The float32 σ* checkpoints were trained at the as-run (clipped) σ* 1.0 / 0.4.
+* **E1-fix + E16 (`results/e1fix`): criterion NOT met.** Every tile arm at σ_device = 0.04 is above 2× its reference
+  (diverged).
+  * Best tile arm: the pre-registered combined arm (noise-aware fine-tune 2000 steps + dial-low + k = 8), 69.63 against
+    float32 σ 0 × 2000 steps at 22.33 (+212 %).
+  * The tile path has already diverged at σ = 0: deploy tiles σ 0 = 156.6 vs float32 35.69 (+339 %), from the per-column
+    write-verify residual and the layer-accumulate 8-bit read-out, with no noise. With noise: 165 / 199 / 392 / 1155 at
+    σ 0.01 / 0.02 / 0.04 / 0.06 (3 seeds).
+  * The same noise on float32 is handled. Deploy-only: 37.2 / 42.2 / 69.3 / 157.9 (+94 % at 0.04, diverged from 0.06).
+    Noise-aware fine-tune at σ 0.02 / 0.04 / 0.06: 22.29 / 22.42 / 22.64 after 2000 steps (−0.1 / +0.4 / +1.4 % of the
+    matched reference); +0.1 / +1.0 / +2.3 % after 1200 steps.
+  * Tile fine-tunes at σ 0.02 / 0.04 / 0.06: 75.4 / 75.7 / 77.4 (1200 steps), 69.8 / 70.9 / 72.3 (2000 steps).
+  * E16 at 0.04, pretrained model: dial-low cuts perplexity from 410 to 189 (k = 1). Averaging k = 2 / 4 / 8 gives
+    276 / 224 / 203 at 1.59× / 2.77× / 5.14× the read energy (2× / 4× / 8× if every read is converted). Dial-low with
+    averaging bottoms out at 185, near the σ = 0 floor.
+  * E16 after the fine-tune: neither dial-low nor averaging moves perplexity by more than 2 % (69.6–71.1).
+  * On-chip nearest-pulse fine-tune (diagnostic): 74.5.
+  * The E1 row restated by the 2× rule: pretrained-at-noise (float noise model) diverged from σ = 0.04.
+  * Reading (not a verdict upgrade): at deployment, GPT-2 on tiles is limited by the zero-noise resolution floor, not by
+    variability, and read noise is the smaller term once the model has been fine-tuned through the tiles. The "suppress
+    noise to deploy" half of learning vs knowing is visible only on the pretrained model (dial-low halves perplexity), and
+    it does not reach the criterion.
+  * Next step: decompose the floor into programming residual vs converter (e.g. tiles at σ 0 with the converter off, or a
+    finer write-verify tolerance). It is NOT submitted because of the hold on new Pinnacle submissions (MONDAY2.md).

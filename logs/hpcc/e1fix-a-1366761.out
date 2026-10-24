@@ -1,0 +1,129 @@
+== c1705 Sat 24 Oct 01:39:47 CDT 2026
+Token indices sequence length is longer than the specified maximum sequence length for this model (2415650 > 1024). Running this sequence through the model will result in indexing errors
+`loss_type=None` was set in the config but it is unrecognized. Using the default loss: `ForCausalLMLoss`.
+  deploy tiles sigma=0.0 seed 0: ppl 153.22
+  deploy tiles sigma=0.0 seed 1: ppl 162.82
+  deploy tiles sigma=0.0 seed 2: ppl 153.67
+  deploy tiles sigma=0.01 seed 0: ppl 159.70
+  deploy tiles sigma=0.01 seed 1: ppl 171.79
+  deploy tiles sigma=0.01 seed 2: ppl 164.23
+  deploy tiles sigma=0.02 seed 0: ppl 194.29
+  deploy tiles sigma=0.02 seed 1: ppl 209.45
+  deploy tiles sigma=0.02 seed 2: ppl 192.73
+  deploy tiles sigma=0.04 seed 0: ppl 392.68 | dial-low {'1': 188.46723651940505, '2': 185.7670727131099, '4': 184.3354736581941, '8': 184.18535286869417}
+  deploy tiles sigma=0.04 seed 1: ppl 396.93 | dial-low {'1': 196.15570823608445, '2': 193.97553019127767, '4': 191.2457611185827, '8': 191.8404622542424}
+  deploy tiles sigma=0.04 seed 2: ppl 387.37 | dial-low {'1': 183.11120378215782, '2': 179.53394560624568, '4': 178.30069558946843, '8': 178.77698848846393}
+  deploy tiles sigma=0.06 seed 0: ppl 1185.67
+  deploy tiles sigma=0.06 seed 1: ppl 1141.85
+  deploy tiles sigma=0.06 seed 2: ppl 1136.43
+  deploy float32 sigma=0.0 seed 0: ppl 35.69
+  deploy float32 sigma=0.0 seed 1: ppl 35.69
+  deploy float32 sigma=0.0 seed 2: ppl 35.69
+  deploy float32 sigma=0.01 seed 0: ppl 37.23
+  deploy float32 sigma=0.01 seed 1: ppl 37.22
+  deploy float32 sigma=0.01 seed 2: ppl 37.27
+  deploy float32 sigma=0.02 seed 0: ppl 42.18
+  deploy float32 sigma=0.02 seed 1: ppl 42.14
+  deploy float32 sigma=0.02 seed 2: ppl 42.29
+  deploy float32 sigma=0.04 seed 0: ppl 69.10
+  deploy float32 sigma=0.04 seed 1: ppl 68.92
+  deploy float32 sigma=0.04 seed 2: ppl 69.81
+  deploy float32 sigma=0.06 seed 0: ppl 156.29
+  deploy float32 sigma=0.06 seed 1: ppl 156.16
+  deploy float32 sigma=0.06 seed 2: ppl 161.12
+      step 10/1200 loss 3.740 (0.41 s/step)
+      step 200/1200 loss 3.328 (0.37 s/step)
+      step 400/1200 loss 3.239 (0.37 s/step)
+      step 600/1200 loss 3.200 (0.37 s/step)
+      step 800/1200 loss 3.181 (0.37 s/step)
+      step 1000/1200 loss 3.145 (0.37 s/step)
+      step 1200/1200 loss 3.110 (0.37 s/step)
+  ft_float32_s0_n1200: ppl 35.69 -> 22.50 (clean read 22.50)
+      step 10/1200 loss 3.900 (0.37 s/step)
+      step 200/1200 loss 3.352 (0.37 s/step)
+      step 400/1200 loss 3.253 (0.37 s/step)
+      step 600/1200 loss 3.209 (0.37 s/step)
+      step 800/1200 loss 3.188 (0.37 s/step)
+      step 1000/1200 loss 3.149 (0.37 s/step)
+      step 1200/1200 loss 3.116 (0.37 s/step)
+  ft_float32_s0.02_n1200: ppl 42.18 -> 22.52 (clean read 22.35)
+      step 10/1200 loss 4.251 (0.37 s/step)
+      step 200/1200 loss 3.382 (0.37 s/step)
+      step 400/1200 loss 3.275 (0.37 s/step)
+      step 600/1200 loss 3.230 (0.37 s/step)
+      step 800/1200 loss 3.207 (0.37 s/step)
+      step 1000/1200 loss 3.167 (0.37 s/step)
+      step 1200/1200 loss 3.133 (0.37 s/step)
+  ft_float32_s0.04_n1200: ppl 69.10 -> 22.73 (clean read 22.39)
+      step 10/1200 loss 4.752 (0.37 s/step)
+      step 200/1200 loss 3.415 (0.37 s/step)
+      step 400/1200 loss 3.299 (0.37 s/step)
+      step 600/1200 loss 3.253 (0.37 s/step)
+      step 800/1200 loss 3.227 (0.37 s/step)
+      step 1000/1200 loss 3.186 (0.37 s/step)
+      step 1200/1200 loss 3.151 (0.37 s/step)
+  ft_float32_s0.06_n1200: ppl 156.29 -> 23.02 (clean read 22.45)
+      step 10/2000 loss 3.740 (0.37 s/step)
+      step 200/2000 loss 3.328 (0.37 s/step)
+      step 400/2000 loss 3.239 (0.37 s/step)
+      step 600/2000 loss 3.200 (0.37 s/step)
+      step 800/2000 loss 3.181 (0.37 s/step)
+      step 1000/2000 loss 3.145 (0.37 s/step)
+      step 1200/2000 loss 3.110 (0.37 s/step)
+      step 1400/2000 loss 3.090 (0.37 s/step)
+      step 1600/2000 loss 3.058 (0.37 s/step)
+      step 1800/2000 loss 3.056 (0.37 s/step)
+      step 2000/2000 loss 3.004 (0.37 s/step)
+  ft_float32_s0_n2000: ppl 35.69 -> 22.33 (clean read 22.33)
+      step 10/2000 loss 3.900 (0.38 s/step)
+      step 200/2000 loss 3.352 (0.37 s/step)
+      step 400/2000 loss 3.253 (0.37 s/step)
+      step 600/2000 loss 3.209 (0.37 s/step)
+      step 800/2000 loss 3.188 (0.37 s/step)
+      step 1000/2000 loss 3.149 (0.37 s/step)
+      step 1200/2000 loss 3.116 (0.37 s/step)
+      step 1400/2000 loss 3.091 (0.37 s/step)
+      step 1600/2000 loss 3.060 (0.37 s/step)
+      step 1800/2000 loss 3.057 (0.37 s/step)
+      step 2000/2000 loss 3.009 (0.37 s/step)
+  ft_float32_s0.02_n2000: ppl 42.18 -> 22.29 (clean read 22.15)
+      step 10/2000 loss 4.251 (0.38 s/step)
+      step 200/2000 loss 3.382 (0.37 s/step)
+      step 400/2000 loss 3.275 (0.37 s/step)
+      step 600/2000 loss 3.230 (0.37 s/step)
+      step 800/2000 loss 3.207 (0.37 s/step)
+      step 1000/2000 loss 3.167 (0.37 s/step)
+      step 1200/2000 loss 3.133 (0.37 s/step)
+      step 1400/2000 loss 3.108 (0.37 s/step)
+      step 1600/2000 loss 3.078 (0.37 s/step)
+      step 1800/2000 loss 3.074 (0.37 s/step)
+      step 2000/2000 loss 3.025 (0.37 s/step)
+  ft_float32_s0.04_n2000: ppl 69.10 -> 22.42 (clean read 22.15)
+      step 10/2000 loss 4.752 (0.38 s/step)
+      step 200/2000 loss 3.415 (0.37 s/step)
+      step 400/2000 loss 3.299 (0.37 s/step)
+      step 600/2000 loss 3.253 (0.37 s/step)
+      step 800/2000 loss 3.227 (0.37 s/step)
+      step 1000/2000 loss 3.186 (0.37 s/step)
+      step 1200/2000 loss 3.151 (0.37 s/step)
+      step 1400/2000 loss 3.126 (0.37 s/step)
+      step 1600/2000 loss 3.096 (0.37 s/step)
+      step 1800/2000 loss 3.090 (0.37 s/step)
+      step 2000/2000 loss 3.042 (0.37 s/step)
+  ft_float32_s0.06_n2000: ppl 156.29 -> 22.64 (clean read 22.18)
+      step 10/2000 loss 7.176 (0.66 s/step)
+      step 200/2000 loss 5.494 (0.60 s/step)
+      step 400/2000 loss 5.180 (0.60 s/step)
+      step 600/2000 loss 4.924 (0.60 s/step)
+      step 800/2000 loss 4.814 (0.60 s/step)
+      step 1000/2000 loss 4.702 (0.60 s/step)
+      step 1200/2000 loss 4.633 (0.60 s/step)
+      step 1400/2000 loss 4.623 (0.60 s/step)
+      step 1600/2000 loss 4.622 (0.60 s/step)
+      step 1800/2000 loss 4.579 (0.59 s/step)
+      step 2000/2000 loss 4.506 (0.59 s/step)
+  onchip_s0.04_n2000: ppl 392.68 -> 74.54 (clean read 72.64) dial-low {'1': 72.9080688727916, '2': 72.98566532901877, '4': 72.94428722185324, '8': 72.7404740771455}
+E1-fix verdict: Criterion (some arm at sigma_device 0.04 within 3 % of its float32 reference): NOT met; best E16 fine-tune 2000 + dial-low k=8 (the pre-registered combined arm) at +211.8 %. Arms at 0.04: deploy tiles sigma=0.04: diverged (> 2x float32); E16 deploy averaging k=1: diverged (> 2x float32); E16 deploy dial-low k=1: diverged (> 2x float32); E16 deploy averaging k=2: diverged (> 2x float32); E16 deploy dial-low k=2: diverged (> 2x float32); E16 deploy averaging k=4: diverged (> 2x float32); E16 deploy dial-low k=4: diverged (> 2x float32); E16 deploy averaging k=8: diverged (> 2x float32); E16 deploy dial-low k=8: diverged (> 2x float32); fine-tune tiles sigma=0.04 1200 steps: diverged (> 2x float32); E16 fine-tune 1200 + averaging k=1: diverged (> 2x float32); E16 fine-tune 1200 + dial-low k=1: diverged (> 2x float32); E16 fine-tune 1200 + averaging k=2: diverged (> 2x float32); E16 fine-tune 1200 + dial-low k=2: diverged (> 2x float32); E16 fine-tune 1200 + averaging k=4: diverged (> 2x float32); E16 fine-tune 1200 + dial-low k=4: diverged (> 2x float32); E16 fine-tune 1200 + averaging k=8: diverged (> 2x float32); E16 fine-tune 1200 + dial-low k=8: diverged (> 2x float32); fine-tune tiles sigma=0.04 2000 steps: diverged (> 2x float32); E16 fine-tune 2000 + averaging k=1: diverged (> 2x float32); E16 fine-tune 2000 + dial-low k=1: diverged (> 2x float32); E16 fine-tune 2000 + averaging k=2: diverged (> 2x float32); E16 fine-tune 2000 + dial-low k=2: diverged (> 2x float32); E16 fine-tune 2000 + averaging k=4: diverged (> 2x float32); E16 fine-tune 2000 + dial-low k=4: diverged (> 2x float32); E16 fine-tune 2000 + averaging k=8: diverged (> 2x float32); E16 fine-tune 2000 + dial-low k=8 (the pre-registered combined arm): diverged (> 2x float32); on-chip nearest-pulse fine-tune sigma=0.04 2000 steps (diagnostic): diverged (> 2x float32). Energy of read averaging (E8b, per token, vs k=1): k=1: 1.00x (k conversions 1.00x); k=2: 1.59x (k conversions 2.00x); k=4: 2.77x (k conversions 4.00x); k=8: 5.14x (k conversions 8.00x). E1 pretrained-at-noise (float noise model, results/e1_full): diverged from sigma = 0.04 (first sigma above 2x the float32 perplexity 35.69); values above that are not reported.
+[e1fix] wrote /scrfs/storage/paradkar/home/bpusim/results/e1fix/results.json
+[e1fix] figure /scrfs/storage/paradkar/home/bpusim/figures/e1fix_gpt2_deploy.png
+== done rc=0 Sat 24 Oct 03:43:12 CDT 2026

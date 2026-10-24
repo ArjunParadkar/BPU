@@ -160,7 +160,14 @@ def analyze(args):
     res = {"calibration": {}, "optima": {}, "ratio": {}, "reproduction": [], "robustness": {}, "unclipped_float32": {}}
     for p in parts:
         if p["train_sigma"] == 0.0:
-            res["reproduction"].append({"regime": p["regime"], "substrate": p["substrate"], "seed": p["seed"], "retrained": p["retrained_val_clean"], "e11": p["e11_val_clean_same_seed"]})
+            ref, src = p["e11_val_clean_same_seed"], (CURVES[(p["regime"], p["substrate"])][0] if p["e11_val_clean_same_seed"] is not None else None)
+            if ref is None:   # the cluster had no copy of the laptop results/e11: look it up here, in every curve directory (later wins)
+                for d in CURVES[(p["regime"], p["substrate"])]:
+                    r0 = curve_runs([d], p["substrate"]).get(0.0, {}).get(p["seed"])
+                    if r0 is not None:
+                        ref, src = r0["val_clean"], d
+            res["reproduction"].append({"regime": p["regime"], "substrate": p["substrate"], "seed": p["seed"], "retrained": p["retrained_val_clean"], "e11": ref, "e11_source": src,
+                                        "diff": (p["retrained_val_clean"] - ref) if ref is not None else None})
     lined = {}
     for regime in REGIMES:
         for sub in ("tiles", "float32"):
@@ -211,6 +218,43 @@ def analyze(args):
                              f"float32 sigma* {f['sigma_star']:g} -> {f['x_star']:.4f} (CI {f['x_ci95'][0]:.4f}..{f['x_ci95'][1]:.4f}); R = {R:.2f} (CI {ci[0]:.2f}..{ci[1]:.2f}) vs {res['ratio'][regime]['sigma_ratio'] or float('nan'):.1f}x in sigma; "
                              f"tile intrinsic rel_pert at sigma 0 = {x0.get('mean', float('nan')):.4f} (CI {x0.get('ci95', [float('nan')] * 2)[0]:.4f}..{x0.get('ci95', [float('nan')] * 2)[1]:.4f})"
                              + ("" if (regime, "float32_unclipped") not in lined else f"; with the unclipped float32 rerun sigma* {lined[(regime, 'float32_unclipped')]['sigma_star']:g} -> {lined[(regime, 'float32_unclipped')]['x_star']:.4f}"))
+    # secondary (round four, after the unclipped reruns): the same two questions with the float32 curve corrected.
+    # (1) rel_pert space: R_unclipped = x*_f32(unclipped) / x*_tiles, bootstrap as for the primary R.
+    # (2) sigma space: float32 sigma* over the corrected curve (sigma <= 0.2 from the original directory, every arm
+    #     above 0.2 from the unclipped rerun; same seeds) by E11's own rule (argmin of the seed-mean clean val loss,
+    #     bootstrap over seeds), and the ratio sigma*_f32 / sigma*_tiles with independent bootstrap resamples.
+    res["ratio_unclipped"] = {}; res["sigma_space_unclipped"] = {}
+    F32_LOW = {"small": "results/e11_f32_bracket", "full": "results/e11_full_f32"}
+    TILES = {"small": "results/e11", "full": "results/e11_full_tiles"}
+    for regime in REGIMES:
+        if (regime, "float32_unclipped") in lined and (regime, "tiles") in lined:
+            t, f = lined[(regime, "tiles")], lined[(regime, "float32_unclipped")]
+            rb = np.asarray(f["boots"]) / np.maximum(np.asarray(t["boots"])[rng.permutation(len(t["boots"]))], 1e-12)
+            ci = [float(np.percentile(rb, 2.5)), float(np.percentile(rb, 97.5))]; R = f["x_star"] / t["x_star"]
+            res["ratio_unclipped"][regime] = {"R": R, "ci95": ci, "lines_up_by_primary_rule": bool(ci[0] <= 1.0 <= ci[1] and 0.5 <= R <= 2.0)}
+        uc = curve_runs(CURVES_UNCLIPPED[(regime, "float32")], "float32")
+        lo = curve_runs([F32_LOW[regime]], "float32"); ti = curve_runs([TILES[regime]], "tiles")
+        if not uc or not lo or not ti:
+            continue
+        fc = {s: v for s, v in lo.items() if s <= 0.2}; fc.update({s: v for s, v in uc.items() if s > 0.2})
+        tc = {s: v for s, v in ti.items() if s <= 0.2}          # the tiles sigma* grid (0.3 is a beyond-dial diagnostic)
+        out = {}
+        for name, C in (("float32", fc), ("tiles", tc)):
+            xs = sorted(C); seeds = sorted(set.intersection(*[set(C[s]) for s in xs]))
+            M = np.asarray([[C[s][sd]["val_clean"] for s in xs] for sd in seeds])
+            b = e11.bootstrap_argmin(M, xs, seed=3 if name == "float32" else 4)
+            r2 = np.random.default_rng(5 if name == "float32" else 6)
+            boots = [xs[int(np.argmin(M[r2.integers(0, len(seeds), len(seeds))].mean(0)))] for _ in range(2000)]
+            G = np.asarray([[C[s][sd]["gap_clean"] for s in xs] for sd in seeds])
+            out[name] = {**b, "sigmas": xs, "n_seeds": len(seeds), "val_mean": M.mean(0).tolist(), "boots": boots,
+                         "shift_gap_clean": e11.bootstrap_slope(G, xs, seed=7),
+                         "sources": ([F32_LOW[regime] + " (sigma <= 0.2)", CURVES_UNCLIPPED[(regime, "float32")][0] + " (sigma > 0.2)"] if name == "float32" else [TILES[regime] + " (sigma <= 0.2)"])}
+        rr = np.asarray(out["float32"]["boots"]) / np.asarray(out["tiles"]["boots"])
+        out["ratio"] = {"point": out["float32"]["star"] / out["tiles"]["star"], "ci95": [float(np.percentile(rr, 2.5)), float(np.percentile(rr, 97.5))],
+                        "distribution": {f"{v:g}": float(np.mean(rr == v)) for v in sorted(set(rr.tolist()))}}
+        for name in ("float32", "tiles"):
+            out[name].pop("boots")
+        res["sigma_space_unclipped"][regime] = out
     hyp = "LINES UP (supported)" if (complete and ok_all) else ("does NOT line up" if complete else "incomplete")
     res["verdict"] = {"lines_up": bool(complete and ok_all), "complete": complete,
                       "statement": ("SMOKE RUN. " if args.smoke else "") + f"Optima in rel_pert space (mean local rel_pert as run, 5 calibration seeds): {hyp}. " + " || ".join(verdict_parts)
@@ -227,7 +271,7 @@ def plot(res, path):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(1, 3, figsize=(15, 4.2))
+    fig, ax = plt.subplots(1, 4, figsize=(20, 4.2))
     cols = {("small", "tiles"): "C0", ("full", "tiles"): "C2", ("small", "float32"): "k", ("full", "float32"): "C3"}
     for (regime, sub), col in cols.items():
         c = res["calibration"].get(f"{regime}/{sub}/as_run", {}).get("mean_local")
@@ -243,8 +287,18 @@ def plot(res, path):
             ax[1].plot(xs, o["val_mean"], "o-", color=col, label=f"{sub}, {regime}")
             ax[1].axvspan(o["x_ci95"][0], o["x_ci95"][1], color=col, alpha=0.12)
             ax[2].plot(xs, o["gap_mean"], "o-", color=col, label=f"{sub}, {regime}")
+    # panel 4: the corrected float32 curve in sigma (sigma <= 0.2 original, > 0.2 unclipped rerun) beside tiles
+    for regime, mk in (("small", "o"), ("full", "s")):
+        o = res.get("sigma_space_unclipped", {}).get(regime)
+        if o:
+            for name, col in (("tiles", "C0" if regime == "small" else "C2"), ("float32", "k" if regime == "small" else "C3")):
+                ax[3].plot(o[name]["sigmas"], o[name]["val_mean"], mk + "-", color=col, ms=4, label=f"{name}, {regime} data: σ* {o[name]['star']:g}")
+                ax[3].axvline(o[name]["star"], color=col, lw=0.8, ls=":")
+    ax[3].set_xlabel("injected read noise σ (float32 unclipped)"); ax[3].set_ylabel("E11 val loss, clean read")
+    ax[3].set_title("corrected float32 curve vs tiles (σ space)", fontsize=9); ax[3].legend(fontsize=6)
     for a in ax:
         a.set_xscale("symlog", linthresh=1e-3)
+    ax[3].set_xlim(left=0)
     ax[0].set_xlabel("injected read noise σ"); ax[0].set_ylabel("mean local rel_pert"); ax[0].set_title("calibration: layer perturbation vs σ", fontsize=9); ax[0].legend(fontsize=6)
     ax[1].set_xlabel("measured rel_pert (as run)"); ax[1].set_ylabel("E11 val loss, clean read"); ax[1].set_title("val loss vs rel_pert (band = CI of the optimum)", fontsize=9); ax[1].legend(fontsize=6)
     ax[2].set_xlabel("measured rel_pert (as run)"); ax[2].set_ylabel("shift gap python − val (clean)"); ax[2].set_title("shift gap vs rel_pert", fontsize=9); ax[2].legend(fontsize=6)
