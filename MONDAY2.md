@@ -74,9 +74,8 @@ Submission recipe once the hold is lifted (on the login node, from ~/bpusim, aft
 
 * State: 7 BPU round-four jobs queued (IDs above), all before the hold; nothing else submitted. Commits c8ad4df, f1260d0,
   4999e58 and the round-four code/housekeeping commit after it. Cluster code synced at 702f33b, E15/E17 included (re-sync after edits with `tar czf - bpusim/*.py experiments/*.py tests/*.py scripts/hpcc/submit.sh | ssh pinnacle 'tar xzf - -C ~/bpusim'`).
-* Pages: results page v10 (correction) at https://claude.ai/artifact/9C4QR3DKLAnQQkuxpKyHnc; the regenerated page with
-  the "Learning vs knowing" section and the E6 / E3 fixes is committed but republished only together with the next
-  results; status page v4 at https://claude.ai/artifact/RHXMs9bjcVxud9PdZVXZpn.
+* Pages: results page v11 (correction + "Learning vs knowing" section + E6 / E3 fixes) at
+  https://claude.ai/artifact/9C4QR3DKLAnQQkuxpKyHnc; status page v4 at https://claude.ai/artifact/RHXMs9bjcVxud9PdZVXZpn.
 * When jobs finish: copy results back (`ssh pinnacle 'cd ~/bpusim && tar czf - results/e11cal results/e11_f32_unclipped
   results/e11_full_f32_unclipped results/e1fix logs/hpcc' | tar xzf - -C .`), read every log, run
   `python experiments/e11cal_noise_calibration.py --analyze` and `python experiments/e1fix_gpt2_deploy.py --summarize`
