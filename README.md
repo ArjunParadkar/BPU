@@ -46,6 +46,7 @@ pytest -q
 | E5 32×32, 20 seeds | self-organised 0/20; programmed reference 26/40 | null (sheet-limited) |
 | E12, 50 000 trials | bandit: annealed fastest on tiles; gated not better than fixed; grid task still unlearned | partial |
 | E1 GPT-2 124M | best perplexity at σ = 0 (23.38); noise only costs | null |
+| E9, 2000-step segments | sgd on tiles +10.0 % vs float32 after the shift (laptop, 1000-step segments: +2.1 %) | **criterion not met** |
 
 Details and decisions: DECISIONS.md, "HPCC runs". Cluster layer: `scripts/hpcc/` (`submit.sh`, `build_env.sh`).
 

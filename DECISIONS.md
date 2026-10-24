@@ -1088,5 +1088,9 @@ Decisions taken while running:
 * **E1, GPT-2 124M on WikiText-2, 1 seed (`results/e1_full`): null.** Fine-tuned perplexity is best with no read noise
   (23.38 at σ = 0; 24.42 at 0.04; 29.63 at 0.12); pretrained-at-noise collapses beyond σ = 0.06 (2 191 at 0.06).
   The expected accelerator-parity null: noise only costs on a pretrained model.
-* Queued on idle nodes: E9 with 2000-step segments (GPU, `results/e9_seg2000`) and E8 at full size (CPU,
-  `results/e8_full`).
+* **E9, 2000-step segments, 5 seeds (`results/e9_seg2000`, GPU, 2 h 38 min): criterion NOT met.** Post-shift loss
+  (Python segment, last 200 steps): float32 SGD 0.940; sgd_bpu 1.034 (+10.0 %, 50.7 writes/device); fa_bpu +128.9 %;
+  dfa_bpu +201.7 %; local_bpu +181.9 %. No nearest-pulse arm is within 5 % of float32. With the laptop's 1000-step
+  segments sgd_bpu met the criterion (+2.1 %), so the round-three E9 "met" holds only at that segment length; the gap
+  grows when each segment is trained longer. Reported as a negative beside the laptop result, not replacing it.
+* E8 at full size (CPU, `results/e8_full`) is running.
