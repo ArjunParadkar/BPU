@@ -192,3 +192,13 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
   3h = 93.0 ≤ 120, so **3 seeds at 0.8e9 tokens stand** (unchanged).
 * Because the token budget is unchanged, the two partial runs continue from their checkpoints with the same LR
   schedule and data order; the change of data path does not alter the batches. No GPU-hours are wasted.
+* **Resubmitted (2026-10-25)** after the fix (code synced, md5 matches). gpu-QOS cores running at submission: 168.
+  Two lanes of 8 chained 6 h segments on agpu06, `afterany`:
+  * lane 1: 1368761 → 1368762 → … → 1368768
+  * lane 2: 1368769 → 1368770 → … → 1368776
+
+  Remaining work is ~89 GPU-h, ~44.5 h per lane, so 8 segments of ~5.6 h is tight and a 9th per lane may be needed.
+  ETA: roughly 2 days of compute after the first segments start, plus queue waits (about 27–28 Oct).
+  Rule: if a resumed segment fails again for ANY reason, stop and report. The chain cannot stop itself; the next
+  check must look at the first resume, the second segment of each lane.
+* Superseded (crashed, chain used up): 1367505–1367518.
