@@ -1150,7 +1150,7 @@ Decisions taken while running:
   dfa_bpu +201.7 %; local_bpu +181.9 %. No nearest-pulse arm is within 5 % of float32. With the laptop's 1000-step
   segments sgd_bpu met the criterion (+2.1 %), so the round-three E9 "met" holds only at that segment length; the gap
   grows when each segment is trained longer. Reported as a negative beside the laptop result, not replacing it.
-* E8 at full size (CPU, `results/e8_full`) is running. [2026-10-24: still running, job 1364798.]
+* E8 at full size (CPU, `results/e8_full`) is running. [2026-10-24: finished; see "E8 at full size (2026-10-24)" below.]
 
 ## Correction 2026-10-23
 
@@ -1238,3 +1238,21 @@ Changes to the analysis made after the runs (reporting only; no criterion was to
     it does not reach the criterion.
   * Next step: decompose the floor into programming residual vs converter (e.g. tiles at σ 0 with the converter off, or a
     finer write-verify tolerance). It is NOT submitted because of the hold on new Pinnacle submissions (MONDAY2.md).
+
+### E8 at full size (2026-10-24, job 1364798, comp72 CPU, 17 h 07 min, exit 0)
+
+nanoGPT with d 384, 6 layers, 6 heads (10.75M parameters), 5000 ideal steps, 1000 fine-tune steps, 3 seeds
+(`results/e8_full`, figure `figures/e8_full.png`). The log is clean: no errors, no NaN.
+
+* Pre-stated criterion (E8 docstring): noise-aware tiles within 2 % of the ideal val loss at every σ ≤ 0.06. **NOT met.**
+* Noise-aware gaps (mean of 3 seeds): σ 0 +6.59 %, 0.02 +6.48 %, 0.04 +5.48 %, 0.06 +3.86 %, 0.1 −0.08 %. The worst
+  gap is +6.59 %, against the laptop E8 (2.7M, 2 seeds), which met the criterion.
+* Deploy-only (the ideal weights written once by write-verify, no training) stays within 1 % at every σ: +0.45 / +0.24 /
+  +0.36 / +0.52 / +0.91 %.
+* Reading (not a verdict change):
+  * The ideal model is heavily overfit (train loss ~0.57 against val ~2.2 at 5000 steps).
+  * The noise-aware arm trains 1000 more steps, while the ideal reference does not, and E8 has no float32 fine-tune
+    control.
+  * The fine-tune gap is largest at σ = 0 and falls monotonically with σ.
+  * So the 2 % test at this size mixes continued overfitting with the substrate. A matched float32 fine-tune control
+    would separate them; it is not run (hold rule for new jobs: only the E15 chain).

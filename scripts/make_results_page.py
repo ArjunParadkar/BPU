@@ -74,7 +74,7 @@ def main():
     args = ap.parse_args()
     names = ("e1", "e2", "e2_cifar", "e3", "e3_256", "e3_tracking", "e3_cue", "e3_final", "e4", "e4_capped", "e4_np", "e4_level_t1", "e4_level_t05", "e4_level_t025", "e4_level_capped", "e5", "e5_48", "e5_selforg32", "e5_selforg_np",
              "e6", "e6_k32", "e7", "e7_ref", "e7_3seeds", "e7_ref_3seeds", "e8", "e8b", "e9", "e9_pareto", "e9_pulse", "e10", "e9_v1", "e10_v1", "e8b_v1", "e11", "e12", "e13", "e14",
-             "e11_f32_bracket", "e11_full_tiles", "e11_full_f32", "e12_long", "e3_final50", "e5_ref20", "e5_selforg_np20", "e1_full",
+             "e11_f32_bracket", "e11_full_tiles", "e11_full_f32", "e12_long", "e3_final50", "e5_ref20", "e5_selforg_np20", "e1_full", "e8_full",
              "e11cal", "e1fix", "e15", "e17", "e11_f32_unclipped", "e11_full_f32_unclipped")
     R = {k: load(k) for k in names}
     e9, e10, e8b, e3t, e3c, e6 = R["e9"], R["e10"], R["e8b"], R["e3_tracking"], R["e3_cue"], (R["e6_k32"] or R["e6"])
@@ -410,14 +410,19 @@ def main():
                               chip("ok", "bracketed") + " " + chip("part", "replaces the withdrawn value")])
     for key, lab, cls, txt in (("e3_final50", "E3-final, 50 seeds", "nul", "null"), ("e5_ref20", "E5 programmed reference, 20 seeds", "ok", "reference"),
                                ("e5_selforg_np20", "E5 self-organisation 32×32, 20 seeds", "nul", "null"), ("e12_long", "E12, 50 000 trials", "part", "partial"),
-                               ("e1_full", "E1 GPT-2 124M", "nul", "null")):
+                               ("e1_full", "E1 GPT-2 124M", "nul", "null"), ("e8_full", "E8 nanoGPT 10.75M on tiles, 3 seeds (CPU, 17 h)", "nul", "criterion not met")):
         if R[key]:
             hrows.append([lab, "", esc(vstate(R[key])[:700]), chip(cls, txt)])
+    if R["e8_full"]:
+        S8 = R["e8_full"]["summary"]
+        hrows.append(["E8 reading (2026-10-24)", "", esc("Deploy-only (ideal weights written once, no training) stays within 1 % at every σ: " + ", ".join(f"σ {s:g} {S8[str(s)]['deploy_gap_pct']['mean']:+.2f} %" for s in R["e8_full"]["sigmas"]) +
+                      ". The noise-aware fine-tune is worse than ideal at small σ and the gap shrinks as σ grows (" + ", ".join(f"σ {s:g} {S8[str(s)]['noise_aware_gap_pct']['mean']:+.2f} %" for s in R["e8_full"]["sigmas"]) +
+                      "). The ideal model is heavily overfit (train loss ~0.57 vs val ~2.2), and the 1000 extra fine-tune steps have no float32 control, so the 2 % test here mixes continued overfitting with the substrate; the laptop E8 (2.7M, 2 seeds) met it."), chip("part", "reading, not a verdict")])
     hpcc = ""
     if hrows:
         htab = table_html(["Run", "Budget", "Result", "Status"], [[esc(a), esc(b), c, d] for a, b, c, d in hrows])
         figs = "".join(f'<figure><img src="figures/{f}.png" alt="{esc(f)}"><figcaption>figures/{f}.png</figcaption></figure>'
-                       for f in ("e11_full_tiles", "e11_full_f32", "e11_f32_bracket", "e12_long", "e3_final50", "e5_selforg_np20", "e1_full") if (FIG / f"{f}.png").exists())
+                       for f in ("e11_full_tiles", "e11_full_f32", "e11_f32_bracket", "e12_long", "e3_final50", "e5_selforg_np20", "e1_full", "e8_full") if (FIG / f"{f}.png").exists())
         hpcc = f'''<section id="hpcc"><div class="eyebrow">Arkansas HPCC (Pinnacle), 2026-10-22/23</div><h2>The MONDAY queue at cluster budgets</h2>
 <p>Ten jobs from MONDAY.md plus two bracket extensions, run on V100 GPUs and 32-core CPU nodes. The headline: the read-noise regulariser on tiles survives on the full training text (σ* = 0.04, against 0.1 on 10 % of the text), and in both regimes the float32 optimum sits about ten times higher (0.4 full, 1.0 small), so tiles reach the optimum with an order of magnitude less injected noise. [2026-10-23: withdrawn, dial clip. 2026-10-24: corrected, 4× (small data, float32 σ* 0.4) and 5× (full data, float32 σ* 0.2); see the two boxes below.]</p>
 <div class="verdict">{esc(CLIP_CORRECTION)}<small>dated correction · DECISIONS.md "Correction 2026-10-23"</small></div>

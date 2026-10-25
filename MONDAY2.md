@@ -144,3 +144,9 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
     `logs/hpcc/e15-l1-<id>.out`, told apart by job ID.
   * At most 2 BPU GPU jobs ever run at once. The resubmission recipe above is only needed if a lane's chain runs out
     before E15 finishes. E17 is not started.
+
+## E8 full finished (2026-10-24 15:10, job 1364798, 17 h 07 min, exit 0, log clean)
+**Criterion (noise-aware within 2 % at every σ ≤ 0.06): NOT met.** Gaps: +6.59 / +6.48 / +5.48 / +3.86 % at
+σ 0 / 0.02 / 0.04 / 0.06, and −0.08 % at 0.1. Deploy-only stays within 1 % at every σ. The ideal model is overfit
+(train ~0.57, val ~2.2), and the fine-tune arm has no float32 control. Details in DECISIONS.md "E8 at full size".
+`results/e8_full`, `figures/e8_full.png`; results page republished.
