@@ -175,3 +175,20 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
   A diagnostic job measures all three variants on the real path for float32 σ 0 / 0.4 and tiles 0.04, so the budget
   rule is applied to MEASURED real-path throughput: `e15-diag` → **1368756** (agpu06, 45 min). gpu-QOS cores running at
   submission: 168.
+* **Diagnostic 1368756 (c1905, A100, 21 min, clean). Real-path s/step, micro 8:**
+
+  | Arm | memmap + per-micro sync (as run) | in RAM + per-micro sync | in RAM + one sync (fixed) |
+  |---|---|---|---|
+  | float32 σ 0 | 1.75 | 0.338 | 0.298 (109.9k tok/s) |
+  | float32 σ 0.4 | 1.48 | 0.336 | 0.322 (101.6k tok/s) |
+  | tiles 0.04 | 1.77 | 0.745 | 0.656 (49.9k tok/s) |
+
+  **Cause: the memmap of train.bin on /scrfs** (random window reads over the network filesystem), worth ~4–5×. The
+  per-micro sync adds 4–13 %. Both are fixed in 7718022 and the fixed path is within 2–4 % of the timing job.
+* **Dated correction to step 3 (2026-10-25), recorded before resubmitting.** The timing job's throughput was not
+  representative of the run as first submitted (synthetic 4 MB file in the page cache vs a 1.7 GB memmap on /scrfs). The
+  rule is re-applied with the MEASURED real-path throughput of the fixed code, using the slower float32 arm
+  (conservative): h = 4 × 0.8e9 / 101 639 + 5 × 0.8e9 / 49 914 s = 8.75 + 22.26 = **31.0 GPU-h per seed**;
+  3h = 93.0 ≤ 120, so **3 seeds at 0.8e9 tokens stand** (unchanged).
+* Because the token budget is unchanged, the two partial runs continue from their checkpoints with the same LR
+  schedule and data order; the change of data path does not alter the batches. No GPU-hours are wasted.

@@ -53,6 +53,13 @@ list and IDs are in `MONDAY2.md`.
   tps_tiles, budget 120 GPU-h; 3 seeds if 3h fits, else 2 if 2h fits, else 2 seeds at 0.8e9 × 120 / (2h) tokens.
   *2026-10-24 (hold lifted, Arjun: research only):* timing A100 111 771 / 52 054 tok/s (float32 / tiles), V100 29 553 /
   19 591; h = 29.3 GPU-h per seed on A100 (86.8 on V100), so 3 seeds × 0.8e9 tokens on A100 (87.9 GPU-h ≤ 120).
+  *Correction 2026-10-25:* the timing job read a 4 MB synthetic file from the page cache; the real runs read 64 random
+  windows per step from a 1.7 GB memmap on /scrfs and synced after every micro-batch, which made them ~3.5× slower
+  (~1.07 s/step). Diagnostic 1368756 on the real path: memmap 1.48–1.77 s/step; training data in RAM with one sync per
+  step 0.30 (float32 σ 0), 0.32 (float32 σ 0.4), 0.66 (tiles 0.04). Both fixed (commit 7718022). The rule re-applied to
+  the measured fixed-path throughput (slower float32 arm): h = 31.0 GPU-h, 3h = 93.0 ≤ 120, so 3 seeds × 0.8e9 tokens
+  stand. The partial runs continue (same budget, same schedule). Resume bug fixed in the same commit (the checkpoint is
+  now loaded on the CPU; test `tests/test_e15_resume.py`).
 * **E17** (`experiments/e17_representations.py`). Exploratory, with no pass/fail: per-layer CKA, a next-token probe
   (within-model, raw transfer, Procrustes-aligned transfer) and 10-NN graph overlap between the float32 σ 0 and tiles
   σ* E15 models of the same seed.
