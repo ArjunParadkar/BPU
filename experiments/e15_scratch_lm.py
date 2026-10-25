@@ -126,8 +126,11 @@ def set_read(model, sigma):
 
 # ------------------------------------------------------------------ data
 class Tokens:
-    def __init__(self, path):
-        self.arr = np.memmap(path, dtype=np.uint16, mode="r")
+    def __init__(self, path, in_ram=False):
+        # 2026-10-25: in_ram reads the whole file into memory.  The training file (1.7 GB) sits on the cluster's
+        # network filesystem, and 64 random 513-token windows per step through a memmap were a measurable part of
+        # the 3.5x gap between the timing job (a 4 MB synthetic file, always in the page cache) and the real runs.
+        self.arr = np.fromfile(path, dtype=np.uint16) if in_ram else np.memmap(path, dtype=np.uint16, mode="r")
 
     def __len__(self):
         return len(self.arr)
@@ -194,6 +197,20 @@ def save_ckpt(path, model, opt, state):
 
 
 # ------------------------------------------------------------------ one run (resumable)
+def train_step(model, opt, topt, train, seed, step, accum, micro, block, device, sync_each=False):
+    """One optimiser step over ``accum`` micro-batches.  The loss is accumulated on the device and read once per
+    step (sync_each=True reproduces the original per-micro-batch float(loss), kept for the throughput diagnostic)."""
+    topt.zero_grad(); tot = 0.0 if sync_each else torch.zeros((), device=device)
+    for m in range(accum):
+        x, y = train_batch(train, seed, step, m, micro, block, device)
+        _, loss = model(x, y)
+        (loss / accum).backward()
+        tot = tot + (float(loss) if sync_each else loss.detach()) / accum
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    topt.step()
+    return float(tot)
+
+
 def lr_at(step, steps, lr):
     warm = max(1, int(0.02 * steps))
     return lr * min(1.0, (step + 1) / warm) * (0.9 * 0.5 * (1 + math.cos(math.pi * min(step, steps) / steps)) + 0.1)
@@ -212,12 +229,15 @@ def train_run(sub, sigma, seed, args, cfg, data, deadline, heartbeat):
     accum = args.batch_seqs // args.micro
     state = {"step": 0, "losses": [], "curve": [], "wall_s": 0.0, "segments": 0, "steps": steps, "tokens_per_step": tokens_per_step}
     if ck.exists():
-        c = torch.load(ck, map_location=device, weights_only=False)
+        # 2026-10-25: load on the CPU.  With map_location=device the saved RNG states landed on CUDA and
+        # torch.set_rng_state refused them ("RNG state must be a torch.ByteTensor"): every resume crashed.
+        # load_state_dict copies weights / optimizer state to the parameters' device.
+        c = torch.load(ck, map_location="cpu", weights_only=False)
         model.load_state_dict(c["model"]); opt.load_state_dict(c["opt"]); state = c["state"]
         restore_extras(model, c["extras"], device)
-        torch.set_rng_state(c["rng_cpu"])
+        torch.set_rng_state(c["rng_cpu"].cpu().to(torch.uint8))
         if c["rng_cuda"] is not None and torch.cuda.is_available():
-            torch.cuda.set_rng_state_all(c["rng_cuda"])
+            torch.cuda.set_rng_state_all([r.cpu().to(torch.uint8) for r in c["rng_cuda"]])
         print(f"[{key}] resumed at step {state['step']}/{steps}", flush=True)
     assert state["steps"] == steps, f"token budget changed for {key}: {state['steps']} vs {steps}"
     state["segments"] += 1
@@ -227,13 +247,7 @@ def train_run(sub, sigma, seed, args, cfg, data, deadline, heartbeat):
     while step < steps:
         for g_ in opt.param_groups:
             g_["lr"] = lr_at(step, steps, args.lr)
-        topt.zero_grad(); tot = 0.0
-        for m in range(accum):
-            x, y = train_batch(data["train"], seed, step, m, args.micro, cfg["block"], device)
-            _, loss = model(x, y)
-            (loss / accum).backward(); tot += float(loss) / accum
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        topt.step()
+        tot = train_step(model, opt, topt, data["train"], seed, step, accum, args.micro, cfg["block"], device)
         state["losses"].append(tot); step += 1; state["step"] = step
         if step % 100 == 0 or step == 10:
             heartbeat()
@@ -341,7 +355,7 @@ def run_list(args):
 
 def load_data(args):
     root = ROOT / args.data
-    data = {"train": Tokens(root / "train.bin"), "val": Tokens(root / "val.bin")}
+    data = {"train": Tokens(root / "train.bin", in_ram=getattr(args, "data_in_ram", True)), "val": Tokens(root / "val.bin")}
     for n in ("tinystories", "python"):
         p = root / f"{n}.bin"
         data[n] = Tokens(p) if p.exists() and p.stat().st_size > 4 * 513 else None
@@ -432,6 +446,46 @@ def timing(args, cfg):
     tag = name.replace(" ", "_").replace("/", "_")
     save_results("e15_timing", out, (f"results/hpcc_smoke/e15_timing/{tag}" if args.smoke else f"results/e15_timing/{tag}"))
 
+
+
+# ------------------------------------------------------------------ throughput diagnostic on the real path (2026-10-25)
+def diag(args, cfg):
+    """Seconds per optimiser step on the REAL training data and the real step function, per arm and variant:
+    memmap + per-micro sync (as the first segments ran), in-RAM data + per-micro sync, in-RAM + one sync per step."""
+    import subprocess
+    dev = args.device
+    name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu"
+    try:
+        smi = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=30).stdout
+    except Exception as e:   # noqa: BLE001
+        smi = repr(e)
+    print(smi, flush=True)
+    root = ROOT / args.data
+    rows = []
+    variants = (("memmap_sync", False, True), ("ram_sync", True, True), ("ram_nosync", True, False))
+    for sub, sigma in (("float32", 0.0), ("float32", 0.4), ("tiles", 0.04)):
+        for vname, in_ram, sync in variants:
+            train = Tokens(root / "train.bin", in_ram=in_ram)
+            model = build(sub, sigma, 0, cfg, dev)
+            opt = torch.optim.AdamW(model.parameters(), lr=args.lr, betas=(0.9, 0.95), weight_decay=0.0); topt = TileOptimizer(model.modules(), opt)
+            accum = args.batch_seqs // args.micro; times = []
+            for step in range(args.diag_steps):
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                t0 = time.time()
+                train_step(model, opt, topt, train, 7, 10_000 + step + 1000 * len(rows), accum, args.micro, cfg["block"], dev, sync_each=sync)
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize()
+                times.append(time.time() - t0)
+            spp = float(np.median(times[args.diag_steps // 4:]))
+            row = {"substrate": sub, "sigma": sigma, "variant": vname, "micro": args.micro, "s_per_step": spp,
+                   "tokens_per_s": args.batch_seqs * cfg["block"] / spp, "first_steps_s": times[:5]}
+            rows.append(row); print(row, flush=True)
+            del model, opt, topt, train
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    tag = name.replace(" ", "_").replace("/", "_")
+    save_results("e15_diag", {"gpu": name, "host": socket.gethostname(), "nvidia_smi": smi, "rows": rows, "cfg": cfg, "batch_seqs": args.batch_seqs},
+                 f"results/e15_diag/{tag}")
 
 # ------------------------------------------------------------------ summary
 def summarize(args):
@@ -535,6 +589,9 @@ def plot(res, path):
 def main():
     ap = argparse.ArgumentParser(description="E15 from-scratch LM on tiles")
     ap.add_argument("--worker", action="store_true"); ap.add_argument("--timing", action="store_true"); ap.add_argument("--summarize", action="store_true")
+    ap.add_argument("--diag", action="store_true", help="throughput on the real data and step function (2026-10-25)")
+    ap.add_argument("--diag-steps", type=int, default=40)
+    ap.add_argument("--no-data-in-ram", dest="data_in_ram", action="store_false")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--data", default="data/e15")
     ap.add_argument("--tokens", type=int, default=800_000_000)
@@ -569,7 +626,9 @@ def main():
         for n, sz in (("train", 50000), ("val", 20000), ("tinystories", 5000), ("python", 5000)):
             if not (root / f"{n}.bin").exists():
                 np.random.default_rng(len(n)).integers(0, 50257, sz, dtype=np.uint16).tofile(root / f"{n}.bin")
-    if args.timing:
+    if args.diag:
+        diag(args, cfg)
+    elif args.timing:
         timing(args, cfg)
     elif args.worker:
         worker(args, cfg)

@@ -106,6 +106,10 @@ e15)
     sub e15-long gpu 72:00:00 ${E15_AFTER:+--dependency=afterok:$E15_AFTER} -- "python e15_scratch_lm.py --worker --tokens $T --seeds $S --segment-minutes 4320 --margin-minutes 30"
   fi
   ;;
+e15-diag)
+  # 2026-10-25: real-path throughput (real data, real step function; memmap vs in-RAM data, per-micro vs per-step sync)
+  sub e15-diag agpu6 0:45:00 -- "python e15_scratch_lm.py --diag --diag-steps 40"
+  ;;
 e8-f32ctl)
   # 2026-10-24 (exploratory, post hoc): matched float32 fine-tune control for E8 full (CPU; arms saved one by one, resumable)
   sub e8-f32ctl cpu 24:00:00 -- "python e8_f32_control.py --seeds 3 --threads 32"

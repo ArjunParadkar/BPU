@@ -156,3 +156,22 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
   and batch seed) as an ideal continued fine-tune and as the float32 twin at each σ (0–0.1), saving each arm as it
   finishes (resumable) to `results/e8_full_f32ctl`. comp72 rather than comp06: about 3 × (25 min ideal + 6 arms) could
   exceed 6 h. It cannot change the E8 verdict. Smoke-tested on the laptop (tiny model, seconds).
+
+## E15 incident (2026-10-25)
+* The first segments 1367499 / 1367500 ran 5 h 37 min and checkpointed: float32_s0_seed0 at step 18791/24414 and
+  float32_s0.1_seed0 at 20074.
+* All 14 chained segments (1367505–1367518) crashed within minutes on resume at `torch.set_rng_state`: "RNG state must
+  be a torch.ByteTensor". The checkpoint was loaded with map_location=cuda, which put the saved CPU RNG state on the GPU.
+  This is ONE bug, hit by every segment of the chain. Fix: load the checkpoint on the CPU and pass CPU uint8 RNG states.
+  New regression test `tests/test_e15_resume.py` checks that a paused + resumed run equals the uninterrupted run
+  bit-for-bit while the loaded RNG state is wrongly typed; it fails on the old code and passes on the new.
+* Throughput was ~3.5× below the timing job: ~1.07 s/step, about 31k tok/s, against 111.8k timed for float32 on A100.
+  The timing job read a 4 MB synthetic file that stays in the page cache and never synced inside the step. The real
+  run reads 64 random 513-token windows per step from a 1.7 GB memmap on the network filesystem (/scrfs) and called
+  float(loss) after every micro-batch (8 GPU syncs per step). Changes (same data, same math):
+  * the training tokens are read into RAM;
+  * the loss is accumulated on the device and read once per step.
+
+  A diagnostic job measures all three variants on the real path for float32 σ 0 / 0.4 and tiles 0.04, so the budget
+  rule is applied to MEASURED real-path throughput: `e15-diag` → **1368756** (agpu06, 45 min). gpu-QOS cores running at
+  submission: 168.
