@@ -1255,4 +1255,6 @@ nanoGPT with d 384, 6 layers, 6 heads (10.75M parameters), 5000 ideal steps, 100
     control.
   * The fine-tune gap is largest at σ = 0 and falls monotonically with σ.
   * So the 2 % test at this size mixes continued overfitting with the substrate. A matched float32 fine-tune control
-    would separate them; it is not run (hold rule for new jobs: only the E15 chain).
+    would separate them. [2026-10-24: approved and submitted as an EXPLORATORY, post-hoc control, job 1368074
+    (`experiments/e8_f32_control.py`, `results/e8_full_f32ctl`). It covers the ideal model fine-tuned for the same 1000
+    steps and the float32 twin at each σ. It cannot change the E8 verdict, only this reading.]

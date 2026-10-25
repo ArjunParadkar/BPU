@@ -106,6 +106,10 @@ e15)
     sub e15-long gpu 72:00:00 ${E15_AFTER:+--dependency=afterok:$E15_AFTER} -- "python e15_scratch_lm.py --worker --tokens $T --seeds $S --segment-minutes 4320 --margin-minutes 30"
   fi
   ;;
+e8-f32ctl)
+  # 2026-10-24 (exploratory, post hoc): matched float32 fine-tune control for E8 full (CPU; arms saved one by one, resumable)
+  sub e8-f32ctl cpu 24:00:00 -- "python e8_f32_control.py --seeds 3 --threads 32"
+  ;;
 e17)
   # MONDAY2 #4 (optional, after E15): representation comparison of the float32 sigma 0 and tiles sigma* models
   sub e17 gpu6 3:00:00 -- "python e17_representations.py"

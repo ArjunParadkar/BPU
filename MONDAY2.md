@@ -150,3 +150,9 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
 σ 0 / 0.02 / 0.04 / 0.06, and −0.08 % at 0.1. Deploy-only stays within 1 % at every σ. The ideal model is overfit
 (train ~0.57, val ~2.2), and the fine-tune arm has no float32 control. Details in DECISIONS.md "E8 at full size".
 `results/e8_full`, `figures/e8_full.png`; results page republished.
+* **E8 float32 fine-tune control (exploratory, post hoc; coordinator-approved 2026-10-24) → 1368074** (`bpu-e8-f32ctl`,
+  comp72, 24 h limit). comp-QOS cores running at submission: 0. `experiments/e8_f32_control.py` retrains the E8 ideal
+  model per seed and checks it against results/e8_full. It then runs the same 1000 fine-tune steps (same lr schedule
+  and batch seed) as an ideal continued fine-tune and as the float32 twin at each σ (0–0.1), saving each arm as it
+  finishes (resumable) to `results/e8_full_f32ctl`. comp72 rather than comp06: about 3 × (25 min ideal + 6 arms) could
+  exceed 6 h. It cannot change the E8 verdict. Smoke-tested on the laptop (tiny model, seconds).
