@@ -202,3 +202,6 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
   Rule: if a resumed segment fails again for ANY reason, stop and report. The chain cannot stop itself; the next
   check must look at the first resume, the second segment of each lane.
 * Superseded (crashed, chain used up): 1367505–1367518.
+
+## 2026-10-27 18:15 CDT: E15 chain extended
+19/27 runs have final.json. Lane 1's chain ended with runs left, and lane 2's last queued segment (1368776) is on float32_s0.1_seed2. Re-queued with the documented command: new lane 1372574→75→76 (agpu06, starts now) and lane 1372577→78→79 (afterok 1368776), E15_CHAIN=3. Running gpu-QOS cores at submission: 48. At most 2 BPU GPU jobs run at once.
