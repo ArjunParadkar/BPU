@@ -205,3 +205,6 @@ queued or running at once; job names start with bpu-. Code re-synced (E15 files 
 
 ## 2026-10-27 18:15 CDT: E15 chain extended
 19/27 runs have final.json. Lane 1's chain ended with runs left, and lane 2's last queued segment (1368776) is on float32_s0.1_seed2. Re-queued with the documented command: new lane 1372574→75→76 (agpu06, starts now) and lane 1372577→78→79 (afterok 1368776), E15_CHAIN=3. Running gpu-QOS cores at submission: 48. At most 2 BPU GPU jobs run at once.
+
+## 2026-10-30 12:35 CDT: E15 chain stalled, re-queued
+24/27 runs final. The chain ran out on 10-28 20:43: tiles_s0.06_seed2 stopped at step 17697 (checkpointed), tiles_s0.04_seed2 is barely started, and the 27th run has not started. Segment 1372576 TIMED OUT on node c1905 at 5.89 s/step, about 9× slower than normal; c1905 is also excluded from the WhiteBox lanes. Re-queued 2 lanes × 2 segments: 1377789→90 and 1377791→92 (agpu06, ExcNodeList=c1905). gpu-QOS cores at submit: 72. The interim summary (24/27) reads PARTIAL with H1–H4 not supported. The final verdict waits for 27/27.
