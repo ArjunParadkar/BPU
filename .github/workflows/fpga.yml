@@ -1,0 +1,34 @@
+name: fpga-tile-gate
+on:
+  push:
+    paths: ["fpga/**", "bpusim/fixed.py", "bpusim/device.py", "bpusim/tile.py", ".github/workflows/fpga.yml"]
+  pull_request:
+    paths: ["fpga/**", "bpusim/fixed.py", "bpusim/device.py", "bpusim/tile.py"]
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: OSS CAD Suite (Verilator)
+        run: |
+          curl -sSL -o oss.tgz https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-11-01/oss-cad-suite-linux-x64-20261101.tgz
+          mkdir -p $HOME/.local/opt && tar xzf oss.tgz -C $HOME/.local/opt
+          echo "$HOME/.local/opt/oss-cad-suite/bin" >> $GITHUB_PATH
+      - name: deps
+        run: pip install -r fpga/requirements.txt
+      - name: reference vs float model
+        run: python -m pytest -q tests/test_fixed.py
+      - name: unit + core + AXI (cocotb, Verilator), bit-exact
+        run: cd fpga/tests && python -m pytest -q test_units.py
+      - name: regression fixture (frozen 10k expected outputs)
+        run: cd fpga/tests && python -m pytest -q test_regression.py
+      - name: bit-exact tile gate (10k registered vectors + corners)
+        run: cd fpga/tests && python -m pytest -q test_gate.py --gate-vectors 10000
+      - name: PS firmware on the host C model (write-verify sweep, PRNG, primitives)
+        run: cd fpga/tests && python -m pytest -q test_ps.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: gate-logs, path: fpga/tests/_build/*.log fpga/tests/_build/*.json, if-no-files-found: ignore }

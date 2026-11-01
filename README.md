@@ -363,4 +363,4 @@ python experiments/e4_ring_selforg.py       # a small experiment (CPU, minutes)
 python scripts/make_figures.py              # regenerate figures/ from results/
 ```
 
-HPCC (AHPCC Pinnacle, Slurm): `scripts/hpcc/build_env.sh` builds the environment once, `scripts/hpcc/submit.sh <experiment>` submits a lane; `MONDAY.md` / `MONDAY2.md` are the run ledgers. The device model (`bpusim/device.py`, `bpusim/tile.py`) is the on-device substrate the experiments run through; there is no FPGA/RTL in this tree yet.
+HPCC (AHPCC Pinnacle, Slurm): `scripts/hpcc/build_env.sh` builds the environment once, `scripts/hpcc/submit.sh <experiment>` submits a lane; `MONDAY.md` / `MONDAY2.md` are the run ledgers. The device model (`bpusim/device.py`, `bpusim/tile.py`) is the on-device substrate the experiments run through.  **FPGA (rung ii, 2026-11-01):** `fpga/` holds the Kria KV260 tile emulator — SystemVerilog RTL, cocotb tests, PS firmware, Vivado scripts — gated bit-exactly against the integer reference `bpusim/fixed.py` (contract in `docs/reference_contract.md`, status in `docs/RESULTS.md`; 10 021-vector gate passes in simulation, no board run yet).

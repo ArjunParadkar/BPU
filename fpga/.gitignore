@@ -1,0 +1,8 @@
+.venv/
+tests/_build/
+ps/build/
+ps/src/bpu_tables.c
+hdl/zlut_q13.mem
+**/__pycache__/
+*.vcd
+*.fst
