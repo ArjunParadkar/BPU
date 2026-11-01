@@ -340,3 +340,27 @@ met**: the persistence-gated transfer forgets more than naive fine-tuning.
 * **E2 CIFAR-10** (3072-512-512-10, 3 % density, 5 epochs): local
   0.420, RigL 0.433, random 0.433: refuted by the document's
   criterion (clearly worse than random regrowth).
+
+## Figures (what the simulator produces)
+
+Every figure below is written by `scripts/make_figures.py` from the JSON in `results/`; the experiment that produced each one is named in its filename (`experiments/e*.py`).
+
+| GPT-2 under tile noise (E1) | Growth vs RigL (E2) | Drift / tracking (E3) |
+|---|---|---|
+| ![e1](figures/e1_gpt2_noise.png) | ![e2](figures/e2_grow_vs_rigl.png) | ![e3](figures/e3_drift.png) |
+
+| Ring self-organisation (E4) | Grid self-organisation (E5) | Memory (E6) | Modularity (E7) |
+|---|---|---|---|
+| ![e4](figures/e4_ring_selforg.png) | ![e5](figures/e5_grid_selforg.png) | ![e6](figures/e6_memory.png) | ![e7](figures/e7_modularity.png) |
+
+## Run it
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pytest -q                                   # unit tests of the tile / device / plasticity model
+python experiments/e4_ring_selforg.py       # a small experiment (CPU, minutes)
+python scripts/make_figures.py              # regenerate figures/ from results/
+```
+
+HPCC (AHPCC Pinnacle, Slurm): `scripts/hpcc/build_env.sh` builds the environment once, `scripts/hpcc/submit.sh <experiment>` submits a lane; `MONDAY.md` / `MONDAY2.md` are the run ledgers. The device model (`bpusim/device.py`, `bpusim/tile.py`) is the on-device substrate the experiments run through; there is no FPGA/RTL in this tree yet.
