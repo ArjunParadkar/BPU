@@ -27,6 +27,22 @@ results/<e>/results.json, figures/<e>.png
 DECISIONS.md   every modelling choice and the measurement that forced it
 ```
 
+## Run it
+
+```bash
+python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+pytest -q                                   # device / tile / plasticity model: ~70 tests, < 1 min
+python experiments/e4_ring_selforg.py       # one small experiment on a laptop CPU (minutes) -> results/e4_ring_selforg/
+python scripts/make_figures.py              # regenerate figures/*.png from results/
+```
+
+You should see the pytest summary (one pre-existing E7 route test fails, see `MONDAY.md`) and then
+`figures/e4_ring_selforg.png`, a ring attractor self-organising under tile noise — all seven headline
+figures are in the [Figures](#figures-what-the-simulator-produces) table below.
+
+**FPGA tile (rung ii):** `cd fpga/tests && python -m pytest -q test_gate.py` runs the bit-exact gate of the
+Kria KV260 tile RTL against `bpusim/fixed.py` under Verilator (needs the OSS CAD Suite; `fpga/README.md`).
+
 ## Install
 
 ```bash
